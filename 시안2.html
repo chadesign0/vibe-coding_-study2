@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>배점표 — 시안</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <style>
+    :root {
+      --nav-w: 220px;
+      --bg:        #f7f6f3;
+      --nav-bg:    #1c1917;
+      --nav-hover: rgba(255,255,255,0.06);
+      --nav-active:#292524;
+      --surface:   #ffffff;
+      --border:    #e8e5e1;
+      --text:      #1c1917;
+      --sub:       #a8a29e;
+      --muted:     #78716c;
+      --accent:    #e8602c;
+      --accent-bg: #fff3ef;
+      --green:     #22c55e;
+      --font: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; }
+
+    body {
+      display: flex;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ════════════════════════════════
+       사이드바 네브바
+    ════════════════════════════════ */
+    .nav {
+      width: var(--nav-w);
+      flex-shrink: 0;
+      background: var(--nav-bg);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .nav::-webkit-scrollbar { display: none; }
+
+    /* 로고 */
+    .nav__logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 16px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .logo-mark {
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo-mark svg { width: 14px; height: 14px; fill: #fff; }
+
+    .logo-text {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-badge {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.04em;
+    }
+
+    /* 월 선택 */
+    .nav__section {
+      padding: 16px 12px 8px;
+    }
+
+    .nav__section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.28);
+      padding: 0 6px;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .month-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+    }
+
+    .month-btn {
+      padding: 5px 0;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: rgba(255,255,255,0.4);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.1s;
+    }
+
+    .month-btn:hover {
+      background: var(--nav-hover);
+      color: rgba(255,255,255,0.8);
+    }
+
+    .month-btn.is-active {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* 병원 목록 */
+    .hosp-list {
+      padding: 4px 12px 12px;
+      flex: 1;
+    }
+
+    .hosp-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      color: rgba(255,255,255,0.55);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.1s;
+    }
+
+    .hosp-item:hover {
+      background: var(--nav-hover);
+      color: rgba(255,255,255,0.85);
+    }
+
+    .hosp-item.is-active {
+      background: var(--nav-active);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .hosp-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .hosp-dot--done    { background: var(--green); }
+    .hosp-dot--active  { background: var(--accent); }
+    .hosp-dot--empty   { background: rgba(255,255,255,0.18); }
+
+    .hosp-count {
+      margin-left: auto;
+      font-size: 11px;
+      color: rgba(255,255,255,0.25);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hosp-item.is-active .hosp-count { color: rgba(255,255,255,0.4); }
+
+    /* 하단 정보 */
+    .nav__footer {
+      padding: 12px 16px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 11px;
+      color: rgba(255,255,255,0.2);
+      line-height: 1.6;
+    }
+
+    /* ════════════════════════════════
+       메인 컨텐츠
+    ════════════════════════════════ */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    /* 상단 헤더 */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .topbar__left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .topbar__hospital {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .topbar__sep {
+      width: 1px;
+      height: 14px;
+      background: var(--border);
+    }
+
+    .topbar__month {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .topbar__right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* 버튼 */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 14px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.1s;
+      white-space: nowrap;
+    }
+
+    .btn:hover { border-color: #d6d3d1; color: var(--text); background: var(--bg); }
+
+    .btn--accent {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .btn--accent:hover { background: #d4531f; border-color: #d4531f; }
+
+    /* 컨트롤 바 */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 28px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .ctrl-div {
+      width: 1px;
+      height: 16px;
+      background: var(--border);
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 12px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      min-width: 200px;
+    }
+
+    .search-box svg { width: 13px; height: 13px; color: var(--sub); flex-shrink: 0; }
+
+    .search-box input {
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text);
+      width: 100%;
+      outline: none;
+    }
+
+    .search-box input::placeholder { color: var(--sub); }
+
+    /* 시트 탭 */
+    .sheet-tabs {
+      display: flex;
+      gap: 2px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .sheet-tabs::-webkit-scrollbar { display: none; }
+
+    .stab {
+      padding: 4px 11px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--sub);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.1s;
+      flex-shrink: 0;
+    }
+
+    .stab:hover { background: var(--bg); color: var(--text); }
+
+    .stab.is-active {
+      background: var(--bg);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    /* 채널 세그먼트 */
+    .seg {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      overflow: hidden;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+
+    .seg-btn {
+      padding: 4px 11px;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--sub);
+      cursor: pointer;
+      transition: all 0.1s;
+      white-space: nowrap;
+    }
+
+    .seg-btn + .seg-btn { border-left: 1px solid var(--border); }
+    .seg-btn:hover { color: var(--text); background: var(--bg); }
+    .seg-btn.is-active { background: var(--bg); color: var(--text); font-weight: 600; }
+
+    /* 키워드 입력 패널 */
+    .input-panel {
+      padding: 14px 28px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .input-panel__top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .scope-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--sub);
+    }
+
+    .scope-pills { display: flex; gap: 3px; }
+
+    .scope-pill {
+      padding: 3px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      font-family: inherit;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+
+    .scope-pill:hover { border-color: #d6d3d1; color: var(--text); }
+
+    .scope-pill.is-active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .input-panel__body {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .kw-textarea {
+      flex: 1;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text);
+      resize: vertical;
+      min-height: 68px;
+      line-height: 1.6;
+      outline: none;
+      transition: border-color 0.1s;
+    }
+
+    .kw-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+    .kw-textarea::placeholder { color: var(--sub); }
+
+    .input-panel__side {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      flex-shrink: 0;
+      min-width: 190px;
+    }
+
+    .file-inp {
+      font-family: inherit;
+      font-size: 12px;
+      color: var(--muted);
+      padding: 5px 9px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .panel-btns { display: flex; gap: 6px; }
+
+    .status-txt { font-size: 11.5px; color: var(--sub); min-height: 1.3em; }
+
+    /* 테이블 메타 */
+    .table-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 28px;
+      font-size: 11.5px;
+      color: var(--sub);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+
+    /* 테이블 */
+    .table-wrap {
+      flex: 1;
+      overflow: auto;
+    }
+
+    .score-table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .score-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 9px 12px;
+      text-align: left;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--sub);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .score-table thead th:first-child { padding-left: 28px; }
+    .score-table thead th:last-child  { padding-right: 28px; }
+
+    .score-table tbody td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .score-table tbody td:first-child { padding-left: 28px; color: var(--sub); font-size: 12px; }
+    .score-table tbody td:last-child  { padding-right: 28px; }
+
+    .score-table tbody tr:hover td { background: #faf9f7; }
+
+    .kw-link {
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .kw-link:hover { color: var(--accent); text-decoration: underline; }
+
+    .c-vol  { font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+    .c-s    { text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .c-s.s3 { color: var(--accent); }
+    .c-s.s2 { color: #3b82f6; }
+    .c-s.s1 { color: var(--muted); }
+    .c-s.s0 { color: #d6d3d1; font-weight: 400; }
+    .c-tot  { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; font-size: 13.5px; }
+
+    /* 푸터 */
+    .footer {
+      padding: 12px 28px;
+      font-size: 11px;
+      color: var(--sub);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    code {
+      font-family: 'Consolas', monospace;
+      font-size: 0.9em;
+      background: var(--bg);
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    /* 토스트 */
+    .toast {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 9px 18px;
+      background: var(--text);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+      z-index: 9999;
+    }
+
+    /* 시안 배너 */
+    .demo-banner {
+      background: var(--accent-bg);
+      border-bottom: 1px solid #fcd5c3;
+      padding: 6px 28px;
+      font-size: 11.5px;
+      color: var(--accent);
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ 사이드바 ══ -->
+<nav class="nav">
+
+  <!-- 로고 -->
+  <div class="nav__logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 14 14"><rect x="1" y="1" width="5" height="5" rx="1.2"/><rect x="8" y="1" width="5" height="5" rx="1.2"/><rect x="1" y="8" width="5" height="5" rx="1.2"/><rect x="8" y="8" width="5" height="5" rx="1.2"/></svg>
+    </div>
+    <span class="logo-text">배점표</span>
+    <span class="logo-badge">기획팀</span>
+  </div>
+
+  <!-- 월 선택 -->
+  <div class="nav__section">
+    <span class="nav__section-label">월 선택</span>
+    <div class="month-grid">
+      <button class="month-btn">1월</button>
+      <button class="month-btn">2월</button>
+      <button class="month-btn">3월</button>
+      <button class="month-btn is-active">4월</button>
+      <button class="month-btn">5월</button>
+      <button class="month-btn">6월</button>
+      <button class="month-btn">7월</button>
+      <button class="month-btn">8월</button>
+      <button class="month-btn">9월</button>
+      <button class="month-btn">10월</button>
+      <button class="month-btn">11월</button>
+      <button class="month-btn">12월</button>
+    </div>
+  </div>
+
+  <!-- 병원 목록 -->
+  <div class="hosp-list">
+    <span class="nav__section-label" style="padding:0 6px;display:block;margin-bottom:6px;">병원</span>
+
+    <button class="hosp-item">
+      <span class="hosp-dot hosp-dot--done"></span>포인트병원
+      <span class="hosp-count">916</span>
+    </button>
+    <button class="hosp-item">
+      <span class="hosp-dot hosp-dot--done"></span>삼성본병원
+      <span class="hosp-count">326</span>
+    </button>
+    <button class="hosp-item is-active">
+      <span class="hosp-dot hosp-dot--active"></span>대찬병원
+      <span class="hosp-count">326</span>
+    </button>
+    <button class="hosp-item">
+      <span class="hosp-dot hosp-dot--empty"></span>클래스병원
+      <span class="hosp-count">—</span>
+    </button>
+    <button class="hosp-item">
+      <span class="hosp-dot hosp-dot--empty"></span>새로운병원
+      <span class="hosp-count">—</span>
+    </button>
+    <button class="hosp-item">
+      <span class="hosp-dot hosp-dot--empty"></span>두발로병원
+      <span class="hosp-count">—</span>
+    </button>
+    <button class="hosp-item">
+      <span class="hosp-dot hosp-dot--empty"></span>SNU서울병원
+      <span class="hosp-count">—</span>
+    </button>
+    <button class="hosp-item">
+      <span class="hosp-dot hosp-dot--empty"></span>제이엘정형외과
+      <span class="hosp-count">—</span>
+    </button>
+  </div>
+
+  <!-- 사이드바 하단 -->
+  <div class="nav__footer">
+    MADE BY 차동민<br>FOR 기획팀
+  </div>
+
+</nav>
+
+<!-- ══ 메인 ══ -->
+<div class="main">
+
+  <!-- 탑바 -->
+  <div class="topbar">
+    <div class="topbar__left">
+      <span class="topbar__hospital">대찬병원</span>
+      <div class="topbar__sep"></div>
+      <span class="topbar__month">2026년 4월</span>
+    </div>
+    <div class="topbar__right">
+      <button class="btn">엑셀 내보내기</button>
+      <button class="btn btn--accent">채점</button>
+    </div>
+  </div>
+
+  <!-- 시안 배너 -->
+  <div class="demo-banner">시안 파일입니다 — 실제 데이터와 연결되지 않습니다.</div>
+
+  <!-- 컨트롤 바 -->
+  <div class="controls">
+    <!-- 검색 -->
+    <div class="search-box">
+      <svg viewBox="0 0 16 16" fill="none">
+        <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M10 10l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <input type="search" placeholder="키워드 검색…" />
+    </div>
+
+    <div class="ctrl-div"></div>
+
+    <!-- 시트 탭 -->
+    <div class="sheet-tabs">
+      <button class="stab is-active">지역 PC</button>
+      <button class="stab">지역 MOB</button>
+      <button class="stab">전국 PC</button>
+      <button class="stab">전국 MOB</button>
+      <button class="stab">기타 PC</button>
+      <button class="stab">기타 MOB</button>
+      <button class="stab">전체</button>
+    </div>
+
+    <!-- 열 표시 -->
+    <div class="seg">
+      <button class="seg-btn is-active">전체</button>
+      <button class="seg-btn">카페</button>
+      <button class="seg-btn">블로그</button>
+    </div>
+  </div>
+
+  <!-- 키워드 입력 패널 -->
+  <div class="input-panel">
+    <div class="input-panel__top">
+      <span class="scope-label">키워드 범위</span>
+      <div class="scope-pills">
+        <button class="scope-pill is-active">전체</button>
+        <button class="scope-pill">지역</button>
+        <button class="scope-pill">전국</button>
+        <button class="scope-pill">기타</button>
+      </div>
+    </div>
+    <div class="input-panel__body">
+      <textarea class="kw-textarea" placeholder="키워드를 줄바꿈으로 구분해 입력하세요. Enter 또는 [채점] 버튼으로 채점합니다.&#10;예) 인천정형외과 / 송도도수치료"></textarea>
+      <div class="input-panel__side">
+        <input type="file" class="file-inp" accept=".xlsx,.txt,.csv" />
+        <div class="panel-btns">
+          <button class="btn btn--accent">채점</button>
+          <button class="btn">전체 재채점</button>
+        </div>
+        <span class="status-txt"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 테이블 메타 -->
+  <div class="table-meta">
+    <span>대찬병원 · 4월 · 지역 PC · 네이버 검색 API 자동 채점</span>
+    <span>326행</span>
+  </div>
+
+  <!-- 테이블 -->
+  <div class="table-wrap">
+    <table class="score-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>키워드</th>
+          <th style="text-align:right">PC</th>
+          <th style="text-align:right">MOB</th>
+          <th style="text-align:center">파워링크</th>
+          <th style="text-align:center">업체</th>
+          <th style="text-align:center">지도</th>
+          <th style="text-align:center">카페</th>
+          <th style="text-align:center">블로그</th>
+          <th style="text-align:center">뉴스</th>
+          <th style="text-align:center">동영상</th>
+          <th style="text-align:center">웹</th>
+          <th style="text-align:right">합계</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td><a class="kw-link" href="#">송도정형외과</a></td><td class="c-vol">1,550</td><td class="c-vol">4,500</td><td class="c-s s3">3</td><td class="c-s s2">2</td><td class="c-s s3">3</td><td class="c-s s0">—</td><td class="c-s s2">2</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s1">1</td><td class="c-tot">11</td></tr>
+        <tr><td>2</td><td><a class="kw-link" href="#">청라정형외과</a></td><td class="c-vol">980</td><td class="c-vol">2,800</td><td class="c-s s3">3</td><td class="c-s s3">3</td><td class="c-s s2">2</td><td class="c-s s0">—</td><td class="c-s s3">3</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-tot">11</td></tr>
+        <tr><td>3</td><td><a class="kw-link" href="#">인천정형외과</a></td><td class="c-vol">4,200</td><td class="c-vol">12,300</td><td class="c-s s2">2</td><td class="c-s s1">1</td><td class="c-s s2">2</td><td class="c-s s0">—</td><td class="c-s s1">1</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-tot">6</td></tr>
+        <tr><td>4</td><td><a class="kw-link" href="#">부평정형외과</a></td><td class="c-vol">760</td><td class="c-vol">2,100</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s1">1</td><td class="c-s s0">—</td><td class="c-s s2">2</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-tot">3</td></tr>
+        <tr><td>5</td><td><a class="kw-link" href="#">구월동정형외과</a></td><td class="c-vol">620</td><td class="c-vol">1,840</td><td class="c-s s3">3</td><td class="c-s s2">2</td><td class="c-s s3">3</td><td class="c-s s0">—</td><td class="c-s s3">3</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s1">1</td><td class="c-tot">12</td></tr>
+        <tr><td>6</td><td><a class="kw-link" href="#">인천허리디스크</a></td><td class="c-vol">3,100</td><td class="c-vol">8,900</td><td class="c-s s1">1</td><td class="c-s s0">—</td><td class="c-s s1">1</td><td class="c-s s0">—</td><td class="c-s s2">2</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-tot">4</td></tr>
+        <tr><td>7</td><td><a class="kw-link" href="#">인천재활병원</a></td><td class="c-vol">880</td><td class="c-vol">2,430</td><td class="c-s s0">—</td><td class="c-s s1">1</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s1">1</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-tot">2</td></tr>
+        <tr><td>8</td><td><a class="kw-link" href="#">인천도수치료</a></td><td class="c-vol">2,340</td><td class="c-vol">7,200</td><td class="c-s s3">3</td><td class="c-s s3">3</td><td class="c-s s2">2</td><td class="c-s s0">—</td><td class="c-s s3">3</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s1">1</td><td class="c-tot">12</td></tr>
+        <tr><td>9</td><td><a class="kw-link" href="#">인천신경외과</a></td><td class="c-vol">1,920</td><td class="c-vol">5,600</td><td class="c-s s2">2</td><td class="c-s s1">1</td><td class="c-s s1">1</td><td class="c-s s0">—</td><td class="c-s s1">1</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-tot">5</td></tr>
+        <tr><td>10</td><td><a class="kw-link" href="#">인천논현동정형외과</a></td><td class="c-vol">420</td><td class="c-vol">1,180</td><td class="c-s s3">3</td><td class="c-s s2">2</td><td class="c-s s3">3</td><td class="c-s s0">—</td><td class="c-s s2">2</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s2">2</td><td class="c-tot">12</td></tr>
+        <tr><td>11</td><td><a class="kw-link" href="#">주안정형외과</a></td><td class="c-vol">540</td><td class="c-vol">1,620</td><td class="c-s s2">2</td><td class="c-s s1">1</td><td class="c-s s2">2</td><td class="c-s s0">—</td><td class="c-s s1">1</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-tot">6</td></tr>
+        <tr><td>12</td><td><a class="kw-link" href="#">인천신경과</a></td><td class="c-vol">890</td><td class="c-vol">2,670</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s1">1</td><td class="c-s s0">—</td><td class="c-s s1">1</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-s s0">—</td><td class="c-tot">2</td></tr>
+        <tr style="opacity:.3"><td colspan="13" style="text-align:center;padding:16px;font-size:12px;color:var(--sub)">· · · 314개 행 더 있음 · · ·</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer class="footer">
+    <code>python server.py</code> 실행 후 <code>http://127.0.0.1:8080</code> 접속 · 데이터: <code>data/scoring-data.json</code>
+  </footer>
+
+</div>
+
+<script>
+  // 월 탭
+  document.querySelectorAll('.month-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      b.closest('.month-grid').querySelectorAll('.month-btn').forEach(x => x.classList.remove('is-active'));
+      b.classList.add('is-active');
+    });
+  });
+  // 병원 목록
+  document.querySelectorAll('.hosp-item').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.hosp-item').forEach(x => x.classList.remove('is-active'));
+      b.classList.add('is-active');
+      document.querySelector('.topbar__hospital').textContent = b.querySelector('.hosp-dot').nextSibling.textContent.trim();
+    });
+  });
+  // 시트 탭
+  document.querySelectorAll('.stab').forEach(b => {
+    b.addEventListener('click', () => {
+      b.closest('.sheet-tabs').querySelectorAll('.stab').forEach(x => x.classList.remove('is-active'));
+      b.classList.add('is-active');
+    });
+  });
+  // 채널 세그
+  document.querySelectorAll('.seg-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      b.closest('.seg').querySelectorAll('.seg-btn').forEach(x => x.classList.remove('is-active'));
+      b.classList.add('is-active');
+    });
+  });
+  // 범위 필
+  document.querySelectorAll('.scope-pill').forEach(b => {
+    b.addEventListener('click', () => {
+      b.closest('.scope-pills').querySelectorAll('.scope-pill').forEach(x => x.classList.remove('is-active'));
+      b.classList.add('is-active');
+    });
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,41 @@
+{
+  "monthLabel": "4월",
+  "scoringYear": 2026,
+  "blogRequirePostMonth": true,
+  "hospitalName": "SNU서울병원",
+  "hospitalNames": [
+    "SNU서울병원"
+  ],
+  "hospitalDomains": [
+    "https://snuseoul.kr/"
+  ],
+  "hospitalBlogBases": [
+    "https://blog.naver.com/snuseoulhospital",
+    "https://blog.naver.com/dlwngks9808",
+    "https://blog.naver.com/snuseoulfoot",
+    "https://blog.naver.com/mission52814"
+  ],
+  "hospitalCafeBases": [
+    "https://cafe.naver.com/q5q5q5",
+    "https://cafe.naver.com/pajumom",
+    "https://cafe.naver.com/usem"
+  ],
+  "sourceFileNote": "SNU서울병원_배점표_26년 03월.xlsx",
+  "manualRanks": {},
+  "manualRanksByTab": {},
+  "regionDefault": "",
+  "keywords": [],
+  "rowsBySheetKey": {
+    "regional-pc": [],
+    "regional-mob": [],
+    "national-pc": [],
+    "national-mob": []
+  },
+  "sheetTitles": {
+    "regional-pc": "2026 지역 PC",
+    "regional-mob": "2026 지역 MOB",
+    "national-pc": "2026 전국 PC",
+    "national-mob": "2026 전국 MOB"
+  },
+  "keywordChannels": {}
+}

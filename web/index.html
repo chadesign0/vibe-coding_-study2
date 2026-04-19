@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <title>배점표 자동화</title>
+    <link rel="preload" href="/web/MagdaCleanMono-Regular.otf" as="font" type="font/otf" crossorigin />
+    <link rel="stylesheet" href="./styles.css?v=24" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="header__brand">
+          <p class="header__eyebrow">기획팀 내부 도구</p>
+          <h1 class="header__title">배점표 자동화</h1>
+          <p class="header__subtitle">Made by 차동민 · For 기획팀</p>
+        </div>
+      </header>
+
+      <nav class="toolbar" aria-label="월·시트 선택">
+        <div class="toolbar__group toolbar__group--stretch">
+          <label class="toolbar__label" for="hospitalFilterInput">병원명</label>
+          <div class="toolbar__field-row">
+            <input
+              type="search"
+              id="hospitalFilterInput"
+              class="input"
+              placeholder="병원명 검색…"
+              autocomplete="off"
+            />
+            <button type="button" class="btn toolbar__search-btn" id="hospitalFilterBtn">
+              검색
+            </button>
+          </div>
+        </div>
+        <div class="toolbar__group">
+          <span class="toolbar__label">병원</span>
+          <div class="hospital-select" id="hospitalSelect">
+            <button
+              type="button"
+              class="hospital-select__trigger"
+              id="hospitalTrigger"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+            >
+              <span id="hospitalTriggerText">병원 선택</span>
+              <span aria-hidden="true">▾</span>
+            </button>
+            <div class="hospital-select__menu" id="hospitalMenu" role="listbox" hidden></div>
+          </div>
+        </div>
+        <div class="toolbar__group">
+          <span class="toolbar__label">월</span>
+          <div class="tabs" id="monthTabs" role="tablist"></div>
+        </div>
+        <div class="toolbar__group toolbar__group--stretch toolbar__group--filter-split">
+          <div class="toolbar__filter-split">
+            <div class="toolbar__filter-search">
+              <label class="toolbar__label" for="filterInput">표 검색</label>
+              <input
+                type="search"
+                id="filterInput"
+                class="input"
+                placeholder="지역·키워드 검색…"
+                autocomplete="off"
+              />
+            </div>
+            <div class="toolbar__channel-wrap">
+              <span class="toolbar__label" id="channelTabsLabel">열 표시</span>
+              <div
+                class="channel-tabs"
+                id="channelTabs"
+                role="tablist"
+                aria-labelledby="channelTabsLabel"
+              ></div>
+            </div>
+            <div class="toolbar__sheet-quick-wrap">
+              <span class="toolbar__label" id="sheetQuickTabsLabel">시트 선택</span>
+              <div
+                class="channel-tabs"
+                id="sheetQuickTabs"
+                role="tablist"
+                aria-labelledby="sheetQuickTabsLabel"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <section class="upload-panel">
+        <div class="upload-panel__scope">
+          <span class="toolbar__label" id="uploadScopeTabsLabel">키워드 범위</span>
+          <div
+            class="channel-tabs upload-panel__scope-tabs"
+            id="uploadScopeTabs"
+            role="tablist"
+            aria-labelledby="uploadScopeTabsLabel"
+          ></div>
+        </div>
+        <div class="upload-panel__row">
+          <textarea
+            id="keywordsText"
+            class="input input--textarea"
+            placeholder="키워드를 입력하면 선택한 범위(전체/지역/전국/기타)로 저장됩니다. Enter(또는 [채점])로 채점할 수 있습니다.&#10;예) 주엽역무릎통증 / 정발산역허리병원"
+          ></textarea>
+        </div>
+        <div class="upload-panel__row upload-panel__row--score">
+          <button type="button" id="uploadRunBtn" class="btn">채점</button>
+          <span id="uploadScoreStatus" class="upload-panel__score-status" aria-live="polite"></span>
+          <button type="button" id="exportExcelBtn" class="btn btn--ghost upload-panel__export-btn">
+            엑셀 내보내기
+          </button>
+          <button type="button" id="uploadRerunBtn" class="btn btn--ghost upload-panel__rerun-btn">
+            전체 재채점
+          </button>
+        </div>
+      </section>
+
+      <section class="panel" aria-live="polite">
+        <div class="panel__meta">
+          <span id="sourceInfo" class="panel__source"></span>
+          <div class="panel__stats">
+            <span id="rowCount" class="panel__count"></span>
+            <div class="panel__total-badge" id="keywordTotalBadge" hidden>
+              <span class="panel__total-label">키워드별 합계</span>
+              <span class="panel__total-value" id="keywordTotalValue">0</span>
+              <span class="panel__total-unit">점</span>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="score-table" id="scoreTable">
+            <thead id="scoreHead"></thead>
+            <tbody id="scoreBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>
+          기본 주소는 <code>http://127.0.0.1:8080</code>입니다. 프로젝트 폴더에서 <code>python server.py</code>로
+          연 뒤 접속하세요. 배점 데이터는 <code>data/scoring-data.json</code> 한 곳에 저장됩니다. 팀 공용 서버가
+          있으면 <code>?api=https://서버주소</code>를 붙일 수 있습니다.
+        </p>
+      </footer>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script src="/cat.js?v=4"></script>
+    <script src="/app.js?v=27" type="module"></script>
+  </body>
+</html>

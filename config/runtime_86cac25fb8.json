@@ -1,0 +1,36 @@
+{
+  "monthLabel": "4월",
+  "sourceFileNote": "제이엘정형외과_키워드_배점표_3월.xlsx",
+  "hospitalName": "제이엘정형외과",
+  "hospitalNames": [
+    "제이엘정형외과"
+  ],
+  "hospitalDomains": [
+    "https://jlorthopedics.com/"
+  ],
+  "hospitalBlogBases": [
+    "https://blog.naver.com/muscle118072",
+    "https://blog.naver.com/jlorthopedics"
+  ],
+  "hospitalCafeBases": [
+    "https://cafe.naver.com/q5q5q5"
+  ],
+  "manualRanks": {},
+  "manualRanksByTab": {},
+  "regionDefault": "",
+  "keywords": [],
+  "rowsBySheetKey": {
+    "regional-pc": [],
+    "regional-mob": [],
+    "national-pc": [],
+    "national-mob": []
+  },
+  "sheetTitles": {
+    "regional-pc": "2026 지역 PC",
+    "regional-mob": "2026 지역 MOB",
+    "national-pc": "2026 전국 PC",
+    "national-mob": "2026 전국 MOB"
+  },
+  "scoringNote": "API 자동 탭(지도/카페/블로그/보도자료/웹)은 1위=3점, 2~5위=2점, 6~10위=1점, 미노출=0점.",
+  "keywordChannels": {}
+}

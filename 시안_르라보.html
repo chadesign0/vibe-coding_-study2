@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>배점표 자동화 — Le Labo Style</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Noto+Sans+KR:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f7f4ef;
+        --surface: #ffffff;
+        --surface-2: #f2ede6;
+        --border: #d8d2c8;
+        --border-dark: #b8b0a4;
+        --text: #1c1a17;
+        --muted: #8a8478;
+        --accent: #1c1a17;
+        --accent-warm: #6b5f4e;
+        --radius: 0px;
+        --font-serif: "Courier Prime", "Courier New", "Noto Sans KR", monospace;
+        --font-sans: "Courier Prime", "Courier New", "Noto Sans KR", monospace;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: var(--font-sans);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        font-weight: 300;
+      }
+
+      /* ── 레이아웃 ── */
+      .app {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 0 2rem 4rem;
+      }
+
+      /* ── 헤더 ── */
+      .header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        padding: 3rem 0 2rem;
+        border-bottom: 1px solid var(--border-dark);
+        margin-bottom: 2.5rem;
+      }
+
+      .header__brand {}
+
+      .header__eyebrow {
+        font-family: var(--font-sans);
+        font-size: 0.68rem;
+        font-weight: 500;
+        letter-spacing: 0.10em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 0.6rem;
+      }
+
+      .header__title {
+        font-family: var(--font-serif);
+        font-size: 2.6rem;
+        font-weight: 300;
+        letter-spacing: 0.01em;
+        margin: 0;
+        line-height: 1.1;
+      }
+
+      .header__subtitle {
+        font-family: var(--font-sans);
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0.75rem 0 0;
+        font-weight: 400;
+      }
+
+      /* ── 툴바 ── */
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 1.5rem 2.5rem;
+        padding: 1.5rem 1.75rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        margin-bottom: 1px;
+      }
+
+      .toolbar__group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        min-width: 0;
+      }
+
+      .toolbar__label {
+        font-size: 0.65rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      /* ── 인풋 ── */
+      .input {
+        width: 100%;
+        padding: 0.6rem 0.85rem;
+        border: 1px solid var(--border);
+        border-radius: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-sans);
+        font-size: 0.88rem;
+        font-weight: 300;
+        caret-color: var(--accent);
+        transition: border-color 0.2s;
+      }
+
+      .input::placeholder {
+        color: var(--muted);
+        font-weight: 300;
+      }
+
+      .input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      .input--textarea {
+        min-height: 96px;
+        resize: vertical;
+        line-height: 1.7;
+      }
+
+      /* ── 버튼 ── */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.6rem 1.5rem;
+        font-family: var(--font-sans);
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        border: 1px solid var(--accent);
+        background: var(--accent);
+        color: var(--bg);
+        transition: background 0.2s, color 0.2s;
+      }
+
+      .btn:hover {
+        background: transparent;
+        color: var(--accent);
+      }
+
+      .btn--ghost {
+        background: transparent;
+        color: var(--accent);
+        border-color: var(--border-dark);
+      }
+
+      .btn--ghost:hover {
+        border-color: var(--accent);
+      }
+
+      /* ── 병원 셀렉트 ── */
+      .hospital-select {
+        position: relative;
+        min-width: 220px;
+      }
+
+      .hospital-select__trigger {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        padding: 0.6rem 0.85rem;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-sans);
+        font-size: 0.88rem;
+        font-weight: 300;
+        cursor: pointer;
+        transition: border-color 0.2s;
+      }
+
+      .hospital-select__trigger:hover,
+      .hospital-select__trigger:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      .hospital-select__menu {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: calc(100% + 2px);
+        max-height: 260px;
+        overflow: auto;
+        background: var(--surface);
+        border: 1px solid var(--border-dark);
+        box-shadow: 0 8px 32px rgba(28, 26, 23, 0.1);
+        z-index: 20;
+        padding: 0.25rem;
+      }
+
+      .hospital-select__option {
+        width: 100%;
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        font-family: var(--font-sans);
+        font-size: 0.85rem;
+        font-weight: 300;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+
+      .hospital-select__option:hover {
+        background: var(--surface-2);
+      }
+
+      .hospital-select__option[aria-selected="true"] {
+        background: var(--surface-2);
+        font-weight: 500;
+      }
+
+      /* ── 탭 ── */
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+      }
+
+      .tab {
+        padding: 0.45rem 0.9rem;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted);
+        font-family: var(--font-sans);
+        font-size: 0.78rem;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+
+      .tab:hover {
+        color: var(--text);
+        border-color: var(--border);
+      }
+
+      .tab[aria-selected="true"] {
+        color: var(--text);
+        background: var(--surface-2);
+        border-color: var(--border-dark);
+      }
+
+      /* ── 채널 탭 ── */
+      .channel-tabs {
+        display: flex;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        gap: 0;
+      }
+
+      .channel-tab {
+        flex: 1;
+        padding: 0.45rem 0.5rem;
+        border: none;
+        border-right: 1px solid var(--border);
+        background: transparent;
+        color: var(--muted);
+        font-family: var(--font-sans);
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.15s;
+      }
+
+      .channel-tab:last-child {
+        border-right: none;
+      }
+
+      .channel-tab:hover {
+        color: var(--text);
+        background: var(--surface-2);
+      }
+
+      .channel-tab[aria-selected="true"] {
+        color: var(--text);
+        background: var(--surface-2);
+        font-weight: 600;
+      }
+
+      /* ── 툴바 레이아웃 ── */
+      .toolbar__field-row {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+      }
+
+      .toolbar__field-row .input {
+        flex: 1;
+        border-right: none;
+      }
+
+      .toolbar__search-btn {
+        padding: 0.6rem 1.1rem;
+        font-size: 0.68rem;
+      }
+
+      .toolbar__group--stretch {
+        flex: 1 1 240px;
+        min-width: min(100%, 200px);
+      }
+
+      .toolbar__group--filter-split {
+        flex: 1 1 560px;
+        min-width: min(100%, 280px);
+      }
+
+      .toolbar__filter-split {
+        display: flex;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        gap: 1rem;
+        width: 100%;
+      }
+
+      .toolbar__filter-search {
+        flex: 0 1 220px;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .toolbar__channel-wrap,
+      .toolbar__sheet-quick-wrap {
+        flex: 1 1 360px;
+        min-width: 320px;
+        max-width: 440px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .toolbar__sheet-quick-wrap .channel-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        scrollbar-width: thin;
+      }
+
+      .toolbar__sheet-quick-wrap .channel-tab {
+        flex: 0 0 auto;
+        min-width: 78px;
+      }
+
+      /* ── 업로드 패널 ── */
+      .upload-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        padding: 1.5rem 1.75rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        margin-bottom: 1px;
+      }
+
+      .upload-panel__scope {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .upload-panel__scope-tabs {
+        align-self: flex-start;
+      }
+
+      .upload-panel__scope-tabs .channel-tab {
+        min-width: 4.5rem;
+      }
+
+      .upload-panel__row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        align-items: center;
+      }
+
+      .upload-panel__row--score {
+        align-items: center;
+        gap: 0.85rem;
+      }
+
+      .upload-panel__score-status {
+        font-size: 0.78rem;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+        color: var(--muted);
+        min-height: 1.35em;
+      }
+
+      .upload-panel__rerun-btn,
+      .upload-panel__export-btn {
+        margin-left: auto;
+      }
+
+      .upload-panel__export-btn + .upload-panel__rerun-btn {
+        margin-left: 0;
+      }
+
+      /* ── 패널 (테이블) ── */
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        overflow: hidden;
+      }
+
+      .panel__meta {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        font-size: 0.78rem;
+        color: var(--muted);
+        border-bottom: 1px solid var(--border);
+        background: var(--surface-2);
+        letter-spacing: 0.01em;
+      }
+
+      .panel__stats {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .panel__total-badge {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 0.3rem 0.5rem;
+        padding: 0.35rem 0.85rem;
+        background: var(--bg);
+        border: 1px solid var(--border-dark);
+      }
+
+      .panel__total-label {
+        font-size: 0.65rem;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .panel__total-value {
+        font-family: var(--font-serif);
+        font-size: 1.3rem;
+        font-weight: 400;
+        font-variant-numeric: tabular-nums;
+        color: var(--text);
+        line-height: 1;
+      }
+
+      .panel__total-unit {
+        font-size: 0.75rem;
+        color: var(--muted);
+        font-weight: 400;
+      }
+
+      .table-wrap {
+        overflow: auto;
+        max-height: min(70vh, 720px);
+      }
+
+      .score-table {
+        width: max-content;
+        min-width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+      }
+
+      .score-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        padding: 0.75rem 0.75rem;
+        text-align: left;
+        font-family: var(--font-sans);
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        background: var(--surface-2);
+        border-bottom: 1px solid var(--border-dark);
+        white-space: nowrap;
+        color: var(--muted);
+      }
+
+      .score-table tbody td {
+        padding: 0.55rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+        font-weight: 300;
+      }
+
+      .score-table tbody tr:hover {
+        background: var(--surface-2);
+      }
+
+      .score-table .num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        font-family: var(--font-serif);
+      }
+
+      .score-table .score {
+        text-align: center;
+        font-family: var(--font-serif);
+        font-size: 0.95rem;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .score-table .score.is-empty {
+        color: var(--muted);
+        font-weight: 300;
+      }
+
+      /* ── 푸터 ── */
+      .footer {
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.75rem;
+        color: var(--muted);
+        font-weight: 300;
+        letter-spacing: 0.01em;
+      }
+
+      code {
+        font-size: 0.82em;
+        background: var(--surface-2);
+        padding: 0.1em 0.4em;
+        border: 1px solid var(--border);
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        max-width: min(92vw, 28rem);
+        padding: 0.7rem 1.2rem;
+        background: var(--text);
+        color: var(--bg);
+        font-size: 0.82rem;
+        font-weight: 300;
+        letter-spacing: 0.01em;
+        box-shadow: 0 8px 32px rgba(28, 26, 23, 0.15);
+        z-index: 10;
+      }
+
+      /* ── 더미 데이터 표시용 ── */
+      .demo-badge {
+        display: inline-block;
+        font-size: 0.6rem;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        padding: 0.2rem 0.5rem;
+        margin-left: 1rem;
+        vertical-align: middle;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+
+      <!-- 헤더 -->
+      <header class="header">
+        <div class="header__brand">
+          <p class="header__eyebrow">기획팀 내부 도구</p>
+          <h1 class="header__title">배점표 자동화</h1>
+          <p class="header__subtitle">Made by 차동민 &nbsp;·&nbsp; For 기획팀</p>
+        </div>
+      </header>
+
+      <!-- 툴바 -->
+      <nav class="toolbar" aria-label="월·시트 선택">
+        <div class="toolbar__group toolbar__group--stretch">
+          <label class="toolbar__label" for="hospitalFilterInput">병원명</label>
+          <div class="toolbar__field-row">
+            <input
+              type="search"
+              id="hospitalFilterInput"
+              class="input"
+              placeholder="병원명 검색…"
+              autocomplete="off"
+            />
+            <button type="button" class="btn toolbar__search-btn">검색</button>
+          </div>
+        </div>
+        <div class="toolbar__group">
+          <span class="toolbar__label">병원</span>
+          <div class="hospital-select">
+            <button type="button" class="hospital-select__trigger">
+              <span>병원 선택</span>
+              <span aria-hidden="true">▾</span>
+            </button>
+          </div>
+        </div>
+        <div class="toolbar__group">
+          <span class="toolbar__label">월</span>
+          <div class="tabs" role="tablist">
+            <button class="tab" role="tab">1월</button>
+            <button class="tab" role="tab">2월</button>
+            <button class="tab" role="tab">3월</button>
+            <button class="tab" role="tab" aria-selected="true">4월</button>
+          </div>
+        </div>
+        <div class="toolbar__group toolbar__group--stretch toolbar__group--filter-split">
+          <div class="toolbar__filter-split">
+            <div class="toolbar__filter-search">
+              <label class="toolbar__label" for="filterInput">표 검색</label>
+              <input type="search" id="filterInput" class="input" placeholder="지역·키워드 검색…" autocomplete="off" />
+            </div>
+            <div class="toolbar__channel-wrap">
+              <span class="toolbar__label">열 표시</span>
+              <div class="channel-tabs" role="tablist">
+                <button class="channel-tab" role="tab" aria-selected="true">전체</button>
+                <button class="channel-tab" role="tab">PC</button>
+                <button class="channel-tab" role="tab">MOB</button>
+                <button class="channel-tab" role="tab">VIEW</button>
+              </div>
+            </div>
+            <div class="toolbar__sheet-quick-wrap">
+              <span class="toolbar__label">시트 선택</span>
+              <div class="channel-tabs" role="tablist" style="overflow-x:auto; flex-wrap:nowrap;">
+                <button class="channel-tab" role="tab" style="flex:0 0 auto; min-width:78px;" aria-selected="true">지역 PC</button>
+                <button class="channel-tab" role="tab" style="flex:0 0 auto; min-width:78px;">지역 MOB</button>
+                <button class="channel-tab" role="tab" style="flex:0 0 auto; min-width:78px;">전국 PC</button>
+                <button class="channel-tab" role="tab" style="flex:0 0 auto; min-width:78px;">전국 MOB</button>
+                <button class="channel-tab" role="tab" style="flex:0 0 auto; min-width:78px;">기타 PC</button>
+                <button class="channel-tab" role="tab" style="flex:0 0 auto; min-width:78px;">기타 MOB</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- 업로드 패널 -->
+      <section class="upload-panel">
+        <div class="upload-panel__scope">
+          <span class="toolbar__label">키워드 범위</span>
+          <div class="channel-tabs upload-panel__scope-tabs" style="align-self:flex-start;" role="tablist">
+            <button class="channel-tab" role="tab" aria-selected="true" style="min-width:4.5rem;">전체</button>
+            <button class="channel-tab" role="tab" style="min-width:4.5rem;">지역</button>
+            <button class="channel-tab" role="tab" style="min-width:4.5rem;">전국</button>
+            <button class="channel-tab" role="tab" style="min-width:4.5rem;">기타</button>
+          </div>
+        </div>
+        <div class="upload-panel__row">
+          <textarea
+            class="input input--textarea"
+            placeholder="키워드를 입력하면 선택한 범위(전체/지역/전국/기타)로 저장됩니다. Enter(또는 [채점])로 채점할 수 있습니다.&#10;예) 주엽역무릎통증 / 정발산역허리병원"
+          ></textarea>
+        </div>
+        <div class="upload-panel__row">
+          <input type="file" class="input" accept=".xlsx,.txt,.csv" />
+        </div>
+        <div class="upload-panel__row upload-panel__row--score">
+          <button type="button" class="btn">채점</button>
+          <span class="upload-panel__score-status">채점 준비 완료</span>
+          <button type="button" class="btn btn--ghost upload-panel__export-btn">엑셀 내보내기</button>
+          <button type="button" class="btn btn--ghost upload-panel__rerun-btn">전체 재채점</button>
+        </div>
+      </section>
+
+      <!-- 데이터 패널 -->
+      <section class="panel" aria-live="polite">
+        <div class="panel__meta">
+          <span class="panel__source">포인트병원 · 2026년 4월 · 지역 PC <span class="demo-badge">시안용 데이터</span></span>
+          <div class="panel__stats">
+            <span class="panel__count">총 12행</span>
+            <div class="panel__total-badge">
+              <span class="panel__total-label">키워드별 합계</span>
+              <span class="panel__total-value">847</span>
+              <span class="panel__total-unit">점</span>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="score-table">
+            <thead>
+              <tr>
+                <th>지역</th>
+                <th>키워드</th>
+                <th class="num">PC 순위</th>
+                <th class="num">PC 점수</th>
+                <th class="num">MOB 순위</th>
+                <th class="num">MOB 점수</th>
+                <th class="num">합계</th>
+                <th>채점일</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>일산</td>
+                <td>주엽역무릎통증</td>
+                <td class="num">3</td>
+                <td class="score">85</td>
+                <td class="num">1</td>
+                <td class="score">100</td>
+                <td class="score">185</td>
+                <td>2026-04-17</td>
+              </tr>
+              <tr>
+                <td>일산</td>
+                <td>정발산역허리병원</td>
+                <td class="num">5</td>
+                <td class="score">72</td>
+                <td class="num">4</td>
+                <td class="score">78</td>
+                <td class="score">150</td>
+                <td>2026-04-17</td>
+              </tr>
+              <tr>
+                <td>일산</td>
+                <td>일산어깨통증</td>
+                <td class="num">2</td>
+                <td class="score">91</td>
+                <td class="num">6</td>
+                <td class="score">65</td>
+                <td class="score">156</td>
+                <td>2026-04-17</td>
+              </tr>
+              <tr>
+                <td>강남</td>
+                <td>강남역정형외과</td>
+                <td class="num">8</td>
+                <td class="score">58</td>
+                <td class="num">3</td>
+                <td class="score">84</td>
+                <td class="score">142</td>
+                <td>2026-04-17</td>
+              </tr>
+              <tr>
+                <td>강남</td>
+                <td>강남허리디스크</td>
+                <td class="num">—</td>
+                <td class="score is-empty">—</td>
+                <td class="num">2</td>
+                <td class="score">90</td>
+                <td class="score">90</td>
+                <td>2026-04-17</td>
+              </tr>
+              <tr>
+                <td>서초</td>
+                <td>서초무릎인공관절</td>
+                <td class="num">1</td>
+                <td class="score">100</td>
+                <td class="num">7</td>
+                <td class="score">62</td>
+                <td class="score">162</td>
+                <td>2026-04-17</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>
+          배점 데이터는 <code>data/scoring-data.json</code>에 저장됩니다.
+          팀 공용 서버 연결 시 <code>?api=https://서버주소</code>를 붙일 수 있습니다.
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>

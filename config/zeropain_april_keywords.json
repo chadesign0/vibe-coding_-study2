@@ -1,0 +1,23 @@
+{
+  "monthLabel": "4월",
+  "scoringYear": 2026,
+  "blogRequirePostMonth": true,
+  "sourceFileNote": "제로마취통증의학과 4월~ (3월·카페 채널 없음, 4월부터 별도 채점)",
+  "hospitalName": "제로마취통증의학과",
+  "hospitalNames": [
+    "제로마취통증의학과"
+  ],
+  "hospitalDomains": [
+    "https://zeropainwonju.com/"
+  ],
+  "hospitalBlogBases": [
+    "https://blog.naver.com/zeropainwonju"
+  ],
+  "skipCafeScoring": true,
+  "manualRanks": {},
+  "manualRanksByTab": {},
+  "regionDefault": "",
+  "keywordChannels": {},
+  "keywords": [],
+  "scoringNote": "카페: 공식 카페 없음 → 네이버 카페 탭은 항상 0점(skipCafeScoring). 블로그·기타 탭은 일반 규칙."
+}
