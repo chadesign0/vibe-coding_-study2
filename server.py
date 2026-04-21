@@ -713,57 +713,80 @@ def delete_keyword_from_evidence(keyword: str) -> bool:
     return changed
 
 
-def _github_push_file(file_path: Path, commit_message: str) -> bool:
-    """scoring-data.json / last-run-evidence.json 을 GitHub에 자동 커밋."""
+def _github_push_scoring_files() -> None:
+    """채점 완료 후 scoring-data.json + last-run-evidence.json 을 GitHub에 자동 커밋.
+    Git Data API 사용 → 대용량 파일(1MB+) 처리 가능."""
     token = os.getenv("GITHUB_TOKEN", "").strip()
-    owner = os.getenv("GITHUB_REPO_OWNER", "chadesign0").strip()
-    repo = os.getenv("GITHUB_REPO_NAME", "vibe-coding_-study2").strip()
     if not token:
-        return False
+        return
+    owner = os.getenv("GITHUB_REPO_OWNER", "chadesign0").strip()
+    repo  = os.getenv("GITHUB_REPO_NAME",  "vibe-coding_-study2").strip()
 
-    rel = file_path.relative_to(ROOT).as_posix()
-    api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{rel}"
+    files: list[Path] = []
+    if DATA_PATH.exists():
+        files.append(DATA_PATH)
+    ev_path = ROOT / "data" / "last-run-evidence.json"
+    if ev_path.exists():
+        files.append(ev_path)
+    if not files:
+        return
+
     headers = {
         "Authorization": f"token {token}",
         "Accept": "application/vnd.github+json",
         "Content-Type": "application/json",
     }
+    base = f"https://api.github.com/repos/{owner}/{repo}"
 
-    # 현재 파일 SHA 조회
-    try:
-        req = urllib.request.Request(api_url, headers=headers)
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            sha = json.loads(resp.read()).get("sha", "")
-    except Exception:
-        sha = ""
-
-    # 파일 내용 base64 인코딩
-    content_b64 = base64.b64encode(file_path.read_bytes()).decode()
-
-    body = json.dumps({
-        "message": commit_message,
-        "content": content_b64,
-        "sha": sha,
-    }).encode()
+    def gh(url: str, data: dict | None = None, method: str | None = None) -> dict:
+        body = json.dumps(data).encode() if data is not None else None
+        req = urllib.request.Request(
+            url, data=body, headers=headers,
+            method=method or ("POST" if body else "GET"),
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read())
 
     try:
-        req = urllib.request.Request(api_url, data=body, headers=headers, method="PUT")
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            return resp.status in (200, 201)
+        # 1. 각 파일 blob 생성
+        tree_entries = []
+        for fp in files:
+            blob = gh(f"{base}/git/blobs", {
+                "content": base64.b64encode(fp.read_bytes()).decode(),
+                "encoding": "base64",
+            })
+            tree_entries.append({
+                "path": fp.relative_to(ROOT).as_posix(),
+                "mode": "100644", "type": "blob", "sha": blob["sha"],
+            })
+
+        # 2. 현재 main 커밋 SHA
+        ref = gh(f"{base}/git/refs/heads/main")
+        latest_sha = ref["object"]["sha"]
+
+        # 3. 현재 tree SHA
+        tree_sha = gh(f"{base}/git/commits/{latest_sha}")["tree"]["sha"]
+
+        # 4. 새 tree 생성
+        new_tree_sha = gh(f"{base}/git/trees", {
+            "base_tree": tree_sha, "tree": tree_entries,
+        })["sha"]
+
+        # 5. 커밋 생성
+        from datetime import datetime as _dt
+        now = _dt.now().strftime("%Y-%m-%d %H:%M")
+        new_sha = gh(f"{base}/git/commits", {
+            "message": f"auto: 채점 데이터 업데이트 ({now})",
+            "tree": new_tree_sha,
+            "parents": [latest_sha],
+        })["sha"]
+
+        # 6. main 브랜치 업데이트
+        gh(f"{base}/git/refs/heads/main", {"sha": new_sha}, method="PATCH")
+        print(f"[github] 자동 커밋 성공: {new_sha[:7]}")
+
     except Exception as e:
         print(f"[github] 커밋 실패: {e}")
-        return False
-
-
-def _github_push_scoring_files() -> None:
-    """채점 완료 후 scoring-data.json + last-run-evidence.json 을 GitHub에 자동 커밋."""
-    from datetime import datetime as _dt
-    now = _dt.now().strftime("%Y-%m-%d %H:%M")
-    if DATA_PATH.exists():
-        _github_push_file(DATA_PATH, f"auto: scoring-data 업데이트 ({now})")
-    ev_path = ROOT / "data" / "last-run-evidence.json"
-    if ev_path.exists():
-        _github_push_file(ev_path, f"auto: last-run-evidence 업데이트 ({now})")
 
 
 def _kakao_notify(text: str) -> None:
