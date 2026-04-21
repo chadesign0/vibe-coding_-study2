@@ -712,28 +712,9 @@ def delete_keyword_from_evidence(keyword: str) -> bool:
     return changed
 
 
-def _kakao_get_access_token() -> str | None:
-    """KAKAO_REFRESH_TOKEN 으로 access_token 발급."""
-    key = os.getenv("KAKAO_REST_API_KEY", "").strip()
-    refresh = os.getenv("KAKAO_REFRESH_TOKEN", "").strip()
-    if not key or not refresh:
-        return None
-    data = urllib.parse.urlencode({
-        "grant_type": "refresh_token",
-        "client_id": key,
-        "refresh_token": refresh,
-    }).encode()
-    try:
-        req = urllib.request.Request("https://kauth.kakao.com/oauth/token", data=data, method="POST")
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            return json.loads(resp.read()).get("access_token")
-    except Exception:
-        return None
-
-
 def _kakao_notify(text: str) -> None:
-    """카카오톡 나에게 보내기. 환경변수 미설정 시 무시."""
-    access_token = _kakao_get_access_token()
+    """카카오톡 나에게 보내기. KAKAO_ACCESS_TOKEN 환경변수 미설정 시 무시."""
+    access_token = os.getenv("KAKAO_ACCESS_TOKEN", "").strip()
     if not access_token:
         return
     template = json.dumps(
