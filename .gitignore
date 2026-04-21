@@ -4,3 +4,5 @@ __pycache__/
 secrets/
 logs/
 .superpowers/
+data/last-run-evidence.json
+data/_tmp_*.json

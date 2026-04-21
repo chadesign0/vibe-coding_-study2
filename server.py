@@ -725,9 +725,6 @@ def _github_push_scoring_files() -> None:
     files: list[Path] = []
     if DATA_PATH.exists():
         files.append(DATA_PATH)
-    ev_path = ROOT / "data" / "last-run-evidence.json"
-    if ev_path.exists():
-        files.append(ev_path)
     if not files:
         return
 
