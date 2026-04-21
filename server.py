@@ -819,7 +819,7 @@ def _check_data_size_and_notify() -> None:
     if not DATA_PATH.exists():
         return
     size_kb = DATA_PATH.stat().st_size / 1024
-    if size_kb > 1:  # 테스트용 임시 임계값
+    if size_kb > 500:
         msg = (
             f"[배점표 자동화 알림]\n\n"
             f"⚠️ 데이터 용량 경고\n\n"
