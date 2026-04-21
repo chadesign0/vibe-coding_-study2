@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import io
 import json
 import hashlib
@@ -712,6 +713,59 @@ def delete_keyword_from_evidence(keyword: str) -> bool:
     return changed
 
 
+def _github_push_file(file_path: Path, commit_message: str) -> bool:
+    """scoring-data.json / last-run-evidence.json 을 GitHub에 자동 커밋."""
+    token = os.getenv("GITHUB_TOKEN", "").strip()
+    owner = os.getenv("GITHUB_REPO_OWNER", "chadesign0").strip()
+    repo = os.getenv("GITHUB_REPO_NAME", "vibe-coding_-study2").strip()
+    if not token:
+        return False
+
+    rel = file_path.relative_to(ROOT).as_posix()
+    api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{rel}"
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github+json",
+        "Content-Type": "application/json",
+    }
+
+    # 현재 파일 SHA 조회
+    try:
+        req = urllib.request.Request(api_url, headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            sha = json.loads(resp.read()).get("sha", "")
+    except Exception:
+        sha = ""
+
+    # 파일 내용 base64 인코딩
+    content_b64 = base64.b64encode(file_path.read_bytes()).decode()
+
+    body = json.dumps({
+        "message": commit_message,
+        "content": content_b64,
+        "sha": sha,
+    }).encode()
+
+    try:
+        req = urllib.request.Request(api_url, data=body, headers=headers, method="PUT")
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return resp.status in (200, 201)
+    except Exception as e:
+        print(f"[github] 커밋 실패: {e}")
+        return False
+
+
+def _github_push_scoring_files() -> None:
+    """채점 완료 후 scoring-data.json + last-run-evidence.json 을 GitHub에 자동 커밋."""
+    from datetime import datetime as _dt
+    now = _dt.now().strftime("%Y-%m-%d %H:%M")
+    if DATA_PATH.exists():
+        _github_push_file(DATA_PATH, f"auto: scoring-data 업데이트 ({now})")
+    ev_path = ROOT / "data" / "last-run-evidence.json"
+    if ev_path.exists():
+        _github_push_file(ev_path, f"auto: last-run-evidence 업데이트 ({now})")
+
+
 def _kakao_notify(text: str) -> None:
     """카카오톡 나에게 보내기. KAKAO_ACCESS_TOKEN 환경변수 미설정 시 무시."""
     access_token = os.getenv("KAKAO_ACCESS_TOKEN", "").strip()
@@ -851,6 +905,7 @@ def run_scoring(config_name: str | None = None, *, full_rescore: bool = False) -
             finally:
                 temp_scoring.unlink(missing_ok=True)
                 temp_evidence.unlink(missing_ok=True)
+        _github_push_scoring_files()
         _check_data_size_and_notify()
     else:
         temp_scoring.unlink(missing_ok=True)
