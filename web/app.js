@@ -28,13 +28,18 @@ const SCORING_SERVER_UNAVAILABLE =
   "(팀 공용 서버가 있으면 주소에 ?api=https://서버주소 를 붙일 수 있습니다.)";
 
 /** 같은 탭·다른 포트·file:// 등에서도 채점 서버로 이어지도록 후보 URL 목록 */
+function isLocalDev() {
+  const h = window.location.hostname;
+  return h === "localhost" || h === "127.0.0.1" || h === "";
+}
+
 function getScoringDataUrls() {
   const base = getConfiguredApiBase();
   const list = [];
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
     list.push(new URL("/data/scoring-data.json", window.location.origin).href);
   }
-  list.push(`${base}/data/scoring-data.json`);
+  if (isLocalDev()) list.push(`${base}/data/scoring-data.json`);
   return [...new Set(list)];
 }
 
@@ -44,7 +49,7 @@ function getEvidenceUrls() {
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
     list.push(new URL("/data/last-run-evidence.json", window.location.origin).href);
   }
-  list.push(`${base}/data/last-run-evidence.json`);
+  if (isLocalDev()) list.push(`${base}/data/last-run-evidence.json`);
   return [...new Set(list)];
 }
 
@@ -261,7 +266,7 @@ async function loadHospitals() {
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
     urls.push(new URL("/api/hospitals", window.location.origin).href);
   }
-  urls.push(`${base}/api/hospitals`);
+  if (isLocalDev()) urls.push(`${base}/api/hospitals`);
   for (const url of [...new Set(urls)]) {
     try {
       const data = await loadJson(url);

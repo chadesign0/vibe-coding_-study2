@@ -1140,6 +1140,9 @@ def export_xlsx():
 
 @app.get("/data/<path:filename>")
 def data_files(filename: str):
+    target = ROOT / "data" / filename
+    if not target.exists() and filename == "last-run-evidence.json":
+        return {"evidence": {}}, 200
     return send_from_directory(str(ROOT / "data"), filename)
 
 
