@@ -7,6 +7,8 @@ import os
 import re
 import subprocess
 import threading
+import urllib.parse
+import urllib.request
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -710,6 +712,66 @@ def delete_keyword_from_evidence(keyword: str) -> bool:
     return changed
 
 
+def _kakao_get_access_token() -> str | None:
+    """KAKAO_REFRESH_TOKEN 으로 access_token 발급."""
+    key = os.getenv("KAKAO_REST_API_KEY", "").strip()
+    refresh = os.getenv("KAKAO_REFRESH_TOKEN", "").strip()
+    if not key or not refresh:
+        return None
+    data = urllib.parse.urlencode({
+        "grant_type": "refresh_token",
+        "client_id": key,
+        "refresh_token": refresh,
+    }).encode()
+    try:
+        req = urllib.request.Request("https://kauth.kakao.com/oauth/token", data=data, method="POST")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read()).get("access_token")
+    except Exception:
+        return None
+
+
+def _kakao_notify(text: str) -> None:
+    """카카오톡 나에게 보내기. 환경변수 미설정 시 무시."""
+    access_token = _kakao_get_access_token()
+    if not access_token:
+        return
+    template = json.dumps(
+        {"object_type": "text", "text": text, "link": {"web_url": "https://baejeompyojadonghwa.onrender.com/"}},
+        ensure_ascii=False,
+    )
+    data = urllib.parse.urlencode({"template_object": template}).encode()
+    req = urllib.request.Request(
+        "https://kapi.kakao.com/v2/api/talk/memo/default/send",
+        data=data,
+        headers={"Authorization": f"Bearer {access_token}"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read())
+            if result.get("result_code") != 0:
+                print(f"[kakao] 전송 실패: {result}")
+    except Exception as e:
+        print(f"[kakao] 오류: {e}")
+
+
+def _check_data_size_and_notify() -> None:
+    """scoring-data.json 이 500KB 초과 시 카카오톡 알림."""
+    if not DATA_PATH.exists():
+        return
+    size_kb = DATA_PATH.stat().st_size / 1024
+    if size_kb > 500:
+        msg = (
+            f"[배점표 자동화 알림]\n\n"
+            f"⚠️ 데이터 용량 경고\n\n"
+            f"scoring-data.json 이 500KB를 초과했습니다.\n"
+            f"현재 크기: {size_kb:.0f}KB\n\n"
+            f"MongoDB 전환을 검토할 시점입니다."
+        )
+        _kakao_notify(msg)
+
+
 def _merge_scoring_temp(temp_path: Path) -> None:
     """임시 채점 결과를 scoring-data.json 에 안전하게 병합 (MERGE_LOCK 안에서 호출)."""
     month = json.loads(temp_path.read_text(encoding="utf-8"))
@@ -808,6 +870,7 @@ def run_scoring(config_name: str | None = None, *, full_rescore: bool = False) -
             finally:
                 temp_scoring.unlink(missing_ok=True)
                 temp_evidence.unlink(missing_ok=True)
+        _check_data_size_and_notify()
     else:
         temp_scoring.unlink(missing_ok=True)
         temp_evidence.unlink(missing_ok=True)
