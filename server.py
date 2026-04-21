@@ -45,6 +45,7 @@ HOSPITAL_CANONICAL: dict[str, str] = {
 SCORE_TASKS: dict[str, dict[str, object]] = {}
 ACTIVE_SCORE_TASK_BY_KEY: dict[str, str] = {}
 SCORE_TASKS_LOCK = threading.Lock()
+MERGE_LOCK = threading.Lock()  # scoring-data.json / last-run-evidence.json 동시 쓰기 방지
 
 
 def canonical_hospital_name(name: str | None) -> str:
@@ -709,7 +710,73 @@ def delete_keyword_from_evidence(keyword: str) -> bool:
     return changed
 
 
+def _merge_scoring_temp(temp_path: Path) -> None:
+    """임시 채점 결과를 scoring-data.json 에 안전하게 병합 (MERGE_LOCK 안에서 호출)."""
+    month = json.loads(temp_path.read_text(encoding="utf-8"))
+    root = json.loads(DATA_PATH.read_text(encoding="utf-8")) if DATA_PATH.exists() else {"months": []}
+    new_lab = str(month.get("monthLabel") or "").strip()
+    new_hn = str(month.get("hospitalName") or "").strip()
+
+    def _identity(m: dict) -> tuple:
+        return (str(m.get("monthLabel") or "").strip(), str(m.get("hospitalName") or "").strip())
+
+    new_id = (new_lab, new_hn)
+
+    def _keep(m: dict) -> bool:
+        if _identity(m) == new_id:
+            return False
+        if new_hn == "포인트병원" and new_lab:
+            ml = str(m.get("monthLabel") or "").strip()
+            raw = m.get("hospitalName")
+            if ml == new_lab and (raw is None or str(raw).strip() == ""):
+                return False
+        return True
+
+    def _month_order(m: dict) -> int:
+        import re as _re
+        match = _re.match(r"^(\d{1,2})월\s*$", str(m.get("monthLabel") or "").strip())
+        return int(match.group(1)) if match else 99
+
+    months = [m for m in (root.get("months") or []) if _keep(m)]
+    months.append(month)
+    months.sort(key=_month_order)
+    root["months"] = months
+    root["generatedBy"] = "build_april_month.py(api+web-evidence)"
+    DATA_PATH.write_text(json.dumps(root, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _merge_evidence_temp(temp_path: Path) -> None:
+    """임시 근거 결과를 last-run-evidence.json 에 안전하게 병합 (MERGE_LOCK 안에서 호출)."""
+    import time as _time
+    payload = json.loads(temp_path.read_text(encoding="utf-8"))
+    evidence = payload.get("evidence") or {}
+    hospital_name = payload.get("hospitalName") or None
+    ev_path = ROOT / "data" / "last-run-evidence.json"
+    flat: dict = {}
+    by_h: dict = {}
+    if ev_path.exists():
+        try:
+            old = json.loads(ev_path.read_text(encoding="utf-8"))
+            flat = dict(old.get("evidence") or {})
+            by_h = dict(old.get("byHospital") or {})
+        except Exception:
+            pass
+    if hospital_name:
+        key = str(hospital_name).strip()
+        merged_h = dict(by_h.get(key) or {})
+        merged_h.update(evidence or {})
+        by_h[key] = merged_h
+    else:
+        flat = evidence
+    result = {"generatedAt": _time.strftime("%Y-%m-%d %H:%M:%S"), "evidence": flat, "byHospital": by_h}
+    ev_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def run_scoring(config_name: str | None = None, *, full_rescore: bool = False) -> tuple[bool, str]:
+    task_uid = uuid.uuid4().hex
+    temp_scoring = ROOT / "data" / f"_tmp_scoring_{task_uid}.json"
+    temp_evidence = ROOT / "data" / f"_tmp_evidence_{task_uid}.json"
+
     env = os.environ.copy()
     if config_name:
         env["SCORING_CONFIG"] = config_name
@@ -717,6 +784,9 @@ def run_scoring(config_name: str | None = None, *, full_rescore: bool = False) -
         env["SCORING_FULL_RESCORE"] = "1"
     else:
         env.pop("SCORING_FULL_RESCORE", None)
+    env["SCORING_TEMP_OUTPUT"] = str(temp_scoring)
+    env["EVIDENCE_TEMP_OUTPUT"] = str(temp_evidence)
+
     proc = subprocess.run(
         ["python", str(SCRIPT_PATH)],
         cwd=str(ROOT),
@@ -727,6 +797,21 @@ def run_scoring(config_name: str | None = None, *, full_rescore: bool = False) -
         errors="replace",
     )
     out = (proc.stdout or "") + (proc.stderr or "")
+
+    if proc.returncode == 0:
+        with MERGE_LOCK:
+            try:
+                if temp_scoring.exists():
+                    _merge_scoring_temp(temp_scoring)
+                if temp_evidence.exists():
+                    _merge_evidence_temp(temp_evidence)
+            finally:
+                temp_scoring.unlink(missing_ok=True)
+                temp_evidence.unlink(missing_ok=True)
+    else:
+        temp_scoring.unlink(missing_ok=True)
+        temp_evidence.unlink(missing_ok=True)
+
     return proc.returncode == 0, out
 
 

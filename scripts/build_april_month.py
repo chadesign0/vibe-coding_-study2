@@ -1022,6 +1022,12 @@ def _month_identity(m: dict[str, Any]) -> tuple[str, str]:
 
 def merge_into_scoring_data(month: dict[str, Any]) -> None:
     """동일 (monthLabel, hospitalName) 항목만 교체·추가. 타 병원·타 슬롯은 유지."""
+    temp_out = os.getenv("SCORING_TEMP_OUTPUT", "").strip()
+    if temp_out:
+        with open(temp_out, "w", encoding="utf-8") as f:
+            json.dump(month, f, ensure_ascii=False, indent=2)
+        print("임시 채점 결과 저장:", temp_out)
+        return
     path = ROOT / "data" / "scoring-data.json"
     with open(path, encoding="utf-8") as f:
         root = json.load(f)
@@ -1055,6 +1061,12 @@ def save_evidence(evidence: dict[str, Any], hospital_name: str | None = None) ->
     hospital_name 이 있으면 evidence 를 byHospital[hospital_name] 에만 갱신(포인트 공용 evidence 유지).
     없으면 기존처럼 최상위 evidence 전체 교체, byHospital 은 유지.
     """
+    temp_out = os.getenv("EVIDENCE_TEMP_OUTPUT", "").strip()
+    if temp_out:
+        with open(temp_out, "w", encoding="utf-8") as f:
+            json.dump({"evidence": evidence, "hospitalName": hospital_name}, f, ensure_ascii=False, indent=2)
+        print("임시 근거 저장:", temp_out)
+        return
     path = ROOT / "data" / "last-run-evidence.json"
     flat: dict[str, Any] = {}
     by_h: dict[str, Any] = {}
