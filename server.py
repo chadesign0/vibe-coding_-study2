@@ -12,6 +12,7 @@ from datetime import datetime
 from pathlib import Path
 
 from flask import Flask, abort, jsonify, request, send_from_directory, send_file
+from flask_compress import Compress
 from openpyxl import Workbook, load_workbook
 
 ROOT = Path(__file__).resolve().parent
@@ -194,6 +195,12 @@ def available_hospitals_from_scoring() -> list[str]:
 
 # Live Server(5500)와 동일하게 index.html이 ./styles.css, ./app.js 를 루트에서 찾을 수 있게 함
 app = Flask(__name__, static_folder=str(WEB_DIR), static_url_path="/web")
+Compress(app)
+
+
+@app.get("/ping")
+def ping():
+    return "", 204
 
 
 @app.after_request

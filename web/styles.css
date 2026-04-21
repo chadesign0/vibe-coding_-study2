@@ -1,6 +1,6 @@
 @font-face {
   font-family: "MagdaCleanMono";
-  src: url("/web/MagdaCleanMono-Regular.otf") format("opentype");
+  src: url("/web/MagdaCleanMono-Regular.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -8,7 +8,7 @@
 
 @font-face {
   font-family: "YangJin";
-  src: url("/web/YangJin.otf") format("opentype");
+  src: url("/web/YangJin.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -16,7 +16,7 @@
 
 @font-face {
   font-family: "SCDream";
-  src: url("/web/SCDream3.otf") format("opentype");
+  src: url("/web/SCDream3.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
