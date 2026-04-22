@@ -438,13 +438,24 @@ async function loadScoreTask(taskId) {
 }
 
 async function waitForScoreTask(taskId, labelText) {
-  const timeoutMs = 20 * 60 * 1000; // 배포 환경에서도 20분 제한
+  const timeoutMs = 20 * 60 * 1000;
   const started = Date.now();
+  let networkErrStreak = 0;
   while (true) {
     if (Date.now() - started > timeoutMs) {
       throw new Error(`${labelText || "채점"} 작업 시간이 너무 오래 걸립니다. 서버 상태를 확인해주세요.`);
     }
-    const payload = await loadScoreTask(taskId);
+    let payload;
+    try {
+      payload = await loadScoreTask(taskId);
+      networkErrStreak = 0;
+    } catch (e) {
+      networkErrStreak++;
+      if (networkErrStreak >= 5) throw e;
+      setUploadScoreStatus(`연결 재시도중… (${networkErrStreak}/5)`);
+      await new Promise((r) => setTimeout(r, 3000));
+      continue;
+    }
     const task = payload?.task || {};
     const st = String(task.status || "");
     if (st === "queued") {
