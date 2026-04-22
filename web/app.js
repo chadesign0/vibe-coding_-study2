@@ -15,6 +15,12 @@ function getConfiguredApiBase() {
     if (q) return q.replace(/\/+$/, "");
   } catch (_) {}
   try {
+    const h = window.location.hostname;
+    if (h && h !== "localhost" && h !== "127.0.0.1") {
+      return window.location.origin;
+    }
+  } catch (_) {}
+  try {
     const s = localStorage.getItem("scoringApiBase");
     if (s && String(s).trim()) return String(s).trim().replace(/\/+$/, "");
   } catch (_) {}
@@ -360,7 +366,7 @@ async function postForm(path, formData) {
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
     urls.push(new URL(path, window.location.origin).href);
   }
-  urls.push(`${base}${path}`);
+  if (isLocalDev()) urls.push(`${base}${path}`);
   const unique = [...new Set(urls)];
 
   let anyReached = false;
@@ -395,7 +401,7 @@ async function postJsonForBlob(path, bodyObj) {
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
     urls.push(new URL(path, window.location.origin).href);
   }
-  urls.push(`${base}${path}`);
+  if (isLocalDev()) urls.push(`${base}${path}`);
   const unique = [...new Set(urls)];
   let anyReached = false;
   let lastErr = "요청 처리에 실패했습니다.";
@@ -425,7 +431,7 @@ async function loadScoreTask(taskId) {
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
     urls.push(new URL(`/api/score-task/${encodeURIComponent(taskId)}`, window.location.origin).href);
   }
-  urls.push(`${base}/api/score-task/${encodeURIComponent(taskId)}`);
+  if (isLocalDev()) urls.push(`${base}/api/score-task/${encodeURIComponent(taskId)}`);
   let lastErr = null;
   for (const url of [...new Set(urls)]) {
     try {
@@ -1247,6 +1253,7 @@ async function runKeywordUpload(mode) {
   uploadInFlight = true;
   if (uploadBtn) uploadBtn.disabled = true;
   startScoreStatusTimer();
+  let scoreFailed = false;
   try {
     showToast("채점 중… 잠시만 기다려주세요.");
     const res = await postForm("/api/upload-keywords", form);
@@ -1269,10 +1276,11 @@ async function runKeywordUpload(mode) {
       showToast(`${monthTxt}${added}개 추가 완료 (총 ${res.count}건)`);
     }
   } catch (e) {
+    scoreFailed = true;
     showToast("채점 실패: " + (e?.message ?? e));
   } finally {
     stopScoreStatusTimer();
-    setUploadScoreStatus("채점 끝");
+    setUploadScoreStatus(scoreFailed ? "채점 실패 (반영 안됨)" : "채점 끝");
     uploadInFlight = false;
     if (uploadBtn) uploadBtn.disabled = false;
   }
@@ -1294,6 +1302,7 @@ function bindUploadActions() {
     uploadBtn && (uploadBtn.disabled = true);
     rerunBtn.disabled = true;
     startScoreStatusTimer();
+    let scoreFailed = false;
     try {
       showToast("전체 재채점 중… 잠시만 기다려주세요.");
       const form = new FormData();
@@ -1309,10 +1318,11 @@ function bindUploadActions() {
       saveRecentScoreDuration(Date.now() - scoreStartedAt);
       showToast("전체 재채점 완료");
     } catch (e) {
+      scoreFailed = true;
       showToast("재채점 실패: " + (e?.message ?? e));
     } finally {
       stopScoreStatusTimer();
-      setUploadScoreStatus("채점 끝");
+      setUploadScoreStatus(scoreFailed ? "재채점 실패 (반영 안됨)" : "채점 끝");
       uploadInFlight = false;
       uploadBtn && (uploadBtn.disabled = false);
       rerunBtn.disabled = false;
