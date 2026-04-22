@@ -184,7 +184,7 @@ HOSPITAL_PROFILE_OVERRIDES: dict[str, dict[str, object]] = {
         ],
     },
     "더서울병원": {
-        "hospitalDomains": ["https://bangre.co.kr/"],
+        "hospitalDomains": ["https://www.theseoulhospital.com/"],
         "hospitalBlogBases": [
             "https://blog.naver.com/theseoulhospital",
             "https://blog.naver.com/brmhand",
