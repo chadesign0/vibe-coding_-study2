@@ -169,6 +169,100 @@ HOSPITAL_PROFILE_OVERRIDES: dict[str, dict[str, object]] = {
             "https://cafe.naver.com/usem",
         ],
     },
+    "SNU건전비뇨의학과": {
+        "hospitalDomains": ["https://www.seoulurology.com/"],
+        "hospitalBlogBases": [
+            "https://blog.naver.com/snugunjunpr",
+            "https://blog.naver.com/secmet99",
+        ],
+    },
+    "뉴민병원": {
+        "hospitalDomains": ["https://www.newminhospital.com/"],
+        "hospitalBlogBases": [
+            "https://blog.naver.com/wealth_110412",
+            "https://blog.naver.com/label_125212",
+        ],
+    },
+    "더서울병원": {
+        "hospitalDomains": ["https://bangre.co.kr/"],
+        "hospitalBlogBases": [
+            "https://blog.naver.com/theseoulhospital",
+            "https://blog.naver.com/brmhand",
+            "https://blog.naver.com/veca2",
+            "https://blog.naver.com/veca02",
+        ],
+        "hospitalCafeBases": [
+            "https://cafe.naver.com/agameworld",
+        ],
+    },
+    "방그레병원": {
+        "hospitalDomains": ["https://bangre.co.kr/"],
+        "hospitalBlogBases": [
+            "https://blog.naver.com/kummd",
+            "https://blog.naver.com/jdrcancer1109",
+            "https://blog.naver.com/bangrenine",
+        ],
+        "hospitalCafeBases": [
+            "https://cafe.naver.com/kyungmammo",
+        ],
+    },
+    "서울본정형외과": {
+        "hospitalDomains": ["https://yonginseoulbone.com/"],
+        "hospitalBlogBases": [
+            "https://blog.naver.com/yonginseoulbone",
+        ],
+    },
+    "서울센트럴병원": {
+        "hospitalDomains": ["https://서울센트럴병원.com/"],
+        "hospitalBlogBases": [
+            "https://blog.naver.com/jhztuelsss18574",
+            "https://blog.naver.com/seoulcentralhospital",
+        ],
+    },
+    "서울현대정형외과": {
+        "hospitalDomains": ["https://seoulhyundai.co.kr/"],
+        "hospitalBlogBases": [
+            "https://blog.naver.com/seoulhyundaihospital",
+        ],
+    },
+    "서울현병원": {
+        "hospitalDomains": ["https://seoulhyun.kr/"],
+        "hospitalBlogBases": [
+            "https://blog.naver.com/seoulhyunos",
+            "https://blog.naver.com/sejongseoulhyun",
+            "https://blog.naver.com/sejongoshyun",
+            "https://blog.naver.com/zbxfzbmnr9091",
+        ],
+    },
+    "신도림서울정형외과": {
+        "hospitalDomains": ["https://www.sseoulos.com/"],
+        "hospitalBlogBases": [
+            "https://blog.naver.com/sseoulos",
+        ],
+    },
+    "연세오케이병원": {
+        "hospitalDomains": ["http://ysok.co.kr/orthopedics/"],
+        "hospitalBlogBases": [
+            "https://blog.naver.com/hanok0885",
+            "https://blog.naver.com/owery1947",
+            "https://blog.naver.com/ok0885ok",
+        ],
+    },
+    "의정부항외과의원": {
+        "hospitalDomains": ["http://hangsurgery.com/"],
+        "hospitalBlogBases": [
+            "https://blog.naver.com/ujbhang",
+            "https://blog.naver.com/ujbkw",
+        ],
+    },
+    "청주프라임병원": {
+        "hospitalDomains": ["http://www.cjprime.com/"],
+        "hospitalBlogBases": [
+            "https://blog.naver.com/chungjuos",
+            "https://blog.naver.com/cjprimestar14",
+            "https://blog.naver.com/cjhealthsp",
+        ],
+    },
 }
 
 
