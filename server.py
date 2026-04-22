@@ -1175,10 +1175,6 @@ def serve_app_js():
     return send_file(WEB_DIR / "app.js", mimetype="text/javascript", max_age=0)
 
 
-@app.get("/cat.js")
-def serve_cat_js():
-    return send_file(WEB_DIR / "cat.js", mimetype="text/javascript", max_age=0)
-
 
 KNOWN_FONT_FILES = (
     "MagdaCleanMono-Regular.otf",
