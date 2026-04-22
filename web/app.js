@@ -738,8 +738,8 @@ function renderTable() {
     showKeywordBadge: true,
   });
 
-  // 비즈사이트(8)·지도(9)·블로그(11)·보도자료(12) 헤더 클릭 정렬 대상
-  const SORTABLE_COLS = new Set([8, 9, 11, 12]);
+  // 조회수PC(4)·조회수MOB(5)·비즈사이트(8)·지도(9)·블로그(11)·보도자료(12)·동영상(13)·웹(14)·키워드합계(15)
+  const SORTABLE_COLS = new Set([4, 5, 8, 9, 11, 12, 13, 14, 15]);
 
   const headerRow = sheet?.header || [];
   const ths = headerRow
