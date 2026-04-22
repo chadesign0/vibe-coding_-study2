@@ -202,9 +202,6 @@ HOSPITAL_PROFILE_OVERRIDES: dict[str, dict[str, object]] = {
             "https://blog.naver.com/jdrcancer1109",
             "https://blog.naver.com/bangrenine",
         ],
-        "hospitalCafeBases": [
-            "https://cafe.naver.com/kyungmammo",
-        ],
     },
     "서울본정형외과": {
         "hospitalDomains": ["https://yonginseoulbone.com/"],

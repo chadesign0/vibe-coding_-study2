@@ -444,25 +444,27 @@ def find_rank_by_api_tab(
         top: list[dict[str, Any]] = []
         matched = 0
         extra: dict[str, Any] = {
-            "cafeMatchRule": "official_cafe_url_or_text_tokens",
+            "cafeMatchRule": "official_cafe_url_and_author_is_hospital",
         }
         if official_cafe_ids:
             extra["officialNaverCafeIds"] = sorted(official_cafe_ids)
         for i, it in enumerate(items[:10], start=1):
             txt = item_text_for_tab("cafe", it)
             official_ok = cafe_item_matches_official_naver_cafe(it, official_cafe_ids)
-            token_ok = tokens_match_in_normalized(txt, match_tokens)
+            nickname_txt = normalize_text(strip_html(str(it.get("nickname", ""))))
+            author_ok = tokens_match_in_normalized(nickname_txt, match_tokens)
             row: dict[str, Any] = {
                 "rank": i,
                 "text": txt[:220],
                 "matchOfficialNaverCafe": official_ok,
-                "matchTextTokens": token_ok,
+                "matchAuthorIsHospital": author_ok,
+                "nickname": strip_html(str(it.get("nickname", ""))),
             }
             top.append(row)
-            if matched == 0 and (official_ok or token_ok):
+            if matched == 0 and official_ok and author_ok:
                 matched = i
                 extra["matched_text"] = txt[:220]
-                extra["matchedVia"] = "official_hospital_cafe_url" if official_ok else "text_tokens"
+                extra["matchedVia"] = "official_cafe_url_and_author"
         return (matched if matched else 0), {"top": top, "matched_rank": matched, **extra}
     top: list[dict[str, Any]] = []
     matched = 0
@@ -840,14 +842,14 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str) -> tuple[dict[
                 r = int(manual_by_tab[kw][tab]); out[kw][tab] = r; ev_all[kw][tab] = {"source": "manual", "rank": r}; continue
             if tab == "blog" and kw in legacy_blog_manual:
                 r = int(legacy_blog_manual[kw]); out[kw][tab] = r; ev_all[kw][tab] = {"source": "manual_legacy_blog", "rank": r}; continue
-            if tab == "cafe" and skip_cafe:
+            if tab == "cafe" and (skip_cafe or not official_cafe_ids):
                 out[kw][tab] = 0
                 ev_all[kw][tab] = {
                     "source": "disabled",
-                    "reason": "skipCafeScoring",
+                    "reason": "skipCafeScoring" if skip_cafe else "noCafeUrl",
                     "matched_rank": 0,
                     "top": [],
-                    "note": "공식 카페 미운영 등으로 카페 탭 채점 생략",
+                    "note": "공식 카페 URL 미설정으로 카페 탭 채점 생략" if not skip_cafe else "공식 카페 미운영 등으로 카페 탭 채점 생략",
                 }
                 continue
             if tab in ("powerlink", "bizsite", "video", "web"):
