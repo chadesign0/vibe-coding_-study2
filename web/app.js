@@ -130,6 +130,8 @@ const state = {
   channelView: "all",
   /** 키워드 입력란에서 업로드 시 부여할 범위 (지역·전국·전체) */
   keywordUploadScope: "all",
+  /** 헤더 클릭 정렬: null=정렬 없음, number=해당 열 인덱스 */
+  sortColIdx: null,
 };
 
 let uploadInFlight = false;
@@ -720,22 +722,49 @@ function renderTable() {
   const baseRows = allSheetsOverLimit ? dedupedRows.slice(0, MAX_ROWS_IN_ALL_SHEETS_VIEW) : dedupedRows;
   const overRenderLimit = baseRows.length > MAX_RENDER_ROWS;
   const rows = overRenderLimit ? baseRows.slice(0, MAX_RENDER_ROWS) : baseRows;
+
+  // 원본 배열 변경 없이 복사본만 정렬 (데이터 무결성 유지)
+  const displayRows = state.sortColIdx !== null
+    ? [...rows].sort((a, b) => {
+        const av = typeof a?.[state.sortColIdx] === "number" ? a[state.sortColIdx] : -Infinity;
+        const bv = typeof b?.[state.sortColIdx] === "number" ? b[state.sortColIdx] : -Infinity;
+        return bv - av;
+      })
+    : rows;
+
   updatePanelStats({
     rowLine: `행 ${rows.length.toLocaleString()}건`,
     keywordTotal: keywordGrandTotal,
     showKeywordBadge: true,
   });
 
+  // 비즈사이트(8)·지도(9)·블로그(11)·보도자료(12) 헤더 클릭 정렬 대상
+  const SORTABLE_COLS = new Set([8, 9, 11, 12]);
+
   const headerRow = sheet?.header || [];
   const ths = headerRow
     .map((h, i) => {
       if (isTableColumnHidden(i)) return "";
       const label = columnHeaderLabel(h, i);
+      if (SORTABLE_COLS.has(i)) {
+        const isActive = state.sortColIdx === i;
+        const cls = isActive ? "th-sort th-sort-active" : "th-sort";
+        const icon = isActive ? "▼" : "↕";
+        return `<th scope="col" class="${cls}" data-sort-col="${i}" title="${escapeHtml(label)} 점수 높은 순 정렬">${escapeHtml(label)}<span class="sort-icon">${icon}</span></th>`;
+      }
       return `<th scope="col">${escapeHtml(label)}</th>`;
     })
     .join("");
 
   head.innerHTML = `<tr>${ths}</tr>`;
+
+  head.querySelectorAll("th[data-sort-col]").forEach((th) => {
+    th.addEventListener("click", () => {
+      const col = Number(th.dataset.sortCol);
+      state.sortColIdx = state.sortColIdx === col ? null : col;
+      renderTable();
+    });
+  });
 
   // 상대평가: 현재 행들의 합계(col 15) 기준 상위/중위/하위 33%
   const totals = rows.map((row) => (typeof row?.[KEYWORD_TOTAL_COL] === "number" ? row[KEYWORD_TOTAL_COL] : 0));
@@ -749,7 +778,7 @@ function renderTable() {
     return "row-low";
   };
 
-  body.innerHTML = rows
+  body.innerHTML = displayRows
     .map((row) => {
       const keyword = String(row?.[2] ?? "").trim();
       const r = Array.isArray(row) ? row : [];
@@ -902,6 +931,7 @@ function renderMonthTabs() {
     btn.addEventListener("click", () => {
       state.monthIndex = Number(btn.dataset.month);
       state.sheetIndex = 0;
+      state.sortColIdx = null;
       renderMonthTabs();
       renderSheetTabs();
       renderTable();
@@ -963,6 +993,7 @@ function renderHospitalTabs() {
       state.hospitalIndex = Number(btn.dataset.hospital);
       state.monthIndex = monthTabIndexForToday();
       state.sheetIndex = 0;
+      state.sortColIdx = null;
       renderHospitalTabs();
       renderMonthTabs();
       renderSheetTabs();
@@ -1008,6 +1039,7 @@ function renderSheetTabs() {
     container.querySelectorAll(selector).forEach((btn) => {
       btn.addEventListener("click", () => {
         state.sheetIndex = Number(btn.dataset.sheet);
+        state.sortColIdx = null;
         renderSheetTabs();
         renderTable();
         persistViewState();

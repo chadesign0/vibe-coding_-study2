@@ -714,3 +714,25 @@ code {
     font-size: 0.75rem;
   }
 }
+
+/* 정렬 가능 헤더 */
+th.th-sort {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+th.th-sort:hover {
+  background: var(--accent, #e8e0d0);
+}
+th.th-sort-active {
+  color: var(--primary, #5a4a3a);
+}
+.sort-icon {
+  margin-left: 4px;
+  font-size: 0.7em;
+  opacity: 0.6;
+  vertical-align: middle;
+}
+th.th-sort-active .sort-icon {
+  opacity: 1;
+}
