@@ -127,6 +127,34 @@ def cafe_item_in_scoring_month(item: dict[str, Any], year: int, month: int) -> b
     return pd.year == year and pd.month == month
 
 
+def parse_pubdate(raw: Any) -> date | None:
+    """뉴스 API pubDate 필드 파싱. RFC 2822 형식: 'Mon, 01 Apr 2026 12:00:00 +0900'."""
+    import email.utils
+    s = str(raw or "").strip()
+    if not s:
+        return None
+    try:
+        parsed = email.utils.parsedate(s)
+        if parsed:
+            return date(parsed[0], parsed[1], parsed[2])
+    except Exception:
+        pass
+    return parse_cafe_date(s)
+
+
+def content_item_in_scoring_month(tab: str, item: dict[str, Any], year: int, month: int) -> bool:
+    """news/video 탭 아이템의 게시 날짜가 채점 월인지 확인."""
+    if tab == "news":
+        pd = parse_pubdate(item.get("pubDate"))
+    elif tab == "video":
+        pd = parse_cafe_date(item.get("date"))
+    else:
+        return True
+    if pd is None:
+        return False
+    return pd.year == year and pd.month == month
+
+
 def blog_evidence_period(cfg: dict[str, Any]) -> tuple[int, int] | None:
     """
     블로그 채점 시 인정할 게시 연·월. monthLabel(예: 4월) + scoringYear(없으면 올해).
@@ -500,15 +528,27 @@ def find_rank_by_api_tab(
                 extra["matched_date"] = it.get("date")
                 extra["matchedVia"] = "official_cafe_url_and_author_in_month"
         return (matched if matched else 0), {"top": top, "matched_rank": matched, **extra}
+    has_date_filter = tab in ("news", "video") and blog_period is not None
+    if has_date_filter:
+        extra: dict[str, Any] = {"scoringPeriod": {"year": blog_period[0], "month": blog_period[1]}}
+    else:
+        extra = {}
     top: list[dict[str, Any]] = []
     matched = 0
-    extra: dict[str, Any] = {}
     for i, it in enumerate(items[:10], start=1):
         txt = item_text_for_tab(tab, it)
-        top.append({"rank": i, "text": txt[:220]})
-        if matched == 0 and any(n in normalize_text(txt) for n in match_tokens):
+        in_m = content_item_in_scoring_month(tab, it, blog_period[0], blog_period[1]) if has_date_filter else True
+        date_val = it.get("pubDate") if tab == "news" else it.get("date")
+        row: dict[str, Any] = {"rank": i, "text": txt[:220]}
+        if has_date_filter:
+            row["date"] = date_val
+            row["inScoringMonth"] = in_m
+        top.append(row)
+        if matched == 0 and in_m and any(n in normalize_text(txt) for n in match_tokens):
             matched = i
             extra["matched_text"] = txt[:220]
+            if has_date_filter:
+                extra["matched_date"] = date_val
     return (matched if matched else 0), {"top": top, "matched_rank": matched, **extra}
 
 
@@ -897,7 +937,7 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str) -> tuple[dict[
                     match_tokens,
                     cid,
                     csec,
-                    blog_period if tab in ("blog", "cafe") else None,
+                    blog_period if tab in ("blog", "cafe", "news", "video") else None,
                     official_blog_ids if tab == "blog" else frozenset(),
                     official_cafe_ids if tab == "cafe" else frozenset(),
                 )
