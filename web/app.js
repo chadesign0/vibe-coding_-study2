@@ -975,7 +975,6 @@ function renderHospitalTabs() {
 }
 
 function renderSheetTabs() {
-  const wrap = document.getElementById("sheetTabs");
   const quickWrap = document.getElementById("sheetQuickTabs");
   const m = getCurrentMonthRecord();
   const fallbackSheets = [
@@ -989,20 +988,13 @@ function renderSheetTabs() {
   const sheets = m?.sheets?.length ? m.sheets : fallbackSheets;
   if (state.sheetIndex >= sheets.length) state.sheetIndex = 0;
   const html = [
-    `<button type="button" class="tab" role="tab" aria-selected="${state.sheetIndex === -1}" data-sheet="-1">전체</button>`,
-    ...sheets
-    .map((s, i) => {
+    `<button type="button" class="channel-tab" role="tab" aria-selected="${state.sheetIndex === -1}" data-sheet="-1">전체</button>`,
+    ...sheets.map((s, i) => {
       const short = shortSheetLabel(s.title);
-      return `<button type="button" class="tab" role="tab" aria-selected="${i === state.sheetIndex}" data-sheet="${i}">${escapeHtml(
-        short
-      )}</button>`;
+      return `<button type="button" class="channel-tab" role="tab" aria-selected="${i === state.sheetIndex}" data-sheet="${i}">${escapeHtml(short)}</button>`;
     }),
   ].join("");
-  if (wrap) wrap.innerHTML = html;
-  if (quickWrap) {
-    // 구형 브라우저 호환: replaceAll 미지원 환경에서도 동작
-    quickWrap.innerHTML = html.split('class="tab"').join('class="channel-tab"');
-  }
+  if (quickWrap) quickWrap.innerHTML = html;
 
   const bindSheetClick = (container, selector) => {
     if (!container) return;
@@ -1015,9 +1007,7 @@ function renderSheetTabs() {
       });
     });
   };
-  bindSheetClick(wrap, ".tab");
   bindSheetClick(quickWrap, ".channel-tab");
-  if (wrap) updateTabIndicator(wrap, "tab-indicator");
   if (quickWrap) updateTabIndicator(quickWrap, "channel-tab-indicator");
 }
 
