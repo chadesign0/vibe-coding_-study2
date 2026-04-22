@@ -1019,8 +1019,8 @@ def run_scoring(config_name: str | None = None, *, full_rescore: bool = False) -
             finally:
                 temp_scoring.unlink(missing_ok=True)
                 temp_evidence.unlink(missing_ok=True)
-        _github_push_scoring_files()
-        _check_data_size_and_notify()
+        threading.Thread(target=_github_push_scoring_files, daemon=True).start()
+        threading.Thread(target=_check_data_size_and_notify, daemon=True).start()
     else:
         temp_scoring.unlink(missing_ok=True)
         temp_evidence.unlink(missing_ok=True)
@@ -1447,8 +1447,12 @@ def export_xlsx():
 def data_files(filename: str):
     target = ROOT / "data" / filename
     if not target.exists() and filename == "last-run-evidence.json":
-        return {"evidence": {}}, 200
-    return send_from_directory(str(ROOT / "data"), filename)
+        resp = jsonify({"evidence": {}})
+        resp.headers["Cache-Control"] = "no-store"
+        return resp, 200
+    resp = send_from_directory(str(ROOT / "data"), filename)
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 if __name__ == "__main__":
