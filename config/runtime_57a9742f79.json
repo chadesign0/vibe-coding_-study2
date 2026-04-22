@@ -22,10 +22,6 @@
   "keywords": [],
   "scoringNote": "API 자동 탭(지도/카페/보도자료/웹)은 1위=3점, 2~5위=2점, 6~10위=1점, 미노출=0점. 블로그는 hospitalBlogBases의 네이버 블로그 ID와 글/bloggerlink가 일치하면 인정하거나, 작성자·링크에 병원 토큰이 있으면 인정(제목·본문만 일치는 제외). 작성일은 blogRequirePostMonth·scoringYear·monthLabel로 제한. 파워링크/비즈사이트/동영상은 API 한계로 미지원(None).",
   "hospitalName": "새로운병원",
-  "hospitalCafeBases": [
-    "https://cafe.naver.com/mktsesang",
-    "https://cafe.naver.com/motiontree"
-  ],
   "rowsBySheetKey": {
     "regional-pc": [],
     "regional-mob": [],

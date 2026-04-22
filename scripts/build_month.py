@@ -639,8 +639,32 @@ def extract_candidates_powerlink_more(ht: str) -> list[str]:
 
 
 def extract_candidates_bizsite(ht: str) -> list[str]:
+    """
+    네이버 비즈사이트(유료 사이트 노출) 후보 추출.
+    네이버가 템플릿을 여러 번 교체해 왔어서 4단계로 폴백한다:
+      1) data-block-id 에 'bizsite' 또는 'site/' 가 포함된 블록
+      2) 구형 section class (sp_nsite / sp_nbizsite / sp_nbiz)
+      3) section class 에 'bizsite' / 'site' 가 포함된 신형 패턴
+      4) 제목(h2/h3)이 '비즈사이트' 또는 '사이트'인 섹션
+    """
     soup = BeautifulSoup(ht, "html.parser")
-    vals = []
+    vals: list[str] = []
+
+    # 1) data-block-id 기반 (가장 최근 템플릿 전환 대응)
+    for block in soup.select("[data-block-id]"):
+        bid = (block.get("data-block-id") or "").lower()
+        if not bid:
+            continue
+        if ("bizsite" in bid) or bid.startswith("site/") or bid.startswith("ugs_site") or bid.startswith("ups_site"):
+            nodes = block.select("li.bx") or block.select("li") or [block]
+            for n in nodes:
+                t = strip_html(n.get_text(" ", strip=True))
+                if t and len(t) > 3:
+                    vals.append(t)
+            if vals:
+                return vals[:20]
+
+    # 2) 구형 section class
     for sel in ["section.sp_nsite li.bx", "section.sp_nbizsite li.bx", "section.sp_nbiz li.bx"]:
         nodes = soup.select(sel)
         if nodes:
@@ -648,7 +672,42 @@ def extract_candidates_bizsite(ht: str) -> list[str]:
                 t = strip_html(n.get_text(" ", strip=True))
                 if t:
                     vals.append(t)
-            break
+            if vals:
+                return vals[:20]
+
+    # 3) 신형 section class 패턴 매칭
+    for sel in [
+        'section[class*="bizsite"] li.bx',
+        'section[class*="nbizsite"] li.bx',
+        'section[class*="sp_site"] li.bx',
+        'div[class*="bizsite"] li.bx',
+    ]:
+        nodes = soup.select(sel)
+        if nodes:
+            for n in nodes:
+                t = strip_html(n.get_text(" ", strip=True))
+                if t:
+                    vals.append(t)
+            if vals:
+                return vals[:20]
+
+    # 4) 헤딩 텍스트 폴백
+    for section in soup.select("section, div.sc_new, div.api_subject_bx"):
+        heading = section.find(["h2", "h3", "h4"])
+        if not heading:
+            continue
+        htext = strip_html(heading.get_text(" ", strip=True))
+        if not htext:
+            continue
+        if "비즈사이트" in htext or htext.strip() in ("사이트",):
+            nodes = section.select("li.bx") or section.select("li")
+            for n in nodes:
+                t = strip_html(n.get_text(" ", strip=True))
+                if t:
+                    vals.append(t)
+            if vals:
+                return vals[:20]
+
     return vals[:20]
 
 
@@ -907,25 +966,24 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str) -> tuple[dict[
 
     blog_period = blog_evidence_period(cfg)
     official_blog_ids = official_naver_blog_ids_from_config(cfg)
-    official_cafe_ids = official_naver_cafe_ids_from_config(cfg)
-    skip_cafe = bool(cfg.get("skipCafeScoring"))
+    official_cafe_ids = frozenset()  # 카페 채점은 전역 비활성화 (2026-04 이후)
     for kw in cfg.get("keywords") or []:
         out[kw], ev_all[kw] = {}, {}
         for tab in COL_BY_TAB.keys():
+            if tab == "cafe":
+                out[kw][tab] = 0
+                ev_all[kw][tab] = {
+                    "source": "disabled",
+                    "reason": "cafe_removed",
+                    "matched_rank": 0,
+                    "top": [],
+                    "note": "카페 채점 전역 비활성화",
+                }
+                continue
             if tab in manual_by_tab.get(kw, {}):
                 r = int(manual_by_tab[kw][tab]); out[kw][tab] = r; ev_all[kw][tab] = {"source": "manual", "rank": r}; continue
             if tab == "blog" and kw in legacy_blog_manual:
                 r = int(legacy_blog_manual[kw]); out[kw][tab] = r; ev_all[kw][tab] = {"source": "manual_legacy_blog", "rank": r}; continue
-            if tab == "cafe" and (skip_cafe or not official_cafe_ids):
-                out[kw][tab] = 0
-                ev_all[kw][tab] = {
-                    "source": "disabled",
-                    "reason": "skipCafeScoring" if skip_cafe else "noCafeUrl",
-                    "matched_rank": 0,
-                    "top": [],
-                    "note": "공식 카페 URL 미설정으로 카페 탭 채점 생략" if not skip_cafe else "공식 카페 미운영 등으로 카페 탭 채점 생략",
-                }
-                continue
             if tab in ("powerlink", "bizsite", "video", "web"):
                 r, ev = find_rank_by_web_tab(tab, kw, match_tokens, blog_period, official_blog_ids)
                 out[kw][tab] = 0 if r is None else r

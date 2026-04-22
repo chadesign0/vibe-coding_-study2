@@ -90,10 +90,6 @@ HOSPITAL_PROFILE_OVERRIDES: dict[str, dict[str, object]] = {
             "https://blog.naver.com/windyyarddd",
             "https://blog.naver.com/saerounhospital23",
         ],
-        "hospitalCafeBases": [
-            "https://cafe.naver.com/mktsesang",
-            "https://cafe.naver.com/motiontree",
-        ],
     },
     "대찬병원": {
         "hospitalDomains": ["https://www.daechanhospital.com/"],
@@ -103,10 +99,6 @@ HOSPITAL_PROFILE_OVERRIDES: dict[str, dict[str, object]] = {
             "https://blog.naver.com/dchospital",
             "https://blog.naver.com/suca",
             "https://blog.naver.com/goals310",
-        ],
-        "hospitalCafeBases": [
-            "https://cafe.naver.com/kyungmammo",
-            "https://cafe.naver.com/tlgmdaka0",
         ],
     },
     "두발로병원": {
@@ -118,11 +110,9 @@ HOSPITAL_PROFILE_OVERRIDES: dict[str, dict[str, object]] = {
             "https://blog.naver.com/compare11529",
         ],
     },
-    # 제로마취통증의학과: 공식 카페 없음 → 채점 시 카페 탭은 0점 고정(skipCafeScoring). 4월부터 별도 슬롯.
     "제로마취통증의학과": {
         "hospitalDomains": ["https://zeropainwonju.com/"],
         "hospitalBlogBases": ["https://blog.naver.com/zeropainwonju"],
-        "skipCafeScoring": True,
     },
     "삼성본정형외과": {
         "hospitalDomains": ["https://www.samsungbon.com/"],
@@ -130,10 +120,6 @@ HOSPITAL_PROFILE_OVERRIDES: dict[str, dict[str, object]] = {
             "https://blog.naver.com/tight1530",
             "https://blog.naver.com/samsungbonhospital",
             "https://blog.naver.com/loveand0424",
-        ],
-        "hospitalCafeBases": [
-            "https://cafe.naver.com/fo2b",
-            "https://cafe.naver.com/bgga",
         ],
     },
     # 블로그목록/운영 표기에서 삼성본병원도 함께 쓰므로 동일 프로필로 취급
@@ -144,19 +130,12 @@ HOSPITAL_PROFILE_OVERRIDES: dict[str, dict[str, object]] = {
             "https://blog.naver.com/samsungbonhospital",
             "https://blog.naver.com/loveand0424",
         ],
-        "hospitalCafeBases": [
-            "https://cafe.naver.com/fo2b",
-            "https://cafe.naver.com/bgga",
-        ],
     },
     "제이엘정형외과": {
         "hospitalDomains": ["https://jlorthopedics.com/"],
         "hospitalBlogBases": [
             "https://blog.naver.com/muscle118072",
             "https://blog.naver.com/jlorthopedics",
-        ],
-        "hospitalCafeBases": [
-            "https://cafe.naver.com/q5q5q5",
         ],
     },
     "SNU서울병원": {
@@ -166,11 +145,6 @@ HOSPITAL_PROFILE_OVERRIDES: dict[str, dict[str, object]] = {
             "https://blog.naver.com/dlwngks9808",
             "https://blog.naver.com/snuseoulfoot",
             "https://blog.naver.com/mission52814",
-        ],
-        "hospitalCafeBases": [
-            "https://cafe.naver.com/q5q5q5",
-            "https://cafe.naver.com/pajumom",
-            "https://cafe.naver.com/usem",
         ],
     },
     "SNU건전비뇨의학과": {
@@ -194,9 +168,6 @@ HOSPITAL_PROFILE_OVERRIDES: dict[str, dict[str, object]] = {
             "https://blog.naver.com/brmhand",
             "https://blog.naver.com/veca2",
             "https://blog.naver.com/veca02",
-        ],
-        "hospitalCafeBases": [
-            "https://cafe.naver.com/agameworld",
         ],
     },
     "방그레병원": {
@@ -1355,6 +1326,8 @@ def delete_keyword_api():
     ev_deleted = delete_keyword_from_evidence(keyword)
     if not (cfg_deleted or data_deleted or ev_deleted):
         return jsonify({"ok": False, "message": "해당 키워드를 찾지 못했습니다."}), 404
+    if data_deleted:
+        threading.Thread(target=_github_push_scoring_files, daemon=True).start()
     return jsonify(
         {
             "ok": True,
