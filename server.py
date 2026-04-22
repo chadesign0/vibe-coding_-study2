@@ -26,18 +26,22 @@ ZEROPAIN_CONFIG_PATH = ROOT / "config" / "zeropain_april_keywords.json"
 SAMSUNGBON_CONFIG_PATH = ROOT / "config" / "samsungbon_keywords.json"
 JL_CONFIG_PATH = ROOT / "config" / "jl_keywords.json"
 SNU_CONFIG_PATH = ROOT / "config" / "snu_keywords.json"
-SCRIPT_PATH = ROOT / "scripts" / "build_april_month.py"
+SCRIPT_PATH = ROOT / "scripts" / "build_month.py"
 DATA_PATH = ROOT / "data" / "scoring-data.json"
 
-# build_april_month.SHEETS_META 와 동일 순서·키 (런타임 시트 배치용)
-SHEET_ORDER: list[tuple[str, str]] = [
-    ("regional-pc", "2026 지역 PC"),
-    ("regional-mob", "2026 지역 MOB"),
-    ("national-pc", "2026 전국 PC"),
-    ("national-mob", "2026 전국 MOB"),
-    ("other-pc", "2026 기타 PC"),
-    ("other-mob", "2026 기타 MOB"),
-]
+# build_month.SHEETS_META 와 동일 순서·키 (런타임 시트 배치용)
+def _make_sheet_order() -> list[tuple[str, str]]:
+    y = datetime.now().year
+    return [
+        ("regional-pc", f"{y} 지역 PC"),
+        ("regional-mob", f"{y} 지역 MOB"),
+        ("national-pc", f"{y} 전국 PC"),
+        ("national-mob", f"{y} 전국 MOB"),
+        ("other-pc", f"{y} 기타 PC"),
+        ("other-mob", f"{y} 기타 MOB"),
+    ]
+
+SHEET_ORDER: list[tuple[str, str]] = _make_sheet_order()
 
 # 블로그목록 식별명과 scoring-data 의 hospitalName 이 다를 때 (예: SNU서울정형외과 → SNU서울병원)
 HOSPITAL_CANONICAL: dict[str, str] = {

@@ -1873,6 +1873,5 @@
     "national-mob": "예시"
   },
   "scoringNote": "API 자동 탭(지도/카페/블로그/보도자료/웹)은 1위=3점, 2~5위=2점, 6~10위=1점, 미노출=0점.",
-  "blogRequirePostMonth": true,
-  "scoringYear": 2026
+  "blogRequirePostMonth": true
 }

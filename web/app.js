@@ -977,13 +977,14 @@ function renderHospitalTabs() {
 function renderSheetTabs() {
   const quickWrap = document.getElementById("sheetQuickTabs");
   const m = getCurrentMonthRecord();
+  const y = new Date().getFullYear();
   const fallbackSheets = [
-    { title: "2026 지역 PC" },
-    { title: "2026 지역 MOB" },
-    { title: "2026 전국 PC" },
-    { title: "2026 전국 MOB" },
-    { title: "2026 기타 PC" },
-    { title: "2026 기타 MOB" },
+    { title: `${y} 지역 PC` },
+    { title: `${y} 지역 MOB` },
+    { title: `${y} 전국 PC` },
+    { title: `${y} 전국 MOB` },
+    { title: `${y} 기타 PC` },
+    { title: `${y} 기타 MOB` },
   ];
   const sheets = m?.sheets?.length ? m.sheets : fallbackSheets;
   if (state.sheetIndex >= sheets.length) state.sheetIndex = 0;
