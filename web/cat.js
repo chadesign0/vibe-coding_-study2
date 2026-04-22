@@ -2,52 +2,74 @@
 
 (function () {
   const _ = null;
-  const K = '#2a1505';
-  const W = '#f2ddb5';
-  const C = '#7a3e18';
-  const P = '#f0a8b8';
-  const E = '#1a0a05';
-  const H = '#ffffff';
+  const K = '#2a2a3a';   // 외곽선
+  const G = '#7a7e8e';   // 회색 몸통
+  const L = '#a8acbe';   // 밝은 회색 하이라이트
+  const W = '#e8e8f0';   // 얼굴/배 흰색
+  const R = '#cc2222';   // 붉은 목걸이
+  const B = '#d4a520';   // 금 방울
+  const E = '#1a1a2a';   // 눈/코
 
-  const NORMAL = [
-    [_,_,_,_,K,K,_,_,K,K,_,_,_,_,_,_],
-    [_,_,_,K,K,P,K,_,K,P,K,_,_,_,_,_],
-    [_,_,K,K,C,C,K,K,K,C,C,K,K,_,_,_],
-    [_,K,K,C,C,C,C,K,C,C,C,C,K,K,_,_],
-    [K,K,W,C,C,C,C,W,W,C,C,C,W,W,K,_],
-    [K,W,W,W,W,W,W,W,W,W,W,W,W,W,K,_],
-    [K,W,W,W,W,W,W,W,W,W,W,W,W,W,K,_],
-    [K,W,W,E,E,W,W,W,W,W,E,E,W,W,K,_],
-    [K,W,W,E,H,W,W,W,W,W,E,H,W,W,K,_],
-    [K,W,W,W,W,W,W,W,W,W,W,W,W,W,K,_],
-    [K,W,W,W,W,W,P,W,W,W,W,W,W,W,K,_],
-    [K,W,W,W,W,W,W,W,W,W,W,W,W,W,K,_],
-    [K,W,W,W,W,K,W,W,W,K,W,W,W,W,K,_],
-    [K,W,W,W,W,W,K,K,K,W,W,W,W,W,K,_],
-    [_,K,K,W,W,W,W,W,W,W,W,W,K,K,_,_],
-    [_,_,K,K,K,K,K,K,K,K,K,K,K,_,_,_],
+  // 앉기/기본 포즈
+  const SIT = [
+    [_,_,K,K,_,_,_,_,_,_,_,_,_,_,_,_],
+    [_,K,G,G,K,_,_,_,_,_,_,_,_,_,_,_],
+    [_,K,L,G,G,K,_,_,_,_,_,_,_,_,_,_],
+    [K,G,W,E,G,G,K,_,_,_,_,_,_,_,_,_],
+    [K,G,W,W,G,G,K,_,_,_,_,_,_,_,_,_],
+    [K,G,G,G,G,G,K,_,_,_,_,_,K,_,_,_],
+    [_,K,R,R,R,R,K,_,_,_,_,K,G,K,_,_],
+    [_,K,G,G,B,G,G,G,G,G,K,G,G,K,_,_],
+    [_,K,G,L,G,G,G,G,G,K,_,K,G,K,_,_],
+    [_,_,K,G,G,G,G,G,K,_,_,_,K,K,_,_],
+    [_,_,K,G,G,G,G,K,_,_,_,_,_,_,_,_],
+    [_,_,_,K,K,_,K,K,_,_,_,_,_,_,_,_],
+    [_,_,_,K,_,_,K,_,_,_,_,_,_,_,_,_],
+    [_,_,K,K,_,_,K,K,_,_,_,_,_,_,_,_],
+    [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
+    [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
   ];
 
-  const HAPPY = [
-    [_,_,_,_,K,K,_,_,K,K,_,_,_,_,_,_],
-    [_,_,_,K,K,P,K,_,K,P,K,_,_,_,_,_],
-    [_,_,K,K,C,C,K,K,K,C,C,K,K,_,_,_],
-    [_,K,K,C,C,C,C,K,C,C,C,C,K,K,_,_],
-    [K,K,W,C,C,C,C,W,W,C,C,C,W,W,K,_],
-    [K,W,W,W,W,W,W,W,W,W,W,W,W,W,K,_],
-    [K,W,W,W,W,W,W,W,W,W,W,W,W,W,K,_],
-    [K,W,W,W,W,W,W,W,W,W,W,W,W,W,K,_],
-    [K,W,W,K,K,K,W,W,W,K,K,K,W,W,K,_],
-    [K,W,W,W,K,W,W,W,W,W,K,W,W,W,K,_],
-    [K,W,W,W,W,W,P,W,W,W,W,W,W,W,K,_],
-    [K,W,W,W,W,W,W,W,W,W,W,W,W,W,K,_],
-    [K,W,W,K,W,W,W,W,W,W,W,K,W,W,K,_],
-    [K,W,W,W,K,K,K,K,K,K,K,W,W,W,K,_],
-    [_,K,K,W,W,W,W,W,W,W,W,W,K,K,_,_],
-    [_,_,K,K,K,K,K,K,K,K,K,K,K,_,_,_],
+  // 걷기 프레임 A (앞다리 앞으로)
+  const WALK_A = [
+    [_,_,K,K,_,_,_,_,_,_,_,_,_,_,_,_],
+    [_,K,G,G,K,_,_,_,_,_,_,_,_,_,_,_],
+    [_,K,L,G,G,K,_,_,_,_,_,_,_,_,_,_],
+    [K,G,W,E,G,G,K,_,_,_,_,_,_,_,_,_],
+    [K,G,W,W,G,G,K,_,_,_,_,_,_,_,_,_],
+    [K,G,G,G,G,G,K,_,_,_,_,_,K,_,_,_],
+    [_,K,R,R,R,R,K,_,_,_,_,K,G,K,_,_],
+    [_,K,G,G,B,G,G,G,G,G,K,G,G,K,_,_],
+    [_,K,G,L,G,G,G,G,G,K,_,K,G,K,_,_],
+    [_,_,K,G,G,G,G,G,K,_,_,_,K,K,_,_],
+    [_,_,K,G,G,G,G,K,_,_,_,_,_,_,_,_],
+    [_,K,K,_,_,_,K,K,_,_,_,_,_,_,_,_],
+    [K,K,_,_,_,_,K,_,_,_,_,_,_,_,_,_],
+    [K,_,_,_,_,K,K,_,_,_,_,_,_,_,_,_],
+    [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
+    [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
   ];
 
-  /** 작은 스프라이트 (SCALE 2 → 본체 약 32px) */
+  // 걷기 프레임 B (앞다리 뒤로)
+  const WALK_B = [
+    [_,_,K,K,_,_,_,_,_,_,_,_,_,_,_,_],
+    [_,K,G,G,K,_,_,_,_,_,_,_,_,_,_,_],
+    [_,K,L,G,G,K,_,_,_,_,_,_,_,_,_,_],
+    [K,G,W,E,G,G,K,_,_,_,_,_,_,_,_,_],
+    [K,G,W,W,G,G,K,_,_,_,_,_,_,_,_,_],
+    [K,G,G,G,G,G,K,_,_,_,_,_,K,_,_,_],
+    [_,K,R,R,R,R,K,_,_,_,_,K,G,K,_,_],
+    [_,K,G,G,B,G,G,G,G,G,K,G,G,K,_,_],
+    [_,K,G,L,G,G,G,G,G,K,_,K,G,K,_,_],
+    [_,_,K,G,G,G,G,G,K,_,_,_,K,K,_,_],
+    [_,_,K,G,G,G,G,K,_,_,_,_,_,_,_,_],
+    [_,_,_,K,K,_,_,K,K,_,_,_,_,_,_,_],
+    [_,_,_,K,_,_,_,_,K,K,_,_,_,_,_,_],
+    [_,_,K,K,_,_,_,_,_,K,K,_,_,_,_,_],
+    [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
+    [_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_],
+  ];
+
   const SCALE = 2;
   const SPR = 16;
   const PX = SPR * SCALE;
@@ -57,7 +79,6 @@
   const CH = PX + BUBBLE_H;
   const MARGIN_X = 12;
   const FROM_BOTTOM = 10;
-  /** 하단에서 위로 이 정도 안에서만 세로 이동 */
   const VERT_JITTER = 28;
 
   const PURRS = ['그르릉~', '골골~', '냥…'];
@@ -98,6 +119,8 @@
   let hovered = false;
   let hoverPurr = PURRS[0];
   let bobClock = 0;
+  let walkClock = 0;
+  let facingLeft = false;
   let lastT = 0;
 
   function bandY() {
@@ -178,7 +201,23 @@
   function render() {
     ctx.clearRect(0, 0, CW, CH);
     if (hovered) drawBubble(hoverPurr);
-    drawSprite(hovered ? HAPPY : NORMAL);
+
+    let frame;
+    if (state === 'sit' || hovered) {
+      frame = SIT;
+    } else {
+      frame = (Math.floor(walkClock / 0.2) % 2 === 0) ? WALK_A : WALK_B;
+    }
+
+    if (facingLeft) {
+      ctx.save();
+      ctx.translate(CW, 0);
+      ctx.scale(-1, 1);
+      drawSprite(frame);
+      ctx.restore();
+    } else {
+      drawSprite(frame);
+    }
   }
 
   function syncLayout(cyVal, bob) {
@@ -227,8 +266,13 @@
 
     const moving = Math.abs(vx) > 1.5 || Math.abs(vy) > 1.5;
     bobClock += dt * (moving ? 7 : 2);
-    const bob = Math.sin(bobClock) * (moving ? 2 : 0.6);
+    walkClock += dt;
 
+    if (Math.abs(vx) > 1) {
+      facingLeft = vx < 0;
+    }
+
+    const bob = Math.sin(bobClock) * (moving ? 2 : 0.6);
     syncLayout(cy, bob);
     render();
     requestAnimationFrame(tick);
