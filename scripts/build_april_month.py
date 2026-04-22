@@ -99,6 +99,34 @@ def parse_blog_postdate(raw: Any) -> date | None:
     return None
 
 
+def parse_cafe_date(raw: Any) -> date | None:
+    """네이버 카페 검색 API `date` 필드를 date로 변환. ISO / yyyymmdd 등 다양한 형식 지원."""
+    s = str(raw or "").strip()
+    if not s:
+        return None
+    # yyyymmdd or yyyymmddHHmmss
+    if s[:8].replace("-", "").isdigit():
+        clean = s.replace("-", "").replace("T", "").replace(":", "")
+        if len(clean) >= 8:
+            try:
+                return date(int(clean[:4]), int(clean[4:6]), int(clean[6:8]))
+            except ValueError:
+                pass
+    # ISO: 2026-04-01T... or 2026-04-01 ...
+    try:
+        return date.fromisoformat(s[:10])
+    except (ValueError, IndexError):
+        pass
+    return None
+
+
+def cafe_item_in_scoring_month(item: dict[str, Any], year: int, month: int) -> bool:
+    pd = parse_cafe_date(item.get("date"))
+    if pd is None:
+        return False
+    return pd.year == year and pd.month == month
+
+
 def blog_evidence_period(cfg: dict[str, Any]) -> tuple[int, int] | None:
     """
     블로그 채점 시 인정할 게시 연·월. monthLabel(예: 4월) + scoringYear(없으면 올해).
@@ -444,27 +472,33 @@ def find_rank_by_api_tab(
         top: list[dict[str, Any]] = []
         matched = 0
         extra: dict[str, Any] = {
-            "cafeMatchRule": "official_cafe_url_and_author_is_hospital",
+            "cafeMatchRule": "official_cafe_url_and_author_is_hospital_in_scoring_month",
         }
         if official_cafe_ids:
             extra["officialNaverCafeIds"] = sorted(official_cafe_ids)
+        if blog_period:
+            extra["cafeScoringPeriod"] = {"year": blog_period[0], "month": blog_period[1]}
         for i, it in enumerate(items[:10], start=1):
             txt = item_text_for_tab("cafe", it)
             official_ok = cafe_item_matches_official_naver_cafe(it, official_cafe_ids)
             nickname_txt = normalize_text(strip_html(str(it.get("nickname", ""))))
             author_ok = tokens_match_in_normalized(nickname_txt, match_tokens)
+            in_m = cafe_item_in_scoring_month(it, blog_period[0], blog_period[1]) if blog_period else True
             row: dict[str, Any] = {
                 "rank": i,
                 "text": txt[:220],
+                "date": it.get("date"),
                 "matchOfficialNaverCafe": official_ok,
                 "matchAuthorIsHospital": author_ok,
+                "cafeInScoringMonth": in_m,
                 "nickname": strip_html(str(it.get("nickname", ""))),
             }
             top.append(row)
-            if matched == 0 and official_ok and author_ok:
+            if matched == 0 and official_ok and author_ok and in_m:
                 matched = i
                 extra["matched_text"] = txt[:220]
-                extra["matchedVia"] = "official_cafe_url_and_author"
+                extra["matched_date"] = it.get("date")
+                extra["matchedVia"] = "official_cafe_url_and_author_in_month"
         return (matched if matched else 0), {"top": top, "matched_rank": matched, **extra}
     top: list[dict[str, Any]] = []
     matched = 0
@@ -863,7 +897,7 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str) -> tuple[dict[
                     match_tokens,
                     cid,
                     csec,
-                    blog_period if tab == "blog" else None,
+                    blog_period if tab in ("blog", "cafe") else None,
                     official_blog_ids if tab == "blog" else frozenset(),
                     official_cafe_ids if tab == "cafe" else frozenset(),
                 )
