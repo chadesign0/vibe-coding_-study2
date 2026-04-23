@@ -190158,6 +190158,24 @@
               1,
               0,
               1
+            ],
+            [
+              25,
+              null,
+              "논현신경외과",
+              null,
+              0,
+              20,
+              "논현신경외과",
+              5,
+              0,
+              0,
+              0,
+              2,
+              2,
+              2,
+              3,
+              9
             ]
           ]
         },
@@ -190614,6 +190632,24 @@
               1,
               0,
               1
+            ],
+            [
+              25,
+              null,
+              "논현신경외과",
+              null,
+              0,
+              20,
+              "논현신경외과",
+              5,
+              0,
+              0,
+              0,
+              2,
+              2,
+              2,
+              3,
+              9
             ]
           ]
         },
@@ -190735,7 +190771,8 @@
         "논현동신경외과": "all",
         "학동역신경외과": "all",
         "강남MRI": "all",
-        "강남구신경외과": "all"
+        "강남구신경외과": "all",
+        "논현신경외과": "all"
       },
       "keywordScopes": {
         "강남정형외과": "regional",
@@ -190761,15 +190798,16 @@
         "논현동신경외과": "regional",
         "학동역신경외과": "regional",
         "강남MRI": "regional",
-        "강남구신경외과": "regional"
+        "강남구신경외과": "regional",
+        "논현신경외과": "regional"
       },
       "quality": {
         "level": "ok",
-        "accuracyPct": 99.5,
+        "accuracyPct": 100.0,
         "warnThresholdPct": 90.0,
         "lowThresholdPct": 80.0,
-        "sampleSize": 24,
-        "checkedItems": 192
+        "sampleSize": 1,
+        "checkedItems": 8
       }
     }
   ]
