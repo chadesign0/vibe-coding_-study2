@@ -1246,6 +1246,12 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
     force_rescore_keywords = {
         str(k).strip() for k in (cfg.get("forceRescoreKeywords") or []) if str(k).strip()
     }
+    # forceRescoreKeywords 는 새 점수를 써야 하므로 재사용 대상에서 제외
+    # (build_month_payload 는 reused_rows 에 있으면 무조건 기존 row 를 사용함)
+    if force_rescore_keywords and reused_rows:
+        reused_rows = {
+            kw: row for kw, row in reused_rows.items() if kw not in force_rescore_keywords
+        }
     fresh_keywords = (
         all_keywords
         if full_rescore

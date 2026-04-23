@@ -54,6 +54,9 @@ ACTIVE_SCORE_TASK_BY_KEY: dict[str, str] = {}
 SCORE_TASKS_LOCK = threading.Lock()
 MERGE_LOCK = threading.Lock()  # scoring-data.json / last-run-evidence.json 동시 쓰기 방지
 
+# 전체 재채점은 청크 단위로 나누어 실행 (OOM/재시작 리스크 완화)
+RESCORE_CHUNK_SIZE = 50
+
 
 def canonical_hospital_name(name: str | None) -> str:
     n = (name or "").strip() or "포인트병원"
@@ -607,11 +610,17 @@ def update_keywords(
     return merged, out_path.name, added_count
 
 
-def build_runtime_config_for_rerun(month_label: str, hospital_name: str) -> tuple[str | None, str]:
+def build_runtime_config_for_rerun(
+    month_label: str,
+    hospital_name: str,
+    *,
+    chunk_keywords: list[str] | None = None,
+) -> tuple[str | None, str]:
     """
     재채점 전용 런타임 config 생성.
     - scoring-data 의 선택 월/병원 데이터만 읽어 구성
     - 키워드 추가/삭제/변경은 하지 않음
+    - chunk_keywords 가 주어지면 해당 키워드만 forceRescoreKeywords 로 표시하여 부분 재채점
     """
     hn = canonical_hospital_name(hospital_name)
     month = month_record_for_hospital(month_label, hn)
@@ -664,6 +673,10 @@ def build_runtime_config_for_rerun(month_label: str, hospital_name: str) -> tupl
     cfg["keywords"] = merged
     cfg["rowsBySheetKey"] = rbk
     cfg["sheetTitles"] = st
+    if chunk_keywords is not None:
+        cfg["forceRescoreKeywords"] = [
+            k.strip() for k in chunk_keywords if k and k.strip()
+        ]
 
     out_path = runtime_config_path_for_hospital(hn)
     out_path.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -955,7 +968,13 @@ def _merge_evidence_temp(temp_path: Path) -> None:
     ev_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def run_scoring(config_name: str | None = None, *, full_rescore: bool = False) -> tuple[bool, str]:
+def run_scoring(
+    config_name: str | None = None,
+    *,
+    full_rescore: bool = False,
+    skip_verify: bool = False,
+    skip_github_push: bool = False,
+) -> tuple[bool, str]:
     task_uid = uuid.uuid4().hex
     temp_scoring = ROOT / "data" / f"_tmp_scoring_{task_uid}.json"
     temp_evidence = ROOT / "data" / f"_tmp_evidence_{task_uid}.json"
@@ -967,6 +986,8 @@ def run_scoring(config_name: str | None = None, *, full_rescore: bool = False) -
         env["SCORING_FULL_RESCORE"] = "1"
     else:
         env.pop("SCORING_FULL_RESCORE", None)
+    if skip_verify:
+        env["SCORING_VERIFY_SAMPLE"] = "0"
     env["SCORING_TEMP_OUTPUT"] = str(temp_scoring)
     env["EVIDENCE_TEMP_OUTPUT"] = str(temp_evidence)
 
@@ -991,8 +1012,9 @@ def run_scoring(config_name: str | None = None, *, full_rescore: bool = False) -
             finally:
                 temp_scoring.unlink(missing_ok=True)
                 temp_evidence.unlink(missing_ok=True)
-        threading.Thread(target=_github_push_scoring_files, daemon=True).start()
-        threading.Thread(target=_check_data_size_and_notify, daemon=True).start()
+        if not skip_github_push:
+            threading.Thread(target=_github_push_scoring_files, daemon=True).start()
+            threading.Thread(target=_check_data_size_and_notify, daemon=True).start()
     else:
         temp_scoring.unlink(missing_ok=True)
         temp_evidence.unlink(missing_ok=True)
@@ -1116,6 +1138,157 @@ def enqueue_score_task(
                 ACTIVE_SCORE_TASK_BY_KEY.pop(key, None)
 
     threading.Thread(target=_worker, daemon=True, name=f"score-task-{task_id[:8]}").start()
+    return task_id, True
+
+
+def enqueue_chunked_rescore_task(
+    *,
+    hospital_name: str,
+    month_label: str,
+) -> tuple[str, bool]:
+    """
+    전체 재채점을 RESCORE_CHUNK_SIZE 키워드 단위로 분할 실행.
+    반환: (task_id, created_new)
+    """
+    hn = canonical_hospital_name(hospital_name)
+    key = _task_key("chunked_rescore", hn, month_label)
+
+    with SCORE_TASKS_LOCK:
+        active_id = ACTIVE_SCORE_TASK_BY_KEY.get(key)
+        if active_id:
+            existing = SCORE_TASKS.get(active_id) or {}
+            if existing.get("status") in {"queued", "running"}:
+                return active_id, False
+
+        task_id = uuid.uuid4().hex
+        task: dict[str, object] = {
+            "taskId": task_id,
+            "kind": "chunked_rescore",
+            "status": "queued",
+            "hospitalName": hn,
+            "monthLabel": month_label,
+            "message": f"{hn} · {month_label} 전체 재채점 대기중",
+            "configName": None,
+            "fullRescore": False,
+            "createdAt": now_iso(),
+            "startedAt": None,
+            "endedAt": None,
+            "log": "",
+            "error": "",
+            "totalKeywords": 0,
+            "totalChunks": 0,
+            "processedKeywords": 0,
+            "currentChunkIndex": 0,
+        }
+        SCORE_TASKS[task_id] = task
+        ACTIVE_SCORE_TASK_BY_KEY[key] = task_id
+
+    def _worker() -> None:
+        _set_task_status(task_id, status="running", startedAt=now_iso())
+
+        keywords = load_keywords_for_month(month_label, hn)
+        if not keywords:
+            _set_task_status(
+                task_id,
+                status="failed",
+                endedAt=now_iso(),
+                error="재채점할 키워드가 없습니다.",
+                message=f"{hn} · {month_label} 재채점 키워드 없음",
+            )
+            with SCORE_TASKS_LOCK:
+                if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
+                    ACTIVE_SCORE_TASK_BY_KEY.pop(key, None)
+            return
+
+        chunks = [keywords[i:i + RESCORE_CHUNK_SIZE] for i in range(0, len(keywords), RESCORE_CHUNK_SIZE)]
+        total_kws = len(keywords)
+        total_chunks = len(chunks)
+        _set_task_status(
+            task_id,
+            totalKeywords=total_kws,
+            totalChunks=total_chunks,
+            processedKeywords=0,
+            currentChunkIndex=0,
+        )
+
+        processed = 0
+        all_log = ""
+        q_level = None
+        q_acc = None
+
+        for chunk_idx, chunk in enumerate(chunks):
+            is_last = chunk_idx == total_chunks - 1
+            _set_task_status(task_id, currentChunkIndex=chunk_idx)
+
+            config_name, err = build_runtime_config_for_rerun(month_label, hn, chunk_keywords=chunk)
+            if not config_name:
+                _set_task_status(
+                    task_id,
+                    status="failed",
+                    endedAt=now_iso(),
+                    error=err or "청크 config 생성 실패",
+                    message=f"{hn} · {month_label} 청크 {chunk_idx + 1}/{total_chunks} 실패",
+                )
+                with SCORE_TASKS_LOCK:
+                    if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
+                        ACTIVE_SCORE_TASK_BY_KEY.pop(key, None)
+                return
+
+            ok, log = run_scoring(
+                config_name,
+                full_rescore=False,
+                skip_verify=not is_last,
+                skip_github_push=not is_last,
+            )
+            all_log += log
+
+            if not ok:
+                trimmed = all_log[-120000:]
+                _set_task_status(
+                    task_id,
+                    status="failed",
+                    endedAt=now_iso(),
+                    log=trimmed,
+                    error="채점 실행 실패",
+                    message=f"{hn} · {month_label} 청크 {chunk_idx + 1}/{total_chunks} 채점 실패",
+                )
+                with SCORE_TASKS_LOCK:
+                    if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
+                        ACTIVE_SCORE_TASK_BY_KEY.pop(key, None)
+                return
+
+            processed += len(chunk)
+            _set_task_status(task_id, processedKeywords=processed)
+
+            if is_last:
+                trimmed = all_log[-120000:]
+                m = re.search(r"QUALITY_GATE:(OK|WARN|LOW):([0-9]+(?:\.[0-9]+)?)", trimmed)
+                if m:
+                    q_level = m.group(1).lower()
+                    try:
+                        q_acc = float(m.group(2))
+                    except Exception:
+                        q_acc = None
+
+        trimmed = all_log[-120000:]
+        quality_payload = {"level": q_level, "accuracyPct": q_acc} if q_level else None
+        _set_task_status(
+            task_id,
+            status="succeeded",
+            endedAt=now_iso(),
+            log=trimmed,
+            message=(
+                f"{hn} · {month_label} 전체 재채점 완료"
+                if q_level not in {"warn", "low"}
+                else f"{hn} · {month_label} 전체 재채점 완료 (정확도 경고)"
+            ),
+            quality=quality_payload,
+        )
+        with SCORE_TASKS_LOCK:
+            if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
+                ACTIVE_SCORE_TASK_BY_KEY.pop(key, None)
+
+    threading.Thread(target=_worker, daemon=True, name=f"chunked-rescore-{task_id[:8]}").start()
     return task_id, True
 
 
@@ -1344,21 +1517,17 @@ def run_score():
         (request.form.get("hospital_name") or "포인트병원").strip() or "포인트병원"
     )
     month_label = normalize_month_label(request.form.get("month_label"))
-    config_name, err = build_runtime_config_for_rerun(month_label, hospital_name)
-    if not config_name:
-        return jsonify({"ok": False, "message": err or "재채점 준비 실패"}), 400
+    # 조기 검증: 선택 월·병원 데이터 존재 확인
+    check_name, check_err = build_runtime_config_for_rerun(month_label, hospital_name)
+    if not check_name:
+        return jsonify({"ok": False, "message": check_err or "재채점 준비 실패"}), 400
     force_sync = (request.form.get("sync") or "").strip().lower() in {"1", "true", "yes"}
     if force_sync:
-        ok, log = run_scoring(config_name, full_rescore=True)
+        ok, log = run_scoring(check_name, full_rescore=True)
         return jsonify({"ok": ok, "accepted": False}), (200 if ok else 500)
-    task_id, created_new = enqueue_score_task(
-        kind="rerun_score",
+    task_id, created_new = enqueue_chunked_rescore_task(
         hospital_name=hospital_name,
         month_label=month_label,
-        config_name=config_name,
-        message=f"{hospital_name} · {month_label} 재채점 대기중",
-        meta={},
-        full_rescore=True,
     )
     return jsonify({"ok": True, "accepted": True, "taskId": task_id, "createdNewTask": created_new}), 202
 

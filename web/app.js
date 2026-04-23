@@ -480,7 +480,21 @@ async function waitForScoreTask(taskId, labelText) {
     if (st === "queued") {
       setUploadScoreStatus("작업 대기중...");
     } else if (st === "running") {
-      setUploadScoreStatus("채점중...");
+      const total = task.totalKeywords;
+      const processed = task.processedKeywords;
+      const totalChunks = task.totalChunks;
+      const chunkIdx = task.currentChunkIndex;
+      if (
+        typeof total === "number" && total > 0 &&
+        typeof processed === "number" &&
+        typeof totalChunks === "number" && totalChunks > 1
+      ) {
+        stopScoreStatusTimer();
+        const displayChunk = typeof chunkIdx === "number" ? chunkIdx + 1 : 1;
+        setUploadScoreStatus(`채점중... ${processed}/${total} · 청크 ${displayChunk}/${totalChunks}`);
+      } else {
+        setUploadScoreStatus("채점중...");
+      }
     } else if (st === "succeeded") {
       return task;
     } else if (st === "failed") {
