@@ -445,10 +445,13 @@ async function loadScoreTask(taskId) {
   throw lastErr ?? new Error("작업 상태를 확인하지 못했습니다.");
 }
 
+const TASK_SERVER_RESTARTED = "__SERVER_RESTARTED__";
+
 async function waitForScoreTask(taskId, labelText) {
   const timeoutMs = 20 * 60 * 1000;
   const started = Date.now();
   let networkErrStreak = 0;
+  let notFoundStreak = 0;
   while (true) {
     if (Date.now() - started > timeoutMs) {
       throw new Error(`${labelText || "채점"} 작업 시간이 너무 오래 걸립니다. 서버 상태를 확인해주세요.`);
@@ -457,7 +460,15 @@ async function waitForScoreTask(taskId, labelText) {
     try {
       payload = await loadScoreTask(taskId);
       networkErrStreak = 0;
+      notFoundStreak = 0;
     } catch (e) {
+      if ((e?.message || "").includes("404")) {
+        notFoundStreak++;
+        if (notFoundStreak >= 3) return TASK_SERVER_RESTARTED;
+        setUploadScoreStatus(`서버 재시작 확인중… (${notFoundStreak}/3)`);
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
       networkErrStreak++;
       if (networkErrStreak >= 5) throw e;
       setUploadScoreStatus(`연결 재시도중… (${networkErrStreak}/5)`);
@@ -1286,12 +1297,19 @@ async function runKeywordUpload(mode) {
   if (uploadBtn) uploadBtn.disabled = true;
   startScoreStatusTimer();
   let scoreFailed = false;
+  let scoreRestarted = false;
   try {
     showToast("채점 중… 잠시만 기다려주세요.");
     const res = await postForm("/api/upload-keywords", form);
     let finishedTask = null;
     if (res?.accepted && res?.taskId) {
       finishedTask = await waitForScoreTask(res.taskId, "키워드 채점");
+    }
+    if (finishedTask === TASK_SERVER_RESTARTED) {
+      scoreRestarted = true;
+      await reloadDataAndRender();
+      showToast("서버가 재시작됐습니다. 채점이 완료됐으면 표에 반영됩니다. 미반영 시 재채점 버튼을 눌러주세요.");
+      return;
     }
     await reloadDataAndRender();
     saveRecentScoreDuration(Date.now() - scoreStartedAt);
@@ -1312,7 +1330,11 @@ async function runKeywordUpload(mode) {
     showToast("채점 실패: " + (e?.message ?? e));
   } finally {
     stopScoreStatusTimer();
-    setUploadScoreStatus(scoreFailed ? "채점 실패 (반영 안됨)" : "채점 끝");
+    setUploadScoreStatus(
+      scoreFailed ? "채점 실패 (반영 안됨)" :
+      scoreRestarted ? "서버 재시작 — 결과 확인 필요" :
+      "채점 끝"
+    );
     uploadInFlight = false;
     if (uploadBtn) uploadBtn.disabled = false;
   }
@@ -1335,6 +1357,7 @@ function bindUploadActions() {
     rerunBtn.disabled = true;
     startScoreStatusTimer();
     let scoreFailed = false;
+    let scoreRestarted = false;
     try {
       showToast("전체 재채점 중… 잠시만 기다려주세요.");
       const form = new FormData();
@@ -1342,7 +1365,13 @@ function bindUploadActions() {
       form.append("month_label", currentMonthLabel());
       const res = await postForm("/api/run-score", form);
       if (res?.accepted && res?.taskId) {
-        await waitForScoreTask(res.taskId, "재채점");
+        const result = await waitForScoreTask(res.taskId, "재채점");
+        if (result === TASK_SERVER_RESTARTED) {
+          scoreRestarted = true;
+          await reloadDataAndRender();
+          showToast("서버가 재시작됐습니다. 재채점이 완료됐으면 표에 반영됩니다. 미반영 시 다시 눌러주세요.");
+          return;
+        }
       } else if (res && res.ok === false) {
         throw new Error(res.message || "재채점 실패");
       }
@@ -1354,7 +1383,11 @@ function bindUploadActions() {
       showToast("재채점 실패: " + (e?.message ?? e));
     } finally {
       stopScoreStatusTimer();
-      setUploadScoreStatus(scoreFailed ? "재채점 실패 (반영 안됨)" : "채점 끝");
+      setUploadScoreStatus(
+        scoreFailed ? "재채점 실패 (반영 안됨)" :
+        scoreRestarted ? "서버 재시작 — 결과 확인 필요" :
+        "채점 끝"
+      );
       uploadInFlight = false;
       uploadBtn && (uploadBtn.disabled = false);
       rerunBtn.disabled = false;
