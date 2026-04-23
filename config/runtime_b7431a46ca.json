@@ -1,0 +1,717 @@
+{
+  "monthLabel": "4월",
+  "blogRequirePostMonth": true,
+  "sourceFileNote": "네이버 검색 API 자동 채점 + 수동 보완",
+  "hospitalNames": [
+    "서울센트럴병원"
+  ],
+  "hospitalDomains": [
+    "https://서울센트럴병원.com/"
+  ],
+  "hospitalBlogBases": [
+    "https://blog.naver.com/jhztuelsss18574",
+    "https://blog.naver.com/seoulcentralhospital"
+  ],
+  "manualRanks": {
+    "주엽역무릎통증": 1
+  },
+  "manualRanksByTab": {},
+  "regionDefault": "",
+  "keywordChannels": {
+    "서울대입구정형외과": "all",
+    "서울대입구역정형외과": "all",
+    "관악구정형외과": "all",
+    "낙성대정형외과": "all",
+    "봉천동정형외과": "all",
+    "남성역정형외과": "all",
+    "중앙동정형외과": "all",
+    "낙성대역정형외과": "all",
+    "봉천역정형외과": "all",
+    "관악구신경외과": "all",
+    "봉천정형외과": "all",
+    "서울대입구역신경외과": "all",
+    "관악정형외과": "all",
+    "봉천동신경외과": "all",
+    "관악구척추병원": "all",
+    "봉천신경외과": "all",
+    "봉천역신경외과": "all",
+    "관악신경외과": "all",
+    "낙성대역신경외과": "all",
+    "관악구허리통증": "all",
+    "관악구어깨통증": "all",
+    "관악구팔통증": "all",
+    "관악구손목통증": "all",
+    "관악구무릎통증": "all",
+    "관악구발통증": "all",
+    "봉천동허리통증": "all",
+    "봉천동어깨통증": "all",
+    "봉천동팔통증": "all",
+    "봉천동손목통증": "all",
+    "봉천동무릎통증": "all",
+    "봉천동발통증": "all",
+    "관악구관절병원": "all",
+    "봉천동관절병원": "all",
+    "서울대입구역관절병원": "all",
+    "봉천역관절병원": "all",
+    "봉천무릎통증": "all",
+    "봉천무릎연골연화증": "all",
+    "관악구목디스크": "all",
+    "관악구목통증": "all",
+    "봉천동테니스엘보": "all",
+    "낙성대척추전방전위증": "all",
+    "낙성대척추병원": "all",
+    "관악구손목건초염": "all",
+    "샤로수길정형외과": "all",
+    "샤로수길신경외과": "all",
+    "샤로수길팔통증": "all",
+    "샤로수길어깨통증": "all",
+    "샤로수길무릎통증": "all",
+    "샤로수길관절병원": "all",
+    "샤로수길척추병원": "all",
+    "샤로수길어깨병원": "all",
+    "샤로수길무릎병원": "all",
+    "샤로수길발병원": "all",
+    "관악구야간진료": "all",
+    "봉천동야간진료": "all",
+    "서울대입구역야간진료": "all",
+    "봉천역야간진료": "all",
+    "낙성대역야간진료": "all",
+    "샤로수길야간진료": "all",
+    "인현초등학교근처병원": "all",
+    "행운동정형외과": "all"
+  },
+  "keywords": [
+    "서울대입구정형외과",
+    "서울대입구역정형외과",
+    "관악구정형외과",
+    "낙성대정형외과",
+    "봉천동정형외과",
+    "남성역정형외과",
+    "중앙동정형외과",
+    "낙성대역정형외과",
+    "봉천역정형외과",
+    "관악구신경외과",
+    "봉천정형외과",
+    "서울대입구역신경외과",
+    "관악정형외과",
+    "봉천동신경외과",
+    "관악구척추병원",
+    "봉천신경외과",
+    "봉천역신경외과",
+    "관악신경외과",
+    "낙성대역신경외과",
+    "관악구허리통증",
+    "관악구어깨통증",
+    "관악구팔통증",
+    "관악구손목통증",
+    "관악구무릎통증",
+    "관악구발통증",
+    "봉천동허리통증",
+    "봉천동어깨통증",
+    "봉천동팔통증",
+    "봉천동손목통증",
+    "봉천동무릎통증",
+    "봉천동발통증",
+    "관악구관절병원",
+    "봉천동관절병원",
+    "서울대입구역관절병원",
+    "봉천역관절병원",
+    "봉천무릎통증",
+    "봉천무릎연골연화증",
+    "관악구목디스크",
+    "관악구목통증",
+    "봉천동테니스엘보",
+    "낙성대척추전방전위증",
+    "낙성대척추병원",
+    "관악구손목건초염",
+    "샤로수길정형외과",
+    "샤로수길신경외과",
+    "샤로수길팔통증",
+    "샤로수길어깨통증",
+    "샤로수길무릎통증",
+    "샤로수길관절병원",
+    "샤로수길척추병원",
+    "샤로수길어깨병원",
+    "샤로수길무릎병원",
+    "샤로수길발병원",
+    "관악구야간진료",
+    "봉천동야간진료",
+    "서울대입구역야간진료",
+    "봉천역야간진료",
+    "낙성대역야간진료",
+    "샤로수길야간진료",
+    "인현초등학교근처병원",
+    "행운동정형외과"
+  ],
+  "scoringNote": "API 자동 탭(지도/카페/보도자료/웹)은 1위=3점, 2~5위=2점, 6~10위=1점, 미노출=0점. 블로그는 hospitalBlogBases의 네이버 블로그 ID와 글/bloggerlink가 일치하면 인정하거나, 작성자·링크에 병원 토큰이 있으면 인정(제목·본문만 일치는 제외). 작성일은 blogRequirePostMonth·scoringYear·monthLabel로 제한. 파워링크/비즈사이트/동영상은 API 한계로 미지원(None).",
+  "hospitalName": "서울센트럴병원",
+  "keywordScopes": {
+    "서울대입구정형외과": "regional",
+    "서울대입구역정형외과": "regional",
+    "관악구정형외과": "regional",
+    "낙성대정형외과": "regional",
+    "봉천동정형외과": "regional",
+    "남성역정형외과": "regional",
+    "중앙동정형외과": "regional",
+    "낙성대역정형외과": "regional",
+    "봉천역정형외과": "regional",
+    "관악구신경외과": "regional",
+    "봉천정형외과": "regional",
+    "서울대입구역신경외과": "regional",
+    "관악정형외과": "regional",
+    "봉천동신경외과": "regional",
+    "관악구척추병원": "regional",
+    "봉천신경외과": "regional",
+    "봉천역신경외과": "regional",
+    "관악신경외과": "regional",
+    "낙성대역신경외과": "regional",
+    "관악구허리통증": "regional",
+    "관악구어깨통증": "regional",
+    "관악구팔통증": "regional",
+    "관악구손목통증": "regional",
+    "관악구무릎통증": "regional",
+    "관악구발통증": "regional",
+    "봉천동허리통증": "regional",
+    "봉천동어깨통증": "regional",
+    "봉천동팔통증": "regional",
+    "봉천동손목통증": "regional",
+    "봉천동무릎통증": "regional",
+    "봉천동발통증": "regional",
+    "관악구관절병원": "regional",
+    "봉천동관절병원": "regional",
+    "서울대입구역관절병원": "regional",
+    "봉천역관절병원": "regional",
+    "봉천무릎통증": "regional",
+    "봉천무릎연골연화증": "regional",
+    "관악구목디스크": "regional",
+    "관악구목통증": "regional",
+    "봉천동테니스엘보": "regional",
+    "낙성대척추전방전위증": "regional",
+    "낙성대척추병원": "regional",
+    "관악구손목건초염": "regional",
+    "샤로수길정형외과": "regional",
+    "샤로수길신경외과": "regional",
+    "샤로수길팔통증": "regional",
+    "샤로수길어깨통증": "regional",
+    "샤로수길무릎통증": "regional",
+    "샤로수길관절병원": "regional",
+    "샤로수길척추병원": "regional",
+    "샤로수길어깨병원": "regional",
+    "샤로수길무릎병원": "regional",
+    "샤로수길발병원": "regional",
+    "관악구야간진료": "regional",
+    "봉천동야간진료": "regional",
+    "서울대입구역야간진료": "regional",
+    "봉천역야간진료": "regional",
+    "낙성대역야간진료": "regional",
+    "샤로수길야간진료": "regional",
+    "인현초등학교근처병원": "regional",
+    "행운동정형외과": "regional"
+  },
+  "rowsBySheetKey": {
+    "regional-pc": [
+      {
+        "region": "",
+        "keyword": "서울대입구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "서울대입구역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "관악구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "낙성대정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "남성역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "중앙동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "낙성대역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "봉천역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "관악구신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "봉천정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "서울대입구역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "관악정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "관악구척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "봉천신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "봉천역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "관악신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "낙성대역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "관악구허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "관악구어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "관악구팔통증"
+      },
+      {
+        "region": "",
+        "keyword": "관악구손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "관악구무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "관악구발통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동팔통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동발통증"
+      },
+      {
+        "region": "",
+        "keyword": "관악구관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "서울대입구역관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "봉천역관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "봉천무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천무릎연골연화증"
+      },
+      {
+        "region": "",
+        "keyword": "관악구목디스크"
+      },
+      {
+        "region": "",
+        "keyword": "관악구목통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동테니스엘보"
+      },
+      {
+        "region": "",
+        "keyword": "낙성대척추전방전위증"
+      },
+      {
+        "region": "",
+        "keyword": "낙성대척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "관악구손목건초염"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길팔통증"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길발병원"
+      },
+      {
+        "region": "",
+        "keyword": "관악구야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "서울대입구역야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "봉천역야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "낙성대역야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "인현초등학교근처병원"
+      },
+      {
+        "region": "",
+        "keyword": "행운동정형외과"
+      }
+    ],
+    "regional-mob": [
+      {
+        "region": "",
+        "keyword": "서울대입구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "서울대입구역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "관악구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "낙성대정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "남성역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "중앙동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "낙성대역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "봉천역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "관악구신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "봉천정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "서울대입구역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "관악정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "관악구척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "봉천신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "봉천역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "관악신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "낙성대역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "관악구허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "관악구어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "관악구팔통증"
+      },
+      {
+        "region": "",
+        "keyword": "관악구손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "관악구무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "관악구발통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동팔통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동발통증"
+      },
+      {
+        "region": "",
+        "keyword": "관악구관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "서울대입구역관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "봉천역관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "봉천무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천무릎연골연화증"
+      },
+      {
+        "region": "",
+        "keyword": "관악구목디스크"
+      },
+      {
+        "region": "",
+        "keyword": "관악구목통증"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동테니스엘보"
+      },
+      {
+        "region": "",
+        "keyword": "낙성대척추전방전위증"
+      },
+      {
+        "region": "",
+        "keyword": "낙성대척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "관악구손목건초염"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길팔통증"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길발병원"
+      },
+      {
+        "region": "",
+        "keyword": "관악구야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "봉천동야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "서울대입구역야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "봉천역야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "낙성대역야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "샤로수길야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "인현초등학교근처병원"
+      },
+      {
+        "region": "",
+        "keyword": "행운동정형외과"
+      }
+    ],
+    "national-pc": [],
+    "national-mob": [],
+    "other-pc": [],
+    "other-mob": []
+  },
+  "sheetTitles": {
+    "regional-pc": "2026 지역 PC",
+    "regional-mob": "2026 지역 MOB",
+    "national-pc": "2026 전국 PC",
+    "national-mob": "2026 전국 MOB",
+    "other-pc": "2026 기타 PC",
+    "other-mob": "2026 기타 MOB"
+  }
+}
