@@ -190802,8 +190802,8 @@
         "논현신경외과": "regional"
       },
       "quality": {
-        "level": "ok",
-        "accuracyPct": 100.0,
+        "level": "low",
+        "accuracyPct": 75.0,
         "warnThresholdPct": 90.0,
         "lowThresholdPct": 80.0,
         "sampleSize": 1,
