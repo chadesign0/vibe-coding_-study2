@@ -477,8 +477,17 @@ async function waitForScoreTask(taskId, labelText) {
     }
     const task = payload?.task || {};
     const st = String(task.status || "");
+    const runner = String(task.runner || "");
+    const stage = String(task.stage || "");
+    const taskMsg = String(task.message || "").trim();
     if (st === "queued") {
-      setUploadScoreStatus("작업 대기중...");
+      if (runner === "github-actions" && stage === "dispatched") {
+        setUploadScoreStatus("GitHub Actions 가상머신 부팅중... (10~30초)");
+      } else if (taskMsg) {
+        setUploadScoreStatus(taskMsg);
+      } else {
+        setUploadScoreStatus("작업 대기중...");
+      }
     } else if (st === "running") {
       const total = task.totalKeywords;
       const processed = task.processedKeywords;
@@ -492,6 +501,15 @@ async function waitForScoreTask(taskId, labelText) {
         stopScoreStatusTimer();
         const displayChunk = typeof chunkIdx === "number" ? chunkIdx + 1 : 1;
         setUploadScoreStatus(`채점중... ${processed}/${total} · 청크 ${displayChunk}/${totalChunks}`);
+      } else if (
+        typeof total === "number" && total > 0 &&
+        typeof processed === "number"
+      ) {
+        stopScoreStatusTimer();
+        const pct = total > 0 ? Math.floor((processed / total) * 100) : 0;
+        setUploadScoreStatus(`채점중... ${processed}/${total} (${pct}%)`);
+      } else if (runner === "github-actions") {
+        setUploadScoreStatus(taskMsg || "GitHub Actions에서 채점 실행중...");
       } else {
         setUploadScoreStatus("채점중...");
       }

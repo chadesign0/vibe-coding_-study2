@@ -955,7 +955,24 @@ def load_config() -> dict[str, Any]:
         return json.load(f)
 
 
-def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str) -> tuple[dict[str, dict[str, int | None]], dict[str, Any]]:
+def post_progress_webhook(**fields: Any) -> None:
+    """채점 진행상황을 Render webhook으로 전송. 설정 없으면 조용히 무시."""
+    url = (os.getenv("SCORING_WEBHOOK_URL") or "").strip()
+    task_id = (os.getenv("SCORING_TASK_ID") or "").strip()
+    if not url or not task_id:
+        return
+    body = {"taskId": task_id, **{k: v for k, v in fields.items() if v is not None}}
+    secret = (os.getenv("SCORING_WEBHOOK_SECRET") or "").strip()
+    headers = {"Content-Type": "application/json"}
+    if secret:
+        headers["X-Webhook-Secret"] = secret
+    try:
+        requests.post(url, json=body, headers=headers, timeout=10)
+    except Exception as e:
+        print(f"[webhook] 전송 실패 (무시): {e}")
+
+
+def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_progress: bool = False) -> tuple[dict[str, dict[str, int | None]], dict[str, Any]]:
     manual_by_tab = cfg.get("manualRanksByTab") or {}
     legacy_blog_manual = cfg.get("manualRanks") or {}
     names = cfg.get("hospitalNames") or []
@@ -967,7 +984,18 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str) -> tuple[dict[
     blog_period = blog_evidence_period(cfg)
     official_blog_ids = official_naver_blog_ids_from_config(cfg)
     official_cafe_ids = frozenset()  # 카페 채점은 전역 비활성화 (2026-04 이후)
-    for kw in cfg.get("keywords") or []:
+    keywords_list = list(cfg.get("keywords") or [])
+    total_keywords = len(keywords_list)
+    progress_step = max(1, min(20, total_keywords // 10 if total_keywords >= 20 else 1))
+    if report_progress:
+        post_progress_webhook(
+            status="running",
+            message=f"채점 진행중 0/{total_keywords}",
+            totalKeywords=total_keywords,
+            processedKeywords=0,
+            stage="scoring",
+        )
+    for idx, kw in enumerate(keywords_list, start=1):
         out[kw], ev_all[kw] = {}, {}
         for tab in COL_BY_TAB.keys():
             if tab == "cafe":
@@ -1001,6 +1029,14 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str) -> tuple[dict[
                 )
                 out[kw][tab] = 0 if r is None else r
                 ev_all[kw][tab] = {"source": "api", **ev}
+        if report_progress and (idx == total_keywords or idx % progress_step == 0):
+            post_progress_webhook(
+                status="running",
+                message=f"채점 진행중 {idx}/{total_keywords}",
+                totalKeywords=total_keywords,
+                processedKeywords=idx,
+                stage="scoring",
+            )
     return out, ev_all
 
 
@@ -1268,7 +1304,7 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
 
     cfg_for_fetch = dict(cfg)
     cfg_for_fetch["keywords"] = fresh_keywords
-    ranks, evidence = fetch_keyword_ranks(cfg_for_fetch, cid, csec)
+    ranks, evidence = fetch_keyword_ranks(cfg_for_fetch, cid, csec, report_progress=True)
     for kw, tabs in ranks.items():
         print("-", kw, tabs)
 

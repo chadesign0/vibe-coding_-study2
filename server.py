@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import threading
+import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
@@ -55,7 +56,15 @@ SCORE_TASKS_LOCK = threading.Lock()
 MERGE_LOCK = threading.Lock()  # scoring-data.json / last-run-evidence.json 동시 쓰기 방지
 
 # 전체 재채점은 청크 단위로 나누어 실행 (OOM/재시작 리스크 완화)
+# Render 무료 플랜 OOM 회피용: 50개씩 분할. GitHub Actions 모드에서는 사용하지 않음.
 RESCORE_CHUNK_SIZE = 50
+
+# 전체 재채점을 GitHub Actions로 위임할지 여부.
+# Render 무료 플랜 OOM 한계를 우회하기 위해 채점 일꾼만 외부(7GB RAM 환경)로 분리.
+USE_GITHUB_ACTIONS_FOR_RESCORE = (os.getenv("USE_GITHUB_ACTIONS_FOR_RESCORE") or "1").strip().lower() in {"1", "true", "yes"}
+GITHUB_WORKFLOW_FILE = (os.getenv("GITHUB_WORKFLOW_FILE") or "scoring.yml").strip()
+WEBHOOK_SECRET = (os.getenv("WEBHOOK_SECRET") or "").strip()
+RENDER_PUBLIC_URL = (os.getenv("RENDER_PUBLIC_URL") or "https://baejeompyojadonghwa.onrender.com").strip().rstrip("/")
 
 
 def canonical_hospital_name(name: str | None) -> str:
@@ -1141,6 +1150,217 @@ def enqueue_score_task(
     return task_id, True
 
 
+def _pull_scoring_data_from_github() -> None:
+    """GitHub main 브랜치의 scoring-data.json / last-run-evidence.json 을 로컬 디스크에 동기화.
+    GitHub Actions에서 자동 push된 결과를 Render가 즉시 보여줄 수 있게 한다."""
+    owner = os.getenv("GITHUB_REPO_OWNER", "chadesign0").strip()
+    repo  = os.getenv("GITHUB_REPO_NAME",  "vibe-coding_-study2").strip()
+    targets = [
+        ("data/scoring-data.json", DATA_PATH),
+        ("data/last-run-evidence.json", ROOT / "data" / "last-run-evidence.json"),
+    ]
+    for remote_path, local_path in targets:
+        try:
+            url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/{remote_path}"
+            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                content = resp.read()
+            local_path.parent.mkdir(parents=True, exist_ok=True)
+            local_path.write_bytes(content)
+            print(f"[github] {remote_path} 동기화 완료 ({len(content)} bytes)")
+        except Exception as e:
+            print(f"[github] {remote_path} 동기화 실패: {e}")
+
+
+def _trigger_github_actions_workflow(
+    *,
+    task_id: str,
+    hospital_name: str,
+    month_label: str,
+    config_name: str,
+    webhook_url: str,
+    full_rescore: bool = True,
+) -> tuple[bool, str]:
+    """GitHub Actions workflow_dispatch 호출 → 외부에서 채점 실행."""
+    token = os.getenv("GITHUB_TOKEN", "").strip()
+    if not token:
+        return False, "GITHUB_TOKEN 환경변수가 설정되지 않았습니다."
+    owner = os.getenv("GITHUB_REPO_OWNER", "chadesign0").strip()
+    repo  = os.getenv("GITHUB_REPO_NAME",  "vibe-coding_-study2").strip()
+    workflow = GITHUB_WORKFLOW_FILE
+    url = f"https://api.github.com/repos/{owner}/{repo}/actions/workflows/{workflow}/dispatches"
+    payload = {
+        "ref": "main",
+        "inputs": {
+            "task_id": task_id,
+            "hospital_name": hospital_name,
+            "month_label": month_label,
+            "config_name": config_name,
+            "webhook_url": webhook_url,
+            "full_rescore": "1" if full_rescore else "0",
+        },
+    }
+    body = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            if 200 <= resp.status < 300:
+                return True, ""
+            return False, f"GitHub Actions API 응답 {resp.status}"
+    except urllib.error.HTTPError as e:
+        try:
+            detail = e.read().decode("utf-8", errors="replace")
+        except Exception:
+            detail = ""
+        return False, f"GitHub Actions API 오류 {e.code}: {detail[:200]}"
+    except Exception as e:
+        return False, f"GitHub Actions API 호출 실패: {e}"
+
+
+def enqueue_actions_rescore_task(
+    *,
+    hospital_name: str,
+    month_label: str,
+) -> tuple[str, bool, str]:
+    """
+    전체 재채점을 GitHub Actions에 위임.
+    반환: (task_id, created_new, error_message)
+    """
+    hn = canonical_hospital_name(hospital_name)
+    key = _task_key("actions_rescore", hn, month_label)
+
+    config_name, err = build_runtime_config_for_rerun(month_label, hn)
+    if not config_name:
+        return "", False, err or "재채점 준비 실패"
+
+    with SCORE_TASKS_LOCK:
+        active_id = ACTIVE_SCORE_TASK_BY_KEY.get(key)
+        if active_id:
+            existing = SCORE_TASKS.get(active_id) or {}
+            if existing.get("status") in {"queued", "running"}:
+                return active_id, False, ""
+
+        task_id = uuid.uuid4().hex
+        task: dict[str, object] = {
+            "taskId": task_id,
+            "kind": "actions_rescore",
+            "status": "queued",
+            "hospitalName": hn,
+            "monthLabel": month_label,
+            "message": f"{hn} · {month_label} 채점 준비중 (GitHub Actions 가상머신 부팅 대기, 약 10~30초)",
+            "configName": config_name,
+            "fullRescore": True,
+            "runner": "github-actions",
+            "createdAt": now_iso(),
+            "startedAt": None,
+            "endedAt": None,
+            "log": "",
+            "error": "",
+            "stage": "preparing",
+        }
+        SCORE_TASKS[task_id] = task
+        ACTIVE_SCORE_TASK_BY_KEY[key] = task_id
+
+    # config 파일은 main 브랜치에 push 되어 있어야 GitHub Actions가 읽을 수 있음.
+    # 이 부분은 GitHub Actions가 checkout한 시점의 config 파일을 사용하므로
+    # 사용자 업로드 후 자동 commit이 선행돼야 한다.
+    # 현재 구조상 config는 update_keywords()에서 디스크에 저장만 되므로,
+    # 재채점 시 config 파일도 함께 push 한다.
+    try:
+        _github_push_runtime_config(config_name)
+    except Exception as e:
+        print(f"[github] runtime config push 실패: {e}")
+
+    webhook_url = f"{RENDER_PUBLIC_URL}/api/webhook/score-progress"
+    ok, err = _trigger_github_actions_workflow(
+        task_id=task_id,
+        hospital_name=hn,
+        month_label=month_label,
+        config_name=config_name,
+        webhook_url=webhook_url,
+        full_rescore=True,
+    )
+    if not ok:
+        _set_task_status(
+            task_id,
+            status="failed",
+            endedAt=now_iso(),
+            error=err,
+            message=f"채점 트리거 실패: {err}",
+        )
+        with SCORE_TASKS_LOCK:
+            if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
+                ACTIVE_SCORE_TASK_BY_KEY.pop(key, None)
+        return task_id, True, err
+
+    _set_task_status(
+        task_id,
+        status="queued",
+        message=f"{hn} · {month_label} 채점 가상머신 부팅중... (10~30초 소요)",
+        stage="dispatched",
+    )
+    return task_id, True, ""
+
+
+def _github_push_runtime_config(config_name: str) -> None:
+    """runtime config 파일을 GitHub main에 push (Actions가 읽을 수 있도록)."""
+    token = os.getenv("GITHUB_TOKEN", "").strip()
+    if not token:
+        return
+    owner = os.getenv("GITHUB_REPO_OWNER", "chadesign0").strip()
+    repo  = os.getenv("GITHUB_REPO_NAME",  "vibe-coding_-study2").strip()
+    cfg_path = ROOT / "config" / config_name
+    if not cfg_path.exists():
+        return
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github+json",
+        "Content-Type": "application/json",
+    }
+    base = f"https://api.github.com/repos/{owner}/{repo}"
+
+    def gh(url: str, data: dict | None = None, method: str | None = None) -> dict:
+        body = json.dumps(data).encode() if data is not None else None
+        req = urllib.request.Request(
+            url, data=body, headers=headers,
+            method=method or ("POST" if body else "GET"),
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read())
+
+    blob = gh(f"{base}/git/blobs", {
+        "content": base64.b64encode(cfg_path.read_bytes()).decode(),
+        "encoding": "base64",
+    })
+    ref = gh(f"{base}/git/refs/heads/main")
+    latest_sha = ref["object"]["sha"]
+    tree_sha = gh(f"{base}/git/commits/{latest_sha}")["tree"]["sha"]
+    new_tree_sha = gh(f"{base}/git/trees", {
+        "base_tree": tree_sha,
+        "tree": [{
+            "path": cfg_path.relative_to(ROOT).as_posix(),
+            "mode": "100644", "type": "blob", "sha": blob["sha"],
+        }],
+    })["sha"]
+    new_sha = gh(f"{base}/git/commits", {
+        "message": f"chore: runtime config 동기화 ({config_name})",
+        "tree": new_tree_sha,
+        "parents": [latest_sha],
+    })["sha"]
+    gh(f"{base}/git/refs/heads/main", {"sha": new_sha}, method="PATCH")
+    print(f"[github] runtime config push 성공: {config_name}")
+
+
 def enqueue_chunked_rescore_task(
     *,
     hospital_name: str,
@@ -1525,11 +1745,96 @@ def run_score():
     if force_sync:
         ok, log = run_scoring(check_name, full_rescore=True)
         return jsonify({"ok": ok, "accepted": False}), (200 if ok else 500)
+    if USE_GITHUB_ACTIONS_FOR_RESCORE:
+        task_id, created_new, err = enqueue_actions_rescore_task(
+            hospital_name=hospital_name,
+            month_label=month_label,
+        )
+        if not task_id:
+            return jsonify({"ok": False, "message": err or "재채점 트리거 실패"}), 500
+        if err:
+            return jsonify({
+                "ok": False,
+                "accepted": True,
+                "taskId": task_id,
+                "createdNewTask": created_new,
+                "message": err,
+            }), 500
+        return jsonify({
+            "ok": True,
+            "accepted": True,
+            "taskId": task_id,
+            "createdNewTask": created_new,
+            "runner": "github-actions",
+            "message": "GitHub Actions 채점 작업을 시작했습니다. 가상머신 부팅 후 실행됩니다 (10~30초).",
+        }), 202
     task_id, created_new = enqueue_chunked_rescore_task(
         hospital_name=hospital_name,
         month_label=month_label,
     )
     return jsonify({"ok": True, "accepted": True, "taskId": task_id, "createdNewTask": created_new}), 202
+
+
+@app.post("/api/webhook/score-progress")
+def webhook_score_progress():
+    """GitHub Actions에서 진행상황·완료·실패를 알리는 webhook 수신."""
+    if WEBHOOK_SECRET:
+        provided = (request.headers.get("X-Webhook-Secret") or "").strip()
+        if provided != WEBHOOK_SECRET:
+            return jsonify({"ok": False, "message": "unauthorized"}), 401
+    payload = request.get_json(silent=True) or {}
+    task_id = str(payload.get("taskId") or "").strip()
+    if not task_id:
+        return jsonify({"ok": False, "message": "taskId required"}), 400
+    with SCORE_TASKS_LOCK:
+        cur = SCORE_TASKS.get(task_id)
+        if not isinstance(cur, dict):
+            return jsonify({"ok": False, "message": "task not found"}), 404
+    status = str(payload.get("status") or "").strip().lower()
+    patch: dict[str, object] = {}
+    if status:
+        patch["status"] = status
+    msg = payload.get("message")
+    if isinstance(msg, str) and msg:
+        patch["message"] = msg
+    for k in ("totalKeywords", "processedKeywords", "totalChunks", "currentChunkIndex"):
+        if k in payload:
+            try:
+                patch[k] = int(payload[k])
+            except Exception:
+                pass
+    stage = payload.get("stage")
+    if isinstance(stage, str) and stage:
+        patch["stage"] = stage
+    run_id = payload.get("runId")
+    if run_id:
+        patch["runId"] = str(run_id)
+    quality_raw = payload.get("quality")
+    if isinstance(quality_raw, str) and quality_raw.strip():
+        m = re.match(r"QUALITY_GATE:(OK|WARN|LOW):([0-9]+(?:\.[0-9]+)?)", quality_raw.strip())
+        if m:
+            try:
+                patch["quality"] = {"level": m.group(1).lower(), "accuracyPct": float(m.group(2))}
+            except Exception:
+                pass
+    if status == "running" and not (cur.get("startedAt")):
+        patch["startedAt"] = now_iso()
+    if status in {"succeeded", "failed"}:
+        patch["endedAt"] = now_iso()
+        if status == "failed" and isinstance(msg, str):
+            patch["error"] = msg
+        kind = str(cur.get("kind") or "")
+        hn = str(cur.get("hospitalName") or "")
+        ml = str(cur.get("monthLabel") or "")
+        key = _task_key(kind, hn, ml)
+        with SCORE_TASKS_LOCK:
+            if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
+                ACTIVE_SCORE_TASK_BY_KEY.pop(key, None)
+        # GitHub Actions가 push한 최신 채점 결과를 Render 디스크에 가져온다.
+        if status == "succeeded":
+            threading.Thread(target=_pull_scoring_data_from_github, daemon=True).start()
+    _set_task_status(task_id, **patch)
+    return jsonify({"ok": True})
 
 
 @app.get("/api/score-task/<task_id>")
