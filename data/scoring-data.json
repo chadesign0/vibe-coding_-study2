@@ -185288,7 +185288,7 @@
       },
       "quality": {
         "level": "ok",
-        "accuracyPct": 100.0,
+        "accuracyPct": 99.5,
         "warnThresholdPct": 90.0,
         "lowThresholdPct": 80.0,
         "sampleSize": 24,
