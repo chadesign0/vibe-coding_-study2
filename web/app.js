@@ -448,7 +448,7 @@ async function loadScoreTask(taskId) {
 const TASK_SERVER_RESTARTED = "__SERVER_RESTARTED__";
 
 async function waitForScoreTask(taskId, labelText) {
-  const timeoutMs = 20 * 60 * 1000;
+  const timeoutMs = 60 * 60 * 1000;
   const started = Date.now();
   let networkErrStreak = 0;
   let notFoundStreak = 0;
