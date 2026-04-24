@@ -1271,44 +1271,41 @@ def enqueue_actions_rescore_task(
         SCORE_TASKS[task_id] = task
         ACTIVE_SCORE_TASK_BY_KEY[key] = task_id
 
-    # config 파일은 main 브랜치에 push 되어 있어야 GitHub Actions가 읽을 수 있음.
-    # 이 부분은 GitHub Actions가 checkout한 시점의 config 파일을 사용하므로
-    # 사용자 업로드 후 자동 commit이 선행돼야 한다.
-    # 현재 구조상 config는 update_keywords()에서 디스크에 저장만 되므로,
-    # 재채점 시 config 파일도 함께 push 한다.
-    try:
-        _github_push_runtime_config(config_name)
-    except Exception as e:
-        print(f"[github] runtime config push 실패: {e}")
+    def _dispatch() -> None:
+        try:
+            _github_push_runtime_config(config_name)
+        except Exception as e:
+            print(f"[github] runtime config push 실패: {e}")
 
-    webhook_url = f"{RENDER_PUBLIC_URL}/api/webhook/score-progress"
-    ok, err = _trigger_github_actions_workflow(
-        task_id=task_id,
-        hospital_name=hn,
-        month_label=month_label,
-        config_name=config_name,
-        webhook_url=webhook_url,
-        full_rescore=True,
-    )
-    if not ok:
+        webhook_url = f"{RENDER_PUBLIC_URL}/api/webhook/score-progress"
+        ok, dispatch_err = _trigger_github_actions_workflow(
+            task_id=task_id,
+            hospital_name=hn,
+            month_label=month_label,
+            config_name=config_name,
+            webhook_url=webhook_url,
+            full_rescore=True,
+        )
+        if not ok:
+            _set_task_status(
+                task_id,
+                status="failed",
+                endedAt=now_iso(),
+                error=dispatch_err,
+                message=f"채점 트리거 실패: {dispatch_err}",
+            )
+            with SCORE_TASKS_LOCK:
+                if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
+                    ACTIVE_SCORE_TASK_BY_KEY.pop(key, None)
+            return
         _set_task_status(
             task_id,
-            status="failed",
-            endedAt=now_iso(),
-            error=err,
-            message=f"채점 트리거 실패: {err}",
+            status="queued",
+            message=f"{hn} · {month_label} 채점 가상머신 부팅중... (10~30초 소요)",
+            stage="dispatched",
         )
-        with SCORE_TASKS_LOCK:
-            if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
-                ACTIVE_SCORE_TASK_BY_KEY.pop(key, None)
-        return task_id, True, err
 
-    _set_task_status(
-        task_id,
-        status="queued",
-        message=f"{hn} · {month_label} 채점 가상머신 부팅중... (10~30초 소요)",
-        stage="dispatched",
-    )
+    threading.Thread(target=_dispatch, daemon=True).start()
     return task_id, True, ""
 
 
