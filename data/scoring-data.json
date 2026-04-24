@@ -201021,8 +201021,8 @@
         "accuracyPct": 100.0,
         "warnThresholdPct": 90.0,
         "lowThresholdPct": 80.0,
-        "sampleSize": 2,
-        "checkedItems": 16
+        "sampleSize": 1,
+        "checkedItems": 8
       }
     }
   ]
