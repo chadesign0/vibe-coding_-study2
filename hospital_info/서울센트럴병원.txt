@@ -1,0 +1,4 @@
+병원 식별명 : 서울센트럴병원
+채점에 쓸 병원명·표기 : 서울센트럴병원
+공식 홈페이지 URL 또는 도메인 : https://서울센트럴병원.com/ , https://xn--3l2b02gf8dxd950ahev20g.com/ (영문 punycode, Playwright용)
+공식 네이버 블로그 URL (여러 개면 전부) : https://blog.naver.com/jhztuelsss18574  ,  https://blog.naver.com/seoulcentralhospital

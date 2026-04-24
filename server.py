@@ -197,7 +197,10 @@ HOSPITAL_PROFILE_OVERRIDES: dict[str, dict[str, object]] = {
         ],
     },
     "서울센트럴병원": {
-        "hospitalDomains": ["https://서울센트럴병원.com/"],
+        "hospitalDomains": [
+            "https://서울센트럴병원.com/",
+            "https://xn--3l2b02gf8dxd950ahev20g.com/",
+        ],
         "hospitalBlogBases": [
             "https://blog.naver.com/jhztuelsss18574",
             "https://blog.naver.com/seoulcentralhospital",
