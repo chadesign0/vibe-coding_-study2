@@ -1360,8 +1360,13 @@ async function runKeywordUpload(mode) {
     }
     if (finishedTask === TASK_SERVER_RESTARTED) {
       scoreRestarted = true;
+      showToast("서버가 재시작됐습니다. 채점 완료 시 자동으로 반영됩니다.");
+      const updated = await watchForDataUpdate(scoreStartedAt, setUploadScoreStatus);
       await reloadDataAndRender();
-      showToast("서버가 재시작됐습니다. 채점은 백그라운드에서 계속 진행 중입니다. 완료 후 새로고침하면 반영됩니다.");
+      if (updated) {
+        scoreRestarted = false;
+        showToast("채점 완료 — 자동으로 표에 반영했습니다.");
+      }
       return;
     }
     await reloadDataAndRender();
