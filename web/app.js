@@ -463,11 +463,7 @@ async function waitForScoreTask(taskId, labelText) {
       notFoundStreak = 0;
     } catch (e) {
       if ((e?.message || "").includes("404")) {
-        notFoundStreak++;
-        if (notFoundStreak >= 3) return TASK_SERVER_RESTARTED;
-        setUploadScoreStatus(`서버 재시작 확인중… (${notFoundStreak}/3)`);
-        await new Promise((r) => setTimeout(r, 2000));
-        continue;
+        return TASK_SERVER_RESTARTED;
       }
       networkErrStreak++;
       if (networkErrStreak >= 5) throw e;
@@ -1340,7 +1336,7 @@ async function runKeywordUpload(mode) {
     if (finishedTask === TASK_SERVER_RESTARTED) {
       scoreRestarted = true;
       await reloadDataAndRender();
-      showToast("서버가 재시작됐습니다. 채점이 완료됐으면 표에 반영됩니다. 미반영 시 재채점 버튼을 눌러주세요.");
+      showToast("서버가 재시작됐습니다. 채점은 백그라운드에서 계속 진행 중입니다. 완료 후 새로고침하면 반영됩니다.");
       return;
     }
     await reloadDataAndRender();
@@ -1401,7 +1397,7 @@ function bindUploadActions() {
         if (result === TASK_SERVER_RESTARTED) {
           scoreRestarted = true;
           await reloadDataAndRender();
-          showToast("서버가 재시작됐습니다. 재채점이 완료됐으면 표에 반영됩니다. 미반영 시 다시 눌러주세요.");
+          showToast("서버가 재시작됐습니다. GitHub Actions에서 채점이 계속 진행 중입니다. 완료 후 새로고침하면 반영됩니다.");
           return;
         }
       } else if (res && res.ok === false) {
