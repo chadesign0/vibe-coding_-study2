@@ -18,20 +18,1471 @@
   },
   "manualRanksByTab": {},
   "regionDefault": "",
-  "keywordChannels": {},
-  "keywords": [],
+  "keywordChannels": {
+    "강남정형외과": "all",
+    "강남역정형외과": "all",
+    "신경성형술": "all",
+    "풍선확장술": "all",
+    "논현정형외과": "all",
+    "강남신경외과": "all",
+    "황색인대제거술": "all",
+    "논현동정형외과": "all",
+    "학동역정형외과": "all",
+    "논현역정형외과": "all",
+    "학동정형외과": "all",
+    "강남척추병원": "all",
+    "신논현정형외과": "all",
+    "신논현역정형외과": "all",
+    "강남구정형외과": "all",
+    "논현동병원": "all",
+    "강남허리병원": "all",
+    "논현역병원": "all",
+    "강남어깨통증": "all",
+    "강남허리디스크": "all",
+    "논현동신경외과": "all",
+    "학동역신경외과": "all",
+    "강남MRI": "all",
+    "강남구신경외과": "all",
+    "논현신경외과": "all",
+    "논현병원": "all",
+    "학동신경외과": "all",
+    "강남관절병원": "all",
+    "논현역신경외과": "all",
+    "강남줄기세포": "all",
+    "신논현신경외과": "all",
+    "강남역류성식도염": "all",
+    "강남어깨병원": "all",
+    "허리비수술치료": "all",
+    "논현동척추병원": "all",
+    "강남역근막통증증후군": "all",
+    "논현척추골절": "all",
+    "논현역후종인대골화증": "all",
+    "논현햄스트링파열": "all",
+    "논현만성요통": "all",
+    "논현역척추측만증": "all",
+    "논현허리디스크": "all",
+    "강남역척추전방전위증": "all",
+    "논현역어깨탈구": "all",
+    "강남슬랩병변": "all",
+    "논현역비만": "all",
+    "논현역a형간염": "all",
+    "논현퇴행성관절염": "all",
+    "논현척추병원추천": "all",
+    "강남일자목증후군": "all",
+    "강남전방십자인대파열": "all",
+    "강남고지혈증": "all",
+    "논현동척추통증": "all",
+    "학동로정형외과": "all",
+    "논현고혈압": "all",
+    "논현동허리통증": "all",
+    "논현1동신경외과": "all",
+    "논현신경외과추천": "all",
+    "학동로신경외과": "all",
+    "논현역허리통증": "all",
+    "논현역척추병원": "all",
+    "논현역허리디스크": "all",
+    "논현역척추관협착증": "all",
+    "논현척추병원": "all",
+    "강남구척추병원": "all",
+    "논현역척추협착증": "all",
+    "논현동허리병원": "all",
+    "강남척추관협착증": "all",
+    "논현동척추관협착증": "all",
+    "논현동허리디스크": "all",
+    "논현동관절병원": "all",
+    "논현관절병원": "all",
+    "논현역관절병원": "all",
+    "논현역허리병원": "all",
+    "논현역척추치료": "all",
+    "논현동오십견": "all",
+    "강남오십견": "all",
+    "강남척추치료": "all",
+    "논현허리병원": "all",
+    "논현어깨병원": "all",
+    "논현동척추치료": "all",
+    "논현MRI": "all",
+    "강남황색인대제거술": "all",
+    "강남풍선확장술": "all",
+    "강남신경성형술": "all",
+    "강남허리비수술치료": "all",
+    "강남논현신경외과": "all",
+    "강남논현정형외과": "all",
+    "강남논현역정형외과": "all",
+    "강남논현역신경외과": "all",
+    "강남줄기세포치료": "all",
+    "강남카티스템": "all",
+    "강남카티스템주사치료": "all",
+    "강남줄기세포치료병원": "all",
+    "강남어깨치료": "all",
+    "논현어깨명의": "all",
+    "논현동어깨명의": "all",
+    "논현역어깨명의": "all",
+    "강남어깨명의": "all",
+    "강남역어깨명의": "all",
+    "학동역어깨명의": "all",
+    "학동어깨명의": "all",
+    "서울어깨명의": "all",
+    "신사어깨명의": "all",
+    "신사역어깨명의": "all",
+    "압구정어깨명의": "all",
+    "강남뇌검진": "all",
+    "강남역뇌검진": "all",
+    "강남구뇌검진": "all",
+    "논현뇌검진": "all",
+    "논현역뇌검진": "all",
+    "논현동뇌검진": "all",
+    "학동뇌검진": "all",
+    "학동역뇌검진": "all",
+    "신논현역신경외과": "all",
+    "신논현비만": "all",
+    "신사역하지정맥": "all",
+    "신사역관절병원": "all",
+    "신사역척추병원": "all",
+    "신사역다리아플때": "all",
+    "신사역다리부종": "all",
+    "강남다리무거움증": "all",
+    "신사역다리저림": "all",
+    "논현동다이어트처방": "all",
+    "신논현관절병원": "all",
+    "신논현석회화건염": "all",
+    "신사역신경외과": "all",
+    "신사역어깨병원": "all",
+    "학동허리병원": "all",
+    "신사역허리통증": "all",
+    "신사역발목통증": "all"
+  },
+  "keywords": [
+    "강남정형외과",
+    "강남역정형외과",
+    "신경성형술",
+    "풍선확장술",
+    "논현정형외과",
+    "강남신경외과",
+    "황색인대제거술",
+    "논현동정형외과",
+    "학동역정형외과",
+    "논현역정형외과",
+    "학동정형외과",
+    "강남척추병원",
+    "신논현정형외과",
+    "신논현역정형외과",
+    "강남구정형외과",
+    "논현동병원",
+    "강남허리병원",
+    "논현역병원",
+    "강남어깨통증",
+    "강남허리디스크",
+    "논현동신경외과",
+    "학동역신경외과",
+    "강남MRI",
+    "강남구신경외과",
+    "논현신경외과",
+    "논현병원",
+    "학동신경외과",
+    "강남관절병원",
+    "논현역신경외과",
+    "강남줄기세포",
+    "신논현신경외과",
+    "강남역류성식도염",
+    "강남어깨병원",
+    "허리비수술치료",
+    "논현동척추병원",
+    "강남역근막통증증후군",
+    "논현척추골절",
+    "논현역후종인대골화증",
+    "논현햄스트링파열",
+    "논현만성요통",
+    "논현역척추측만증",
+    "논현허리디스크",
+    "강남역척추전방전위증",
+    "논현역어깨탈구",
+    "강남슬랩병변",
+    "논현역비만",
+    "논현역a형간염",
+    "논현퇴행성관절염",
+    "논현척추병원추천",
+    "강남일자목증후군",
+    "강남전방십자인대파열",
+    "강남고지혈증",
+    "논현동척추통증",
+    "학동로정형외과",
+    "논현고혈압",
+    "논현동허리통증",
+    "논현1동신경외과",
+    "논현신경외과추천",
+    "학동로신경외과",
+    "논현역허리통증",
+    "논현역척추병원",
+    "논현역허리디스크",
+    "논현역척추관협착증",
+    "논현척추병원",
+    "강남구척추병원",
+    "논현역척추협착증",
+    "논현동허리병원",
+    "강남척추관협착증",
+    "논현동척추관협착증",
+    "논현동허리디스크",
+    "논현동관절병원",
+    "논현관절병원",
+    "논현역관절병원",
+    "논현역허리병원",
+    "논현역척추치료",
+    "논현동오십견",
+    "강남오십견",
+    "강남척추치료",
+    "논현허리병원",
+    "논현어깨병원",
+    "논현동척추치료",
+    "논현MRI",
+    "강남황색인대제거술",
+    "강남풍선확장술",
+    "강남신경성형술",
+    "강남허리비수술치료",
+    "강남논현신경외과",
+    "강남논현정형외과",
+    "강남논현역정형외과",
+    "강남논현역신경외과",
+    "강남줄기세포치료",
+    "강남카티스템",
+    "강남카티스템주사치료",
+    "강남줄기세포치료병원",
+    "강남어깨치료",
+    "논현어깨명의",
+    "논현동어깨명의",
+    "논현역어깨명의",
+    "강남어깨명의",
+    "강남역어깨명의",
+    "학동역어깨명의",
+    "학동어깨명의",
+    "서울어깨명의",
+    "신사어깨명의",
+    "신사역어깨명의",
+    "압구정어깨명의",
+    "강남뇌검진",
+    "강남역뇌검진",
+    "강남구뇌검진",
+    "논현뇌검진",
+    "논현역뇌검진",
+    "논현동뇌검진",
+    "학동뇌검진",
+    "학동역뇌검진",
+    "신논현역신경외과",
+    "신논현비만",
+    "신사역하지정맥",
+    "신사역관절병원",
+    "신사역척추병원",
+    "신사역다리아플때",
+    "신사역다리부종",
+    "강남다리무거움증",
+    "신사역다리저림",
+    "논현동다이어트처방",
+    "신논현관절병원",
+    "신논현석회화건염",
+    "신사역신경외과",
+    "신사역어깨병원",
+    "학동허리병원",
+    "신사역허리통증",
+    "신사역발목통증"
+  ],
   "scoringNote": "API 자동 탭(지도/카페/보도자료/웹)은 1위=3점, 2~5위=2점, 6~10위=1점, 미노출=0점. 블로그는 hospitalBlogBases의 네이버 블로그 ID와 글/bloggerlink가 일치하면 인정하거나, 작성자·링크에 병원 토큰이 있으면 인정(제목·본문만 일치는 제외). 작성일은 blogRequirePostMonth·scoringYear·monthLabel로 제한. 파워링크/비즈사이트/동영상은 API 한계로 미지원(None).",
   "hospitalName": "새로운병원",
+  "keywordScopes": {
+    "강남정형외과": "regional",
+    "강남역정형외과": "regional",
+    "신경성형술": "regional",
+    "풍선확장술": "regional",
+    "논현정형외과": "regional",
+    "강남신경외과": "regional",
+    "황색인대제거술": "regional",
+    "논현동정형외과": "regional",
+    "학동역정형외과": "regional",
+    "논현역정형외과": "regional",
+    "학동정형외과": "regional",
+    "강남척추병원": "regional",
+    "신논현정형외과": "regional",
+    "신논현역정형외과": "regional",
+    "강남구정형외과": "regional",
+    "논현동병원": "regional",
+    "강남허리병원": "regional",
+    "논현역병원": "regional",
+    "강남어깨통증": "regional",
+    "강남허리디스크": "regional",
+    "논현동신경외과": "regional",
+    "학동역신경외과": "regional",
+    "강남MRI": "regional",
+    "강남구신경외과": "regional",
+    "논현신경외과": "regional",
+    "논현병원": "regional",
+    "학동신경외과": "regional",
+    "강남관절병원": "regional",
+    "논현역신경외과": "regional",
+    "강남줄기세포": "regional",
+    "신논현신경외과": "regional",
+    "강남역류성식도염": "regional",
+    "강남어깨병원": "regional",
+    "허리비수술치료": "regional",
+    "논현동척추병원": "regional",
+    "강남역근막통증증후군": "regional",
+    "논현척추골절": "regional",
+    "논현역후종인대골화증": "regional",
+    "논현햄스트링파열": "regional",
+    "논현만성요통": "regional",
+    "논현역척추측만증": "regional",
+    "논현허리디스크": "regional",
+    "강남역척추전방전위증": "regional",
+    "논현역어깨탈구": "regional",
+    "강남슬랩병변": "regional",
+    "논현역비만": "regional",
+    "논현역a형간염": "regional",
+    "논현퇴행성관절염": "regional",
+    "논현척추병원추천": "regional",
+    "강남일자목증후군": "regional",
+    "강남전방십자인대파열": "regional",
+    "강남고지혈증": "regional",
+    "논현동척추통증": "regional",
+    "학동로정형외과": "regional",
+    "논현고혈압": "regional",
+    "논현동허리통증": "regional",
+    "논현1동신경외과": "regional",
+    "논현신경외과추천": "regional",
+    "학동로신경외과": "regional",
+    "논현역허리통증": "regional",
+    "논현역척추병원": "regional",
+    "논현역허리디스크": "regional",
+    "논현역척추관협착증": "regional",
+    "논현척추병원": "regional",
+    "강남구척추병원": "regional",
+    "논현역척추협착증": "regional",
+    "논현동허리병원": "regional",
+    "강남척추관협착증": "regional",
+    "논현동척추관협착증": "regional",
+    "논현동허리디스크": "regional",
+    "논현동관절병원": "regional",
+    "논현관절병원": "regional",
+    "논현역관절병원": "regional",
+    "논현역허리병원": "regional",
+    "논현역척추치료": "regional",
+    "논현동오십견": "regional",
+    "강남오십견": "regional",
+    "강남척추치료": "regional",
+    "논현허리병원": "regional",
+    "논현어깨병원": "regional",
+    "논현동척추치료": "regional",
+    "논현MRI": "regional",
+    "강남황색인대제거술": "regional",
+    "강남풍선확장술": "regional",
+    "강남신경성형술": "regional",
+    "강남허리비수술치료": "regional",
+    "강남논현신경외과": "regional",
+    "강남논현정형외과": "regional",
+    "강남논현역정형외과": "regional",
+    "강남논현역신경외과": "regional",
+    "강남줄기세포치료": "regional",
+    "강남카티스템": "regional",
+    "강남카티스템주사치료": "regional",
+    "강남줄기세포치료병원": "regional",
+    "강남어깨치료": "regional",
+    "논현어깨명의": "regional",
+    "논현동어깨명의": "regional",
+    "논현역어깨명의": "regional",
+    "강남어깨명의": "regional",
+    "강남역어깨명의": "regional",
+    "학동역어깨명의": "regional",
+    "학동어깨명의": "regional",
+    "서울어깨명의": "regional",
+    "신사어깨명의": "regional",
+    "신사역어깨명의": "regional",
+    "압구정어깨명의": "regional",
+    "강남뇌검진": "regional",
+    "강남역뇌검진": "regional",
+    "강남구뇌검진": "regional",
+    "논현뇌검진": "regional",
+    "논현역뇌검진": "regional",
+    "논현동뇌검진": "regional",
+    "학동뇌검진": "regional",
+    "학동역뇌검진": "regional",
+    "신논현역신경외과": "regional",
+    "신논현비만": "regional",
+    "신사역하지정맥": "regional",
+    "신사역관절병원": "regional",
+    "신사역척추병원": "regional",
+    "신사역다리아플때": "regional",
+    "신사역다리부종": "regional",
+    "강남다리무거움증": "regional",
+    "신사역다리저림": "regional",
+    "논현동다이어트처방": "regional",
+    "신논현관절병원": "regional",
+    "신논현석회화건염": "regional",
+    "신사역신경외과": "regional",
+    "신사역어깨병원": "regional",
+    "학동허리병원": "regional",
+    "신사역허리통증": "regional",
+    "신사역발목통증": "regional"
+  },
   "rowsBySheetKey": {
-    "regional-pc": [],
-    "regional-mob": [],
+    "regional-pc": [
+      {
+        "region": "",
+        "keyword": "강남정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "신경성형술"
+      },
+      {
+        "region": "",
+        "keyword": "풍선확장술"
+      },
+      {
+        "region": "",
+        "keyword": "논현정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "황색인대제거술"
+      },
+      {
+        "region": "",
+        "keyword": "논현동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "학동역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "논현역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "학동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "신논현정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "신논현역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "논현동병원"
+      },
+      {
+        "region": "",
+        "keyword": "강남허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현역병원"
+      },
+      {
+        "region": "",
+        "keyword": "강남어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "강남허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "논현동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "학동역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남MRI"
+      },
+      {
+        "region": "",
+        "keyword": "강남구신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "논현신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "논현병원"
+      },
+      {
+        "region": "",
+        "keyword": "학동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남줄기세포"
+      },
+      {
+        "region": "",
+        "keyword": "신논현신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남역류성식도염"
+      },
+      {
+        "region": "",
+        "keyword": "강남어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "허리비수술치료"
+      },
+      {
+        "region": "",
+        "keyword": "논현동척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "강남역근막통증증후군"
+      },
+      {
+        "region": "",
+        "keyword": "논현척추골절"
+      },
+      {
+        "region": "",
+        "keyword": "논현역후종인대골화증"
+      },
+      {
+        "region": "",
+        "keyword": "논현햄스트링파열"
+      },
+      {
+        "region": "",
+        "keyword": "논현만성요통"
+      },
+      {
+        "region": "",
+        "keyword": "논현역척추측만증"
+      },
+      {
+        "region": "",
+        "keyword": "논현허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "강남역척추전방전위증"
+      },
+      {
+        "region": "",
+        "keyword": "논현역어깨탈구"
+      },
+      {
+        "region": "",
+        "keyword": "강남슬랩병변"
+      },
+      {
+        "region": "",
+        "keyword": "논현역비만"
+      },
+      {
+        "region": "",
+        "keyword": "논현역a형간염"
+      },
+      {
+        "region": "",
+        "keyword": "논현퇴행성관절염"
+      },
+      {
+        "region": "",
+        "keyword": "논현척추병원추천"
+      },
+      {
+        "region": "",
+        "keyword": "강남일자목증후군"
+      },
+      {
+        "region": "",
+        "keyword": "강남전방십자인대파열"
+      },
+      {
+        "region": "",
+        "keyword": "강남고지혈증"
+      },
+      {
+        "region": "",
+        "keyword": "논현동척추통증"
+      },
+      {
+        "region": "",
+        "keyword": "학동로정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "논현고혈압"
+      },
+      {
+        "region": "",
+        "keyword": "논현동허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "논현1동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "논현신경외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "학동로신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "논현역허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "논현역척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현역허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "논현역척추관협착증"
+      },
+      {
+        "region": "",
+        "keyword": "논현척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "강남구척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현역척추협착증"
+      },
+      {
+        "region": "",
+        "keyword": "논현동허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "강남척추관협착증"
+      },
+      {
+        "region": "",
+        "keyword": "논현동척추관협착증"
+      },
+      {
+        "region": "",
+        "keyword": "논현동허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "논현동관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현역관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현역허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현역척추치료"
+      },
+      {
+        "region": "",
+        "keyword": "논현동오십견"
+      },
+      {
+        "region": "",
+        "keyword": "강남오십견"
+      },
+      {
+        "region": "",
+        "keyword": "강남척추치료"
+      },
+      {
+        "region": "",
+        "keyword": "논현허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현동척추치료"
+      },
+      {
+        "region": "",
+        "keyword": "논현MRI"
+      },
+      {
+        "region": "",
+        "keyword": "강남황색인대제거술"
+      },
+      {
+        "region": "",
+        "keyword": "강남풍선확장술"
+      },
+      {
+        "region": "",
+        "keyword": "강남신경성형술"
+      },
+      {
+        "region": "",
+        "keyword": "강남허리비수술치료"
+      },
+      {
+        "region": "",
+        "keyword": "강남논현신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남논현정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남논현역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남논현역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남줄기세포치료"
+      },
+      {
+        "region": "",
+        "keyword": "강남카티스템"
+      },
+      {
+        "region": "",
+        "keyword": "강남카티스템주사치료"
+      },
+      {
+        "region": "",
+        "keyword": "강남줄기세포치료병원"
+      },
+      {
+        "region": "",
+        "keyword": "강남어깨치료"
+      },
+      {
+        "region": "",
+        "keyword": "논현어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "논현동어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "논현역어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "강남어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "강남역어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "학동역어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "학동어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "서울어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "신사어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "신사역어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "압구정어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "강남뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "강남역뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "강남구뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "논현뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "논현역뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "논현동뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "학동뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "학동역뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "신논현역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "신논현비만"
+      },
+      {
+        "region": "",
+        "keyword": "신사역하지정맥"
+      },
+      {
+        "region": "",
+        "keyword": "신사역관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "신사역척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "신사역다리아플때"
+      },
+      {
+        "region": "",
+        "keyword": "신사역다리부종"
+      },
+      {
+        "region": "",
+        "keyword": "강남다리무거움증"
+      },
+      {
+        "region": "",
+        "keyword": "신사역다리저림"
+      },
+      {
+        "region": "",
+        "keyword": "논현동다이어트처방"
+      },
+      {
+        "region": "",
+        "keyword": "신논현관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "신논현석회화건염"
+      },
+      {
+        "region": "",
+        "keyword": "신사역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "신사역어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "학동허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "신사역허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "신사역발목통증"
+      }
+    ],
+    "regional-mob": [
+      {
+        "region": "",
+        "keyword": "강남정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "신경성형술"
+      },
+      {
+        "region": "",
+        "keyword": "풍선확장술"
+      },
+      {
+        "region": "",
+        "keyword": "논현정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "황색인대제거술"
+      },
+      {
+        "region": "",
+        "keyword": "논현동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "학동역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "논현역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "학동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "신논현정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "신논현역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "논현동병원"
+      },
+      {
+        "region": "",
+        "keyword": "강남허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현역병원"
+      },
+      {
+        "region": "",
+        "keyword": "강남어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "강남허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "논현동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "학동역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남MRI"
+      },
+      {
+        "region": "",
+        "keyword": "강남구신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "논현신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "논현병원"
+      },
+      {
+        "region": "",
+        "keyword": "학동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남줄기세포"
+      },
+      {
+        "region": "",
+        "keyword": "신논현신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남역류성식도염"
+      },
+      {
+        "region": "",
+        "keyword": "강남어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "허리비수술치료"
+      },
+      {
+        "region": "",
+        "keyword": "논현동척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "강남역근막통증증후군"
+      },
+      {
+        "region": "",
+        "keyword": "논현척추골절"
+      },
+      {
+        "region": "",
+        "keyword": "논현역후종인대골화증"
+      },
+      {
+        "region": "",
+        "keyword": "논현햄스트링파열"
+      },
+      {
+        "region": "",
+        "keyword": "논현만성요통"
+      },
+      {
+        "region": "",
+        "keyword": "논현역척추측만증"
+      },
+      {
+        "region": "",
+        "keyword": "논현허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "강남역척추전방전위증"
+      },
+      {
+        "region": "",
+        "keyword": "논현역어깨탈구"
+      },
+      {
+        "region": "",
+        "keyword": "강남슬랩병변"
+      },
+      {
+        "region": "",
+        "keyword": "논현역비만"
+      },
+      {
+        "region": "",
+        "keyword": "논현역a형간염"
+      },
+      {
+        "region": "",
+        "keyword": "논현퇴행성관절염"
+      },
+      {
+        "region": "",
+        "keyword": "논현척추병원추천"
+      },
+      {
+        "region": "",
+        "keyword": "강남일자목증후군"
+      },
+      {
+        "region": "",
+        "keyword": "강남전방십자인대파열"
+      },
+      {
+        "region": "",
+        "keyword": "강남고지혈증"
+      },
+      {
+        "region": "",
+        "keyword": "논현동척추통증"
+      },
+      {
+        "region": "",
+        "keyword": "학동로정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "논현고혈압"
+      },
+      {
+        "region": "",
+        "keyword": "논현동허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "논현1동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "논현신경외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "학동로신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "논현역허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "논현역척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현역허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "논현역척추관협착증"
+      },
+      {
+        "region": "",
+        "keyword": "논현척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "강남구척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현역척추협착증"
+      },
+      {
+        "region": "",
+        "keyword": "논현동허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "강남척추관협착증"
+      },
+      {
+        "region": "",
+        "keyword": "논현동척추관협착증"
+      },
+      {
+        "region": "",
+        "keyword": "논현동허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "논현동관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현역관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현역허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현역척추치료"
+      },
+      {
+        "region": "",
+        "keyword": "논현동오십견"
+      },
+      {
+        "region": "",
+        "keyword": "강남오십견"
+      },
+      {
+        "region": "",
+        "keyword": "강남척추치료"
+      },
+      {
+        "region": "",
+        "keyword": "논현허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "논현동척추치료"
+      },
+      {
+        "region": "",
+        "keyword": "논현MRI"
+      },
+      {
+        "region": "",
+        "keyword": "강남황색인대제거술"
+      },
+      {
+        "region": "",
+        "keyword": "강남풍선확장술"
+      },
+      {
+        "region": "",
+        "keyword": "강남신경성형술"
+      },
+      {
+        "region": "",
+        "keyword": "강남허리비수술치료"
+      },
+      {
+        "region": "",
+        "keyword": "강남논현신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남논현정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남논현역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남논현역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "강남줄기세포치료"
+      },
+      {
+        "region": "",
+        "keyword": "강남카티스템"
+      },
+      {
+        "region": "",
+        "keyword": "강남카티스템주사치료"
+      },
+      {
+        "region": "",
+        "keyword": "강남줄기세포치료병원"
+      },
+      {
+        "region": "",
+        "keyword": "강남어깨치료"
+      },
+      {
+        "region": "",
+        "keyword": "논현어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "논현동어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "논현역어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "강남어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "강남역어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "학동역어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "학동어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "서울어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "신사어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "신사역어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "압구정어깨명의"
+      },
+      {
+        "region": "",
+        "keyword": "강남뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "강남역뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "강남구뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "논현뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "논현역뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "논현동뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "학동뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "학동역뇌검진"
+      },
+      {
+        "region": "",
+        "keyword": "신논현역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "신논현비만"
+      },
+      {
+        "region": "",
+        "keyword": "신사역하지정맥"
+      },
+      {
+        "region": "",
+        "keyword": "신사역관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "신사역척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "신사역다리아플때"
+      },
+      {
+        "region": "",
+        "keyword": "신사역다리부종"
+      },
+      {
+        "region": "",
+        "keyword": "강남다리무거움증"
+      },
+      {
+        "region": "",
+        "keyword": "신사역다리저림"
+      },
+      {
+        "region": "",
+        "keyword": "논현동다이어트처방"
+      },
+      {
+        "region": "",
+        "keyword": "신논현관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "신논현석회화건염"
+      },
+      {
+        "region": "",
+        "keyword": "신사역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "신사역어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "학동허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "신사역허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "신사역발목통증"
+      }
+    ],
     "national-pc": [],
-    "national-mob": []
+    "national-mob": [],
+    "other-pc": [],
+    "other-mob": []
   },
   "sheetTitles": {
     "regional-pc": "2026 지역 PC",
     "regional-mob": "2026 지역 MOB",
     "national-pc": "2026 전국 PC",
-    "national-mob": "2026 전국 MOB"
+    "national-mob": "2026 전국 MOB",
+    "other-pc": "2026 기타 PC",
+    "other-mob": "2026 기타 MOB"
   }
 }
