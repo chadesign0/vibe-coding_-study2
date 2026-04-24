@@ -89,7 +89,14 @@ jobs:
             git push origin main
           fi
 
-      - name: 7. 완료 webhook 통지
+      - name: 7. Render 데이터 새로고침 요청 (task_id 무관)
+        if: success()
+        run: |
+          RENDER_BASE=$(echo "${{ inputs.webhook_url }}" | grep -oP '^https://[^/]+')
+          curl -sS -X POST "${RENDER_BASE}/api/pull-scoring-data" \
+            -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_SECRET }}" || true
+
+      - name: 8. 완료 webhook 통지
         if: success()
         run: |
           curl -sS -X POST "${{ inputs.webhook_url }}" \
@@ -97,7 +104,7 @@ jobs:
             -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_SECRET }}" \
             -d "{\"taskId\":\"${{ inputs.task_id }}\",\"status\":\"succeeded\",\"message\":\"${{ inputs.hospital_name }} · ${{ inputs.month_label }} 채점 완료\",\"quality\":\"${QUALITY_LINE}\",\"runId\":\"${{ github.run_id }}\"}" || true
 
-      - name: 8. 실패 webhook 통지
+      - name: 9. 실패 webhook 통지
         if: failure()
         run: |
           curl -sS -X POST "${{ inputs.webhook_url }}" \

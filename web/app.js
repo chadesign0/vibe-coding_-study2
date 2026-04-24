@@ -447,6 +447,31 @@ async function loadScoreTask(taskId) {
 
 const TASK_SERVER_RESTARTED = "__SERVER_RESTARTED__";
 
+async function watchForDataUpdate(scoringStartedAt, onUpdate) {
+  const maxMs = 90 * 60 * 1000;
+  const intervalMs = 30 * 1000;
+  let baseMtime = null;
+  try {
+    const info = await loadJson("/api/scoring-data-info");
+    baseMtime = info?.mtime ?? null;
+  } catch (_) {}
+  const deadline = Date.now() + maxMs;
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, intervalMs));
+    const elapsedMin = Math.floor((Date.now() - scoringStartedAt) / 60000);
+    onUpdate(`채점 진행중 (${elapsedMin}분 경과)... 자동 확인 중`);
+    try {
+      const info = await loadJson("/api/scoring-data-info");
+      const newMtime = info?.mtime ?? null;
+      if (newMtime !== null && baseMtime !== null && newMtime > baseMtime) {
+        return true;
+      }
+      if (newMtime !== null && baseMtime === null) baseMtime = newMtime;
+    } catch (_) {}
+  }
+  return false;
+}
+
 async function waitForScoreTask(taskId, labelText) {
   const timeoutMs = 60 * 60 * 1000;
   const started = Date.now();
@@ -1396,8 +1421,13 @@ function bindUploadActions() {
         const result = await waitForScoreTask(res.taskId, "재채점");
         if (result === TASK_SERVER_RESTARTED) {
           scoreRestarted = true;
+          showToast("서버가 재시작됐습니다. GitHub Actions에서 채점 중 — 완료되면 자동으로 반영됩니다.");
+          const updated = await watchForDataUpdate(scoreStartedAt, setUploadScoreStatus);
           await reloadDataAndRender();
-          showToast("서버가 재시작됐습니다. GitHub Actions에서 채점이 계속 진행 중입니다. 완료 후 새로고침하면 반영됩니다.");
+          if (updated) {
+            scoreRestarted = false;
+            showToast("채점 완료 — 자동으로 표에 반영했습니다.");
+          }
           return;
         }
       } else if (res && res.ok === false) {

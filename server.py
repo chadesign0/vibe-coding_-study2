@@ -282,10 +282,34 @@ def available_hospitals_from_scoring() -> list[str]:
 app = Flask(__name__, static_folder=str(WEB_DIR), static_url_path="/web")
 Compress(app)
 
+# 서버 시작 시 GitHub에서 최신 채점 데이터를 가져온다 (재시작 후 데이터 즉시 복원).
+threading.Thread(target=lambda: _pull_scoring_data_from_github(), daemon=True).start()
+
 
 @app.get("/ping")
 def ping():
     return "", 204
+
+
+@app.get("/api/scoring-data-info")
+def scoring_data_info():
+    """scoring-data.json 수정 시각·크기 반환 (프론트 자동 갱신 감지용)."""
+    try:
+        stat = DATA_PATH.stat()
+        return jsonify({"ok": True, "mtime": stat.st_mtime, "size": stat.st_size})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.post("/api/pull-scoring-data")
+def pull_scoring_data():
+    """GitHub Actions 완료 후 task_id 없이 Render에 최신 데이터 pull 요청."""
+    if WEBHOOK_SECRET:
+        provided = (request.headers.get("X-Webhook-Secret") or "").strip()
+        if provided != WEBHOOK_SECRET:
+            return jsonify({"ok": False, "message": "unauthorized"}), 401
+    threading.Thread(target=_pull_scoring_data_from_github, daemon=True).start()
+    return jsonify({"ok": True})
 
 
 @app.after_request
