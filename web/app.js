@@ -1360,7 +1360,7 @@ async function runKeywordUpload(mode) {
     stopScoreStatusTimer();
     setUploadScoreStatus(
       scoreFailed ? "채점 실패 (반영 안됨)" :
-      scoreRestarted ? "서버 재시작 — 결과 확인 필요" :
+      scoreRestarted ? "채점 진행중 (완료 후 새로고침)" :
       "채점 끝"
     );
     uploadInFlight = false;
@@ -1413,7 +1413,7 @@ function bindUploadActions() {
       stopScoreStatusTimer();
       setUploadScoreStatus(
         scoreFailed ? "재채점 실패 (반영 안됨)" :
-        scoreRestarted ? "서버 재시작 — 결과 확인 필요" :
+        scoreRestarted ? "채점 진행중 (완료 후 새로고침)" :
         "채점 끝"
       );
       uploadInFlight = false;
