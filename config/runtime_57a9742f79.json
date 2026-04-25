@@ -149,16 +149,41 @@
     "신사역어깨병원": "all",
     "학동허리병원": "all",
     "신사역허리통증": "all",
-    "신사역발목통증": "all"
+    "신사역발목통증": "all",
+    "무릎관절염증상": "all",
+    "오십견치료방법": "all",
+    "허리디스크수술": "all",
+    "척추측만증교정": "all",
+    "허리디스크시술": "all",
+    "어깨석회성건염치료": "all",
+    "무릎연골수술": "all",
+    "허리디스크병원": "all",
+    "허리협착증치료": "all",
+    "어깨힘줄파열": "all",
+    "허리통증원인": "all",
+    "척추병원": "all",
+    "어깨통증병원": "all",
+    "무릎통증병원": "all",
+    "어깨통증원인": "all",
+    "무릎관절수술": "all",
+    "반월상연골파열증상": "all",
+    "척추협착증명의": "all",
+    "무릎관절병원": "all",
+    "어깨아플때": "all",
+    "어깨회전근개파열치료": "all",
+    "무릎정형외과": "all",
+    "어깨통증치료병원": "all",
+    "신논현어깨통증": "all",
+    "척추관협착증치료방법": "all",
+    "허리디스크비수술": "all",
+    "목디스크치료병원": "all",
+    "십자인대재건술": "all"
   },
   "keywords": [
     "강남정형외과",
     "강남역정형외과",
-    "신경성형술",
-    "풍선확장술",
     "논현정형외과",
     "강남신경외과",
-    "황색인대제거술",
     "논현동정형외과",
     "학동역정형외과",
     "논현역정형외과",
@@ -282,18 +307,49 @@
     "신사역어깨병원",
     "학동허리병원",
     "신사역허리통증",
-    "신사역발목통증"
+    "신사역발목통증",
+    "신논현어깨통증",
+    "황색인대제거술",
+    "신경성형술",
+    "풍선확장술",
+    "무릎관절염증상",
+    "오십견치료방법",
+    "허리디스크수술",
+    "척추측만증교정",
+    "허리디스크시술",
+    "어깨석회성건염치료",
+    "무릎연골수술",
+    "허리디스크병원",
+    "허리협착증치료",
+    "어깨힘줄파열",
+    "허리통증원인",
+    "척추병원",
+    "어깨통증병원",
+    "무릎통증병원",
+    "어깨통증원인",
+    "무릎관절수술",
+    "반월상연골파열증상",
+    "척추협착증명의",
+    "무릎관절병원",
+    "어깨아플때",
+    "어깨회전근개파열치료",
+    "무릎정형외과",
+    "어깨통증치료병원",
+    "척추관협착증치료방법",
+    "허리디스크비수술",
+    "목디스크치료병원",
+    "십자인대재건술"
   ],
   "scoringNote": "API 자동 탭(지도/카페/보도자료/웹)은 1위=3점, 2~5위=2점, 6~10위=1점, 미노출=0점. 블로그는 hospitalBlogBases의 네이버 블로그 ID와 글/bloggerlink가 일치하면 인정하거나, 작성자·링크에 병원 토큰이 있으면 인정(제목·본문만 일치는 제외). 작성일은 blogRequirePostMonth·scoringYear·monthLabel로 제한. 파워링크/비즈사이트/동영상은 API 한계로 미지원(None).",
   "hospitalName": "새로운병원",
   "keywordScopes": {
     "강남정형외과": "regional",
     "강남역정형외과": "regional",
-    "신경성형술": "regional",
-    "풍선확장술": "regional",
+    "신경성형술": "national",
+    "풍선확장술": "national",
     "논현정형외과": "regional",
     "강남신경외과": "regional",
-    "황색인대제거술": "regional",
+    "황색인대제거술": "national",
     "논현동정형외과": "regional",
     "학동역정형외과": "regional",
     "논현역정형외과": "regional",
@@ -417,7 +473,35 @@
     "신사역어깨병원": "regional",
     "학동허리병원": "regional",
     "신사역허리통증": "regional",
-    "신사역발목통증": "regional"
+    "신사역발목통증": "regional",
+    "무릎관절염증상": "national",
+    "오십견치료방법": "national",
+    "허리디스크수술": "national",
+    "척추측만증교정": "national",
+    "허리디스크시술": "national",
+    "어깨석회성건염치료": "national",
+    "무릎연골수술": "national",
+    "허리디스크병원": "national",
+    "허리협착증치료": "national",
+    "어깨힘줄파열": "national",
+    "허리통증원인": "national",
+    "척추병원": "national",
+    "어깨통증병원": "national",
+    "무릎통증병원": "national",
+    "어깨통증원인": "national",
+    "무릎관절수술": "national",
+    "반월상연골파열증상": "national",
+    "척추협착증명의": "national",
+    "무릎관절병원": "national",
+    "어깨아플때": "national",
+    "어깨회전근개파열치료": "national",
+    "무릎정형외과": "national",
+    "어깨통증치료병원": "national",
+    "신논현어깨통증": "regional",
+    "척추관협착증치료방법": "national",
+    "허리디스크비수술": "national",
+    "목디스크치료병원": "national",
+    "십자인대재건술": "national"
   },
   "rowsBySheetKey": {
     "regional-pc": [
@@ -431,23 +515,11 @@
       },
       {
         "region": "",
-        "keyword": "신경성형술"
-      },
-      {
-        "region": "",
-        "keyword": "풍선확장술"
-      },
-      {
-        "region": "",
         "keyword": "논현정형외과"
       },
       {
         "region": "",
         "keyword": "강남신경외과"
-      },
-      {
-        "region": "",
-        "keyword": "황색인대제거술"
       },
       {
         "region": "",
@@ -944,6 +1016,10 @@
       {
         "region": "",
         "keyword": "신사역발목통증"
+      },
+      {
+        "region": "",
+        "keyword": "신논현어깨통증"
       }
     ],
     "regional-mob": [
@@ -957,23 +1033,11 @@
       },
       {
         "region": "",
-        "keyword": "신경성형술"
-      },
-      {
-        "region": "",
-        "keyword": "풍선확장술"
-      },
-      {
-        "region": "",
         "keyword": "논현정형외과"
       },
       {
         "region": "",
         "keyword": "강남신경외과"
-      },
-      {
-        "region": "",
-        "keyword": "황색인대제거술"
       },
       {
         "region": "",
@@ -1470,10 +1534,256 @@
       {
         "region": "",
         "keyword": "신사역발목통증"
+      },
+      {
+        "region": "",
+        "keyword": "신논현어깨통증"
       }
     ],
-    "national-pc": [],
-    "national-mob": [],
+    "national-pc": [
+      {
+        "region": "",
+        "keyword": "황색인대제거술"
+      },
+      {
+        "region": "",
+        "keyword": "신경성형술"
+      },
+      {
+        "region": "",
+        "keyword": "풍선확장술"
+      },
+      {
+        "region": "",
+        "keyword": "무릎관절염증상"
+      },
+      {
+        "region": "",
+        "keyword": "오십견치료방법"
+      },
+      {
+        "region": "",
+        "keyword": "허리디스크수술"
+      },
+      {
+        "region": "",
+        "keyword": "척추측만증교정"
+      },
+      {
+        "region": "",
+        "keyword": "허리디스크시술"
+      },
+      {
+        "region": "",
+        "keyword": "어깨석회성건염치료"
+      },
+      {
+        "region": "",
+        "keyword": "무릎연골수술"
+      },
+      {
+        "region": "",
+        "keyword": "허리디스크병원"
+      },
+      {
+        "region": "",
+        "keyword": "허리협착증치료"
+      },
+      {
+        "region": "",
+        "keyword": "어깨힘줄파열"
+      },
+      {
+        "region": "",
+        "keyword": "허리통증원인"
+      },
+      {
+        "region": "",
+        "keyword": "척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "어깨통증병원"
+      },
+      {
+        "region": "",
+        "keyword": "무릎통증병원"
+      },
+      {
+        "region": "",
+        "keyword": "어깨통증원인"
+      },
+      {
+        "region": "",
+        "keyword": "무릎관절수술"
+      },
+      {
+        "region": "",
+        "keyword": "반월상연골파열증상"
+      },
+      {
+        "region": "",
+        "keyword": "척추협착증명의"
+      },
+      {
+        "region": "",
+        "keyword": "무릎관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "어깨아플때"
+      },
+      {
+        "region": "",
+        "keyword": "어깨회전근개파열치료"
+      },
+      {
+        "region": "",
+        "keyword": "무릎정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "어깨통증치료병원"
+      },
+      {
+        "region": "",
+        "keyword": "척추관협착증치료방법"
+      },
+      {
+        "region": "",
+        "keyword": "허리디스크비수술"
+      },
+      {
+        "region": "",
+        "keyword": "목디스크치료병원"
+      },
+      {
+        "region": "",
+        "keyword": "십자인대재건술"
+      }
+    ],
+    "national-mob": [
+      {
+        "region": "",
+        "keyword": "황색인대제거술"
+      },
+      {
+        "region": "",
+        "keyword": "신경성형술"
+      },
+      {
+        "region": "",
+        "keyword": "풍선확장술"
+      },
+      {
+        "region": "",
+        "keyword": "무릎관절염증상"
+      },
+      {
+        "region": "",
+        "keyword": "오십견치료방법"
+      },
+      {
+        "region": "",
+        "keyword": "허리디스크수술"
+      },
+      {
+        "region": "",
+        "keyword": "척추측만증교정"
+      },
+      {
+        "region": "",
+        "keyword": "허리디스크시술"
+      },
+      {
+        "region": "",
+        "keyword": "어깨석회성건염치료"
+      },
+      {
+        "region": "",
+        "keyword": "무릎연골수술"
+      },
+      {
+        "region": "",
+        "keyword": "허리디스크병원"
+      },
+      {
+        "region": "",
+        "keyword": "허리협착증치료"
+      },
+      {
+        "region": "",
+        "keyword": "어깨힘줄파열"
+      },
+      {
+        "region": "",
+        "keyword": "허리통증원인"
+      },
+      {
+        "region": "",
+        "keyword": "척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "어깨통증병원"
+      },
+      {
+        "region": "",
+        "keyword": "무릎통증병원"
+      },
+      {
+        "region": "",
+        "keyword": "어깨통증원인"
+      },
+      {
+        "region": "",
+        "keyword": "무릎관절수술"
+      },
+      {
+        "region": "",
+        "keyword": "반월상연골파열증상"
+      },
+      {
+        "region": "",
+        "keyword": "척추협착증명의"
+      },
+      {
+        "region": "",
+        "keyword": "무릎관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "어깨아플때"
+      },
+      {
+        "region": "",
+        "keyword": "어깨회전근개파열치료"
+      },
+      {
+        "region": "",
+        "keyword": "무릎정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "어깨통증치료병원"
+      },
+      {
+        "region": "",
+        "keyword": "척추관협착증치료방법"
+      },
+      {
+        "region": "",
+        "keyword": "허리디스크비수술"
+      },
+      {
+        "region": "",
+        "keyword": "목디스크치료병원"
+      },
+      {
+        "region": "",
+        "keyword": "십자인대재건술"
+      }
+    ],
     "other-pc": [],
     "other-mob": []
   },
