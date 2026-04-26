@@ -1854,9 +1854,16 @@ def webhook_score_progress():
         with SCORE_TASKS_LOCK:
             if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
                 ACTIVE_SCORE_TASK_BY_KEY.pop(key, None)
-        # GitHub Actions가 push한 최신 채점 결과를 Render 디스크에 가져온다.
         if status == "succeeded":
-            threading.Thread(target=_pull_scoring_data_from_github, daemon=True).start()
+            # pull 완료 후 data_ready로 확정 — 프론트가 완료 신호 받기 전에 데이터가 준비됨 (Race Condition 방지)
+            patch["stage"] = "data_syncing"
+            patch["message"] = "채점 완료 — 데이터 동기화 중..."
+            _set_task_status(task_id, **patch)
+            def _pull_and_finalize(tid=task_id):
+                _pull_scoring_data_from_github()
+                _set_task_status(tid, stage="data_ready")
+            threading.Thread(target=_pull_and_finalize, daemon=True).start()
+            return jsonify({"ok": True})
     _set_task_status(task_id, **patch)
     return jsonify({"ok": True})
 

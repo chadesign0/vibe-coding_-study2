@@ -535,7 +535,8 @@ async function waitForScoreTask(taskId, labelText) {
         setUploadScoreStatus("채점중...");
       }
     } else if (st === "succeeded") {
-      return task;
+      if (stage === "data_ready") return task;
+      setUploadScoreStatus("데이터 동기화 중...");
     } else if (st === "failed") {
       const msg = String(task.message || task.error || "채점 실행 실패");
       throw new Error(msg);
@@ -1428,10 +1429,14 @@ function bindUploadActions() {
           scoreRestarted = true;
           showToast("GitHub Actions에서 채점 진행중 — 완료되면 자동으로 반영됩니다.");
           const updated = await watchForDataUpdate(scoreStartedAt, setUploadScoreStatus);
-          await reloadDataAndRender();
           if (updated) {
             scoreRestarted = false;
+            await reloadDataAndRender();
             showToast("채점 완료 — 자동으로 표에 반영했습니다.");
+          } else {
+            scoreFailed = true;
+            scoreRestarted = false;
+            showToast("채점 시간이 초과됐습니다. GitHub Actions 로그를 확인해주세요.");
           }
           return;
         }
@@ -1592,7 +1597,7 @@ async function checkActiveRescore() {
       setUploadScoreStatus("채점 완료 — 자동 반영됨");
       showToast("채점 완료 — 자동으로 표에 반영했습니다.");
     } else {
-      setUploadScoreStatus("채점 진행중 (완료 후 새로고침)");
+      setUploadScoreStatus("채점 시간 초과 — GitHub Actions 로그를 확인해주세요.");
     }
   } catch (_) {}
 }
