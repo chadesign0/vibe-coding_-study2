@@ -479,7 +479,7 @@ async function waitForScoreTask(taskId, labelText) {
   let notFoundStreak = 0;
   while (true) {
     if (Date.now() - started > timeoutMs) {
-      throw new Error(`${labelText || "채점"} 작업 시간이 너무 오래 걸립니다. 서버 상태를 확인해주세요.`);
+      return TASK_SERVER_RESTARTED;
     }
     let payload;
     try {
@@ -1426,7 +1426,7 @@ function bindUploadActions() {
         const result = await waitForScoreTask(res.taskId, "재채점");
         if (result === TASK_SERVER_RESTARTED) {
           scoreRestarted = true;
-          showToast("서버가 재시작됐습니다. GitHub Actions에서 채점 중 — 완료되면 자동으로 반영됩니다.");
+          showToast("GitHub Actions에서 채점 진행중 — 완료되면 자동으로 반영됩니다.");
           const updated = await watchForDataUpdate(scoreStartedAt, setUploadScoreStatus);
           await reloadDataAndRender();
           if (updated) {
@@ -1570,4 +1570,31 @@ async function init() {
   bindHorizontalDragScroll(document.getElementById("sheetQuickTabs"));
 }
 
-init();
+async function checkActiveRescore() {
+  try {
+    const r = await loadJson("/api/active-rescore");
+    if (!r.active) return;
+    const scoreStartedAt = Date.now();
+    if (r.taskId) {
+      setUploadScoreStatus("GitHub Actions 채점 재연결중...");
+      const result = await waitForScoreTask(r.taskId, "재채점");
+      if (result && typeof result === "object" && result.status === "succeeded") {
+        await reloadDataAndRender();
+        setUploadScoreStatus("채점 완료 — 자동 반영됨");
+        showToast("채점 완료 — 자동으로 표에 반영했습니다.");
+        return;
+      }
+    }
+    setUploadScoreStatus("GitHub Actions에서 채점 진행중... 완료 시 자동 반영됩니다.");
+    const updated = await watchForDataUpdate(scoreStartedAt, setUploadScoreStatus);
+    if (updated) {
+      await reloadDataAndRender();
+      setUploadScoreStatus("채점 완료 — 자동 반영됨");
+      showToast("채점 완료 — 자동으로 표에 반영했습니다.");
+    } else {
+      setUploadScoreStatus("채점 진행중 (완료 후 새로고침)");
+    }
+  } catch (_) {}
+}
+
+init().then(() => { checkActiveRescore(); });

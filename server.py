@@ -1869,6 +1869,38 @@ def score_task_status(task_id: str):
     return jsonify({"ok": True, "task": task})
 
 
+@app.get("/api/active-rescore")
+def active_rescore():
+    """GitHub Actions에 현재 진행중인 채점 워크플로우가 있는지 확인."""
+    token = os.getenv("GITHUB_TOKEN", "").strip()
+    owner = os.getenv("GITHUB_REPO_OWNER", "chadesign0").strip()
+    repo  = os.getenv("GITHUB_REPO_NAME",  "vibe-coding_-study2").strip()
+    if not token:
+        return jsonify({"active": False})
+    url = (f"https://api.github.com/repos/{owner}/{repo}/actions/runs"
+           f"?status=in_progress&per_page=10")
+    req = urllib.request.Request(url, headers={
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+        runs = [r for r in data.get("workflow_runs", [])
+                if GITHUB_WORKFLOW_FILE in r.get("path", "")]
+        if not runs:
+            return jsonify({"active": False})
+        run_id = str(runs[0]["id"])
+        with SCORE_TASKS_LOCK:
+            for tid, task in list(SCORE_TASKS.items()):
+                if str(task.get("runId")) == run_id and task.get("status") in {"queued", "running"}:
+                    return jsonify({"active": True, "taskId": tid})
+        return jsonify({"active": True, "taskId": None})
+    except Exception as e:
+        return jsonify({"active": False, "error": str(e)})
+
+
 @app.get("/api/hospitals")
 def hospitals():
     items = load_hospital_list()
