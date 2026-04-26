@@ -42,7 +42,28 @@ SHEETS_META = [
 COL_BY_TAB = {"powerlink": 7, "bizsite": 8, "map": 9, "cafe": 10, "blog": 11, "news": 12, "video": 13, "web": 14}
 POWERLINK_COL = COL_BY_TAB["powerlink"]
 TAB_ENDPOINT = {"map": "local", "cafe": "cafearticle", "blog": "blog", "news": "news", "video": "video", "web": "webkr"}
-SEARCH_HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+SEARCH_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Referer": "https://www.naver.com/",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+}
+
+# 스레드별 Session 재사용 (TCP 커넥션 풀 유지, 쿠키 자동 관리)
+_thread_local = threading.local()
+
+
+def _get_web_session() -> requests.Session:
+    if not getattr(_thread_local, "session", None):
+        s = requests.Session()
+        s.headers.update(SEARCH_HEADERS)
+        _thread_local.session = s
+    return _thread_local.session
+
+
 TOTAL_COL = 15
 
 
@@ -559,16 +580,18 @@ def fetch_search_page(query: str, where: str | None = None) -> str | None:
     urls = [base]
     if where:
         urls.insert(0, base + "&where=" + quote_plus(where))
+    session = _get_web_session()
     for _ in range(3):
         for url in urls:
             try:
-                r = requests.get(url, headers=SEARCH_HEADERS, timeout=30)
+                r = session.get(url, timeout=30)
                 if r.status_code >= 400:
                     continue
+                time.sleep(random.uniform(1.5, 3.5))
                 return decode_response_text(r)
             except Exception:
                 continue
-        time.sleep(0.4)
+        time.sleep(random.uniform(1.5, 3.5))
     return None
 
 
@@ -577,16 +600,18 @@ def fetch_integrated_search_page(query: str) -> str | None:
         "https://search.naver.com/search.naver?where=nexearch&sm=tab_jum&ssc=tab.nx.all&query=" + quote_plus(query),
         "https://search.naver.com/search.naver?query=" + quote_plus(query),
     ]
+    session = _get_web_session()
     for _ in range(3):
         for url in urls:
             try:
-                r = requests.get(url, headers=SEARCH_HEADERS, timeout=30)
+                r = session.get(url, timeout=30)
                 if r.status_code >= 400:
                     continue
+                time.sleep(random.uniform(1.5, 3.5))
                 return decode_response_text(r)
             except Exception:
                 continue
-        time.sleep(0.4)
+        time.sleep(random.uniform(1.5, 3.5))
     return None
 
 
@@ -595,10 +620,12 @@ def fetch_powerlink_more_page(query: str) -> str | None:
     파워링크는 통합검색 메인 블록이 아닌 '더보기(광고 전체)' 기준으로 순위를 산정한다.
     """
     url = "https://ad.search.naver.com/search.naver?where=ad&query=" + quote_plus(query)
+    session = _get_web_session()
     try:
-        r = requests.get(url, headers=SEARCH_HEADERS, timeout=30)
+        r = session.get(url, timeout=30)
         if r.status_code >= 400:
             return None
+        time.sleep(random.uniform(1.5, 3.5))
         enc = (r.apparent_encoding or r.encoding or "utf-8").strip()
         try:
             return r.content.decode(enc, errors="ignore")
@@ -1034,7 +1061,7 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                 kw_ev[tab] = {"source": "api", **ev}
         return kw, kw_out, kw_ev
 
-    max_workers = max(1, int(os.getenv("SCORING_PARALLEL_WORKERS", "5")))
+    max_workers = max(1, int(os.getenv("SCORING_PARALLEL_WORKERS", "3")))
     _lock = threading.Lock()
     _done = [0]
 
