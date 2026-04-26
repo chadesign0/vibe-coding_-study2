@@ -476,6 +476,20 @@ code {
   min-height: 1.35em;
 }
 
+.btn--danger {
+  border: 1px solid #e53e3e;
+  color: #e53e3e;
+  background: transparent;
+}
+.btn--danger:hover {
+  background: #e53e3e;
+  color: #fff;
+}
+
+.upload-panel__cancel-btn {
+  flex-shrink: 0;
+}
+
 .upload-panel__rerun-btn,
 .upload-panel__export-btn {
   margin-left: auto;

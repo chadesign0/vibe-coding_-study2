@@ -537,6 +537,8 @@ async function waitForScoreTask(taskId, labelText) {
     } else if (st === "succeeded") {
       if (stage === "data_ready") return task;
       setUploadScoreStatus("데이터 동기화 중...");
+    } else if (st === "cancelled") {
+      return "__CANCELLED__";
     } else if (st === "failed") {
       const msg = String(task.message || task.error || "채점 실행 실패");
       throw new Error(msg);
@@ -1265,6 +1267,39 @@ function setUploadScoreStatus(text) {
   if (el) el.textContent = text || "";
 }
 
+function showCancelBtn() {
+  const btn = document.getElementById("cancelRescoreBtn");
+  if (btn) btn.hidden = false;
+}
+
+function hideCancelBtn() {
+  const btn = document.getElementById("cancelRescoreBtn");
+  if (btn) btn.hidden = true;
+}
+
+async function cancelRescore() {
+  const btn = document.getElementById("cancelRescoreBtn");
+  if (!btn || btn.disabled) return;
+  if (!confirm("진행 중인 채점을 취소하시겠습니까?\nGitHub Actions 실행이 중단되고 결과가 반영되지 않습니다.")) return;
+  btn.disabled = true;
+  btn.textContent = "취소 중...";
+  try {
+    const res = await fetch("/api/cancel-rescore", { method: "POST" }).then(r => r.json());
+    if (res.ok) {
+      showToast("채점이 취소됐습니다.");
+      setUploadScoreStatus("채점 취소됨");
+    } else {
+      showToast("취소 실패: " + (res.message || "알 수 없는 오류"));
+    }
+  } catch (e) {
+    showToast("취소 요청 실패: " + e.message);
+  } finally {
+    hideCancelBtn();
+    btn.disabled = false;
+    btn.textContent = "채점 취소";
+  }
+}
+
 function readRecentScoreDurations() {
   try {
     const raw = localStorage.getItem(SCORE_TIME_HISTORY_KEY);
@@ -1403,11 +1438,14 @@ function bindUploadActions() {
   const uploadBtn = document.getElementById("uploadRunBtn");
   const rerunBtn = document.getElementById("uploadRerunBtn");
   const exportBtn = document.getElementById("exportExcelBtn");
+  const cancelBtn = document.getElementById("cancelRescoreBtn");
   const textEl = document.getElementById("keywordsText");
 
   uploadBtn?.addEventListener("click", () => {
     runKeywordUpload("both");
   });
+
+  cancelBtn?.addEventListener("click", () => cancelRescore());
 
   rerunBtn?.addEventListener("click", async () => {
     if (uploadInFlight) return;
@@ -1415,8 +1453,10 @@ function bindUploadActions() {
     uploadBtn && (uploadBtn.disabled = true);
     rerunBtn.disabled = true;
     startScoreStatusTimer();
+    showCancelBtn();
     let scoreFailed = false;
     let scoreRestarted = false;
+    let scoreCancelled = false;
     try {
       showToast("전체 재채점 중… 잠시만 기다려주세요.");
       const form = new FormData();
@@ -1425,6 +1465,11 @@ function bindUploadActions() {
       const res = await postForm("/api/run-score", form);
       if (res?.accepted && res?.taskId) {
         const result = await waitForScoreTask(res.taskId, "재채점");
+        if (result === "__CANCELLED__") {
+          scoreCancelled = true;
+          showToast("채점이 취소됐습니다.");
+          return;
+        }
         if (result === TASK_SERVER_RESTARTED) {
           scoreRestarted = true;
           showToast("GitHub Actions에서 채점 진행중 — 완료되면 자동으로 반영됩니다.");
@@ -1450,8 +1495,10 @@ function bindUploadActions() {
       scoreFailed = true;
       showToast("재채점 실패: " + (e?.message ?? e));
     } finally {
+      hideCancelBtn();
       stopScoreStatusTimer();
       setUploadScoreStatus(
+        scoreCancelled ? "채점 취소됨" :
         scoreFailed ? "재채점 실패 (반영 안됨)" :
         scoreRestarted ? "채점 진행중 (완료 후 새로고침)" :
         "채점 끝"
@@ -1579,25 +1626,34 @@ async function checkActiveRescore() {
   try {
     const r = await loadJson("/api/active-rescore");
     if (!r.active) return;
+    showCancelBtn();
     const scoreStartedAt = Date.now();
-    if (r.taskId) {
-      setUploadScoreStatus("GitHub Actions 채점 재연결중...");
-      const result = await waitForScoreTask(r.taskId, "재채점");
-      if (result && typeof result === "object" && result.status === "succeeded") {
+    try {
+      if (r.taskId) {
+        setUploadScoreStatus("GitHub Actions 채점 재연결중...");
+        const result = await waitForScoreTask(r.taskId, "재채점");
+        if (result === "__CANCELLED__") {
+          setUploadScoreStatus("채점 취소됨");
+          return;
+        }
+        if (result && typeof result === "object" && result.status === "succeeded") {
+          await reloadDataAndRender();
+          setUploadScoreStatus("채점 완료 — 자동 반영됨");
+          showToast("채점 완료 — 자동으로 표에 반영했습니다.");
+          return;
+        }
+      }
+      setUploadScoreStatus("GitHub Actions에서 채점 진행중... 완료 시 자동 반영됩니다.");
+      const updated = await watchForDataUpdate(scoreStartedAt, setUploadScoreStatus);
+      if (updated) {
         await reloadDataAndRender();
         setUploadScoreStatus("채점 완료 — 자동 반영됨");
         showToast("채점 완료 — 자동으로 표에 반영했습니다.");
-        return;
+      } else {
+        setUploadScoreStatus("채점 시간 초과 — GitHub Actions 로그를 확인해주세요.");
       }
-    }
-    setUploadScoreStatus("GitHub Actions에서 채점 진행중... 완료 시 자동 반영됩니다.");
-    const updated = await watchForDataUpdate(scoreStartedAt, setUploadScoreStatus);
-    if (updated) {
-      await reloadDataAndRender();
-      setUploadScoreStatus("채점 완료 — 자동 반영됨");
-      showToast("채점 완료 — 자동으로 표에 반영했습니다.");
-    } else {
-      setUploadScoreStatus("채점 시간 초과 — GitHub Actions 로그를 확인해주세요.");
+    } finally {
+      hideCancelBtn();
     }
   } catch (_) {}
 }

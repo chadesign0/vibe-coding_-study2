@@ -1876,6 +1876,81 @@ def score_task_status(task_id: str):
     return jsonify({"ok": True, "task": task})
 
 
+@app.post("/api/cancel-rescore")
+def cancel_rescore():
+    """진행 중인 GitHub Actions 채점 워크플로우를 취소."""
+    token = os.getenv("GITHUB_TOKEN", "").strip()
+    owner = os.getenv("GITHUB_REPO_OWNER", "chadesign0").strip()
+    repo  = os.getenv("GITHUB_REPO_NAME",  "vibe-coding_-study2").strip()
+    if not token:
+        return jsonify({"ok": False, "message": "GITHUB_TOKEN 미설정"}), 500
+
+    # 1. SCORE_TASKS에서 runId 탐색
+    run_id: str | None = None
+    task_id: str | None = None
+    with SCORE_TASKS_LOCK:
+        for tid, task in list(SCORE_TASKS.items()):
+            if task.get("status") in {"queued", "running"} and task.get("runId"):
+                run_id = str(task["runId"])
+                task_id = tid
+                break
+
+    # 2. 없으면 GitHub API로 직접 조회
+    if not run_id:
+        try:
+            url = (f"https://api.github.com/repos/{owner}/{repo}/actions/runs"
+                   f"?status=in_progress&per_page=5")
+            req = urllib.request.Request(url, headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            })
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read())
+            runs = [r for r in data.get("workflow_runs", [])
+                    if GITHUB_WORKFLOW_FILE in r.get("path", "")]
+            if runs:
+                run_id = str(runs[0]["id"])
+        except Exception as e:
+            return jsonify({"ok": False, "message": f"진행 중인 채점 조회 실패: {e}"}), 500
+
+    if not run_id:
+        return jsonify({"ok": False, "message": "취소할 진행 중인 채점이 없습니다."}), 404
+
+    # 3. GitHub Actions run 취소
+    url = (f"https://api.github.com/repos/{owner}/{repo}"
+           f"/actions/runs/{run_id}/cancel")
+    req = urllib.request.Request(url, data=b"", headers={
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            if resp.status != 202:
+                return jsonify({"ok": False, "message": f"GitHub API 응답: {resp.status}"}), 500
+    except urllib.error.HTTPError as e:
+        if e.code == 409:
+            return jsonify({"ok": False, "message": "채점이 이미 완료됐습니다."}), 409
+        return jsonify({"ok": False, "message": f"취소 실패 ({e.code})"}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)}), 500
+
+    # 4. SCORE_TASKS 상태 업데이트
+    if task_id:
+        _set_task_status(task_id, status="cancelled", stage="cancelled",
+                         message="사용자가 채점을 취소했습니다.", endedAt=now_iso())
+        with SCORE_TASKS_LOCK:
+            task = SCORE_TASKS.get(task_id, {})
+            key = _task_key(str(task.get("kind") or ""),
+                            str(task.get("hospitalName") or ""),
+                            str(task.get("monthLabel") or ""))
+            if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
+                ACTIVE_SCORE_TASK_BY_KEY.pop(key, None)
+
+    return jsonify({"ok": True})
+
+
 @app.get("/api/active-rescore")
 def active_rescore():
     """GitHub Actions에 현재 진행중인 채점 워크플로우가 있는지 확인."""
