@@ -448,28 +448,46 @@ async function loadScoreTask(taskId) {
 const TASK_SERVER_RESTARTED = "__SERVER_RESTARTED__";
 
 async function watchForDataUpdate(scoringStartedAt, onUpdate) {
-  const maxMs = 90 * 60 * 1000;
   const intervalMs = 30 * 1000;
+  const activeCheckEvery = 3; // 매 3번 폴링마다 GitHub Actions 실행 여부 확인
   let baseMtime = null;
+  let pollCount = 0;
   try {
     const info = await loadJson("/api/scoring-data-info");
     baseMtime = info?.mtime ?? null;
   } catch (_) {}
-  const deadline = Date.now() + maxMs;
-  while (Date.now() < deadline) {
+  while (true) {
     await new Promise(r => setTimeout(r, intervalMs));
+    pollCount++;
     const elapsedMin = Math.floor((Date.now() - scoringStartedAt) / 60000);
     onUpdate(`채점 진행중 (${elapsedMin}분 경과)... 자동 확인 중`);
+    // 데이터 변경 확인
     try {
       const info = await loadJson("/api/scoring-data-info");
       const newMtime = info?.mtime ?? null;
       if (newMtime !== null && baseMtime !== null && newMtime > baseMtime) {
-        return true;
+        return "updated";
       }
       if (newMtime !== null && baseMtime === null) baseMtime = newMtime;
     } catch (_) {}
+    // GitHub Actions 실행 중인지 확인 (매 90초마다)
+    if (pollCount % activeCheckEvery === 0) {
+      try {
+        const active = await loadJson("/api/active-rescore");
+        if (!active.active) {
+          // Actions 종료됨 — 마지막으로 mtime 한 번 더 확인
+          try {
+            const info = await loadJson("/api/scoring-data-info");
+            const newMtime = info?.mtime ?? null;
+            if (newMtime !== null && baseMtime !== null && newMtime > baseMtime) {
+              return "updated";
+            }
+          } catch (_) {}
+          return "ended";
+        }
+      } catch (_) {}
+    }
   }
-  return false;
 }
 
 async function waitForScoreTask(taskId, labelText) {
@@ -1398,9 +1416,9 @@ async function runKeywordUpload(mode) {
       scoreRestarted = true;
       showToast("서버가 재시작됐습니다. 채점 완료 시 자동으로 반영됩니다.");
       const updated = await watchForDataUpdate(scoreStartedAt, setUploadScoreStatus);
-      await reloadDataAndRender();
-      if (updated) {
+      if (updated === "updated") {
         scoreRestarted = false;
+        await reloadDataAndRender();
         showToast("채점 완료 — 자동으로 표에 반영했습니다.");
       }
       return;
@@ -1474,14 +1492,14 @@ function bindUploadActions() {
           scoreRestarted = true;
           showToast("GitHub Actions에서 채점 진행중 — 완료되면 자동으로 반영됩니다.");
           const updated = await watchForDataUpdate(scoreStartedAt, setUploadScoreStatus);
-          if (updated) {
+          if (updated === "updated") {
             scoreRestarted = false;
             await reloadDataAndRender();
             showToast("채점 완료 — 자동으로 표에 반영했습니다.");
           } else {
             scoreFailed = true;
             scoreRestarted = false;
-            showToast("채점 시간이 초과됐습니다. GitHub Actions 로그를 확인해주세요.");
+            showToast("채점이 완료되지 않았습니다. GitHub Actions 로그를 확인해주세요.");
           }
           return;
         }
@@ -1645,12 +1663,12 @@ async function checkActiveRescore() {
       }
       setUploadScoreStatus("GitHub Actions에서 채점 진행중... 완료 시 자동 반영됩니다.");
       const updated = await watchForDataUpdate(scoreStartedAt, setUploadScoreStatus);
-      if (updated) {
+      if (updated === "updated") {
         await reloadDataAndRender();
         setUploadScoreStatus("채점 완료 — 자동 반영됨");
         showToast("채점 완료 — 자동으로 표에 반영했습니다.");
       } else {
-        setUploadScoreStatus("채점 시간 초과 — GitHub Actions 로그를 확인해주세요.");
+        setUploadScoreStatus("채점이 완료되지 않았습니다. GitHub Actions 로그를 확인해주세요.");
       }
     } finally {
       hideCancelBtn();
