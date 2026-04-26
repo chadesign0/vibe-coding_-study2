@@ -10,7 +10,9 @@ import json
 import os
 import random
 import re
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -995,12 +997,13 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
             processedKeywords=0,
             stage="scoring",
         )
-    for idx, kw in enumerate(keywords_list, start=1):
-        out[kw], ev_all[kw] = {}, {}
+    def _score_one_keyword(kw: str) -> tuple[str, dict, dict]:
+        kw_out: dict[str, Any] = {}
+        kw_ev: dict[str, Any] = {}
         for tab in COL_BY_TAB.keys():
             if tab == "cafe":
-                out[kw][tab] = 0
-                ev_all[kw][tab] = {
+                kw_out[tab] = 0
+                kw_ev[tab] = {
                     "source": "disabled",
                     "reason": "cafe_removed",
                     "matched_rank": 0,
@@ -1009,13 +1012,13 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                 }
                 continue
             if tab in manual_by_tab.get(kw, {}):
-                r = int(manual_by_tab[kw][tab]); out[kw][tab] = r; ev_all[kw][tab] = {"source": "manual", "rank": r}; continue
+                r = int(manual_by_tab[kw][tab]); kw_out[tab] = r; kw_ev[tab] = {"source": "manual", "rank": r}; continue
             if tab == "blog" and kw in legacy_blog_manual:
-                r = int(legacy_blog_manual[kw]); out[kw][tab] = r; ev_all[kw][tab] = {"source": "manual_legacy_blog", "rank": r}; continue
+                r = int(legacy_blog_manual[kw]); kw_out[tab] = r; kw_ev[tab] = {"source": "manual_legacy_blog", "rank": r}; continue
             if tab in ("powerlink", "bizsite", "video", "web"):
                 r, ev = find_rank_by_web_tab(tab, kw, match_tokens, blog_period, official_blog_ids)
-                out[kw][tab] = 0 if r is None else r
-                ev_all[kw][tab] = {"source": "web", **ev}
+                kw_out[tab] = 0 if r is None else r
+                kw_ev[tab] = {"source": "web", **ev}
             else:
                 r, ev = find_rank_by_api_tab(
                     tab,
@@ -1027,16 +1030,33 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                     official_blog_ids if tab == "blog" else frozenset(),
                     official_cafe_ids if tab == "cafe" else frozenset(),
                 )
-                out[kw][tab] = 0 if r is None else r
-                ev_all[kw][tab] = {"source": "api", **ev}
-        if report_progress and (idx == total_keywords or idx % progress_step == 0):
-            post_progress_webhook(
-                status="running",
-                message=f"채점 진행중 {idx}/{total_keywords}",
-                totalKeywords=total_keywords,
-                processedKeywords=idx,
-                stage="scoring",
-            )
+                kw_out[tab] = 0 if r is None else r
+                kw_ev[tab] = {"source": "api", **ev}
+        return kw, kw_out, kw_ev
+
+    max_workers = max(1, int(os.getenv("SCORING_PARALLEL_WORKERS", "5")))
+    _lock = threading.Lock()
+    _done = [0]
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(_score_one_keyword, kw): kw for kw in keywords_list}
+        for future in as_completed(futures):
+            kw, kw_out, kw_ev = future.result()
+            out[kw] = kw_out
+            ev_all[kw] = kw_ev
+            if report_progress:
+                with _lock:
+                    _done[0] += 1
+                    idx = _done[0]
+                if idx == total_keywords or idx % progress_step == 0:
+                    post_progress_webhook(
+                        status="running",
+                        message=f"채점 진행중 {idx}/{total_keywords}",
+                        totalKeywords=total_keywords,
+                        processedKeywords=idx,
+                        stage="scoring",
+                    )
+
     return out, ev_all
 
 
