@@ -475,11 +475,15 @@ async function watchForDataUpdate(scoringStartedAt, onUpdate) {
       try {
         const active = await loadJson("/api/active-rescore");
         if (!active.active) {
-          // Actions 종료됨 — 마지막으로 mtime 한 번 더 확인
+          // Actions 종료됨 — 마지막으로 mtime 확인
           try {
             const info = await loadJson("/api/scoring-data-info");
             const newMtime = info?.mtime ?? null;
             if (newMtime !== null && baseMtime !== null && newMtime > baseMtime) {
+              return "updated";
+            }
+            // baseMtime이 채점 시작 이후면 타임아웃 직후 이미 업데이트된 것 — 완료 처리
+            if (baseMtime !== null && baseMtime * 1000 > scoringStartedAt) {
               return "updated";
             }
           } catch (_) {}
@@ -1420,6 +1424,10 @@ async function runKeywordUpload(mode) {
         scoreRestarted = false;
         await reloadDataAndRender();
         showToast("채점 완료 — 자동으로 표에 반영했습니다.");
+      } else {
+        scoreFailed = true;
+        scoreRestarted = false;
+        showToast("채점이 완료되지 않았습니다. GitHub Actions 로그를 확인해주세요.");
       }
       return;
     }
