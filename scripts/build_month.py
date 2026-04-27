@@ -894,6 +894,54 @@ def find_rank_in_candidates(cands: list[str], match_tokens: list[str]) -> int:
     return 0
 
 
+def _find_web_rank_by_url(
+    ht: str,
+    match_tokens: list[str],
+    official_blog_ids: frozenset[str] = frozenset(),
+) -> tuple[int, dict[str, Any]]:
+    """
+    통합검색 HTML의 결과 링크(href)에서 병원 도메인 또는 공식 블로그 ID를
+    직접 찾아 순위를 반환한다. 텍스트 내 언급(mention)은 무시한다.
+    """
+    soup = BeautifulSoup(ht, "html.parser")
+    main = soup.select_one("#main_pack") or soup
+
+    seen: set[str] = set()
+    result_urls: list[str] = []
+    for a in main.find_all("a", href=True):
+        href = (a.get("href") or "").strip()
+        if not href or href.startswith("#") or "javascript" in href.lower():
+            continue
+        # 광고 및 네이버 내부 검색·네비 링크 제외
+        if any(s in href for s in ("ad.search.naver.com", "link.naver.com", "search.naver.com/search")):
+            continue
+        if href not in seen:
+            seen.add(href)
+            result_urls.append(href)
+
+    top = [u[:150] for u in result_urls[:15]]
+
+    # 도메인 토큰: "blog.naver.com" 같은 네이버 공용 도메인과 5자 미만 토큰은 제외
+    domain_tokens = [
+        t for t in match_tokens
+        if len(t) >= 5 and "naver.com" not in t and "." in t
+    ]
+
+    for rank, url in enumerate(result_urls, start=1):
+        url_l = url.lower()
+        for t in domain_tokens:
+            if t in url_l:
+                return rank, {"matched_url": url[:200], "matched_rank": rank, "basis": "web_url_domain", "top": top}
+        for bid in official_blog_ids:
+            if bid and (
+                f"blog.naver.com/{bid}" in url_l
+                or f"m.blog.naver.com/{bid}" in url_l
+            ):
+                return rank, {"matched_url": url[:200], "matched_rank": rank, "basis": "web_url_blog", "top": top}
+
+    return 0, {"matched_rank": 0, "basis": "no_url_match", "top": top}
+
+
 def find_rank_by_web_tab(
     tab: str,
     query: str,
@@ -917,33 +965,16 @@ def find_rank_by_web_tab(
         top = [{"rank": i + 1, "text": t[:220]} for i, t in enumerate(cands[:10])]
         return rank, {"top": top, "matched_rank": rank, "basis": "powerlink_main_fallback"}
     if tab == "web":
-        # 통합검색 웹 블록은 응답 변동이 커서 여러 번 재시도한다.
-        last_cands: list[str] = []
+        # URL 기반 매칭: 결과 링크(href)에 병원 도메인/공식 블로그 ID가 직접 포함될 때만 점수 부여.
+        # 텍스트에 병원명이 '언급'되는 경우는 제외 — 타 병원 비교 포스트 오매칭 방지.
         for _ in range(3):
             ht = fetch_integrated_search_page(query)
             if not ht:
                 time.sleep(0.4)
                 continue
-            cands = extract_candidates_web_from_integrated(ht)
-            if cands:
-                rank = find_rank_in_candidates(cands, match_tokens)
-                top = [{"rank": i + 1, "text": t[:220]} for i, t in enumerate(cands[:10])]
-                return rank, {"top": top, "matched_rank": rank, "basis": "web_integrated"}
-            last_cands = cands
-            time.sleep(0.4)
-
-        # 폴백: 통합검색 파싱 실패 시 블로그 API를 보조 근거로 사용(0 오검출 완화)
-        items = api_search(
-            (os.getenv("NAVER_CLIENT_ID") or "").strip(),
-            (os.getenv("NAVER_CLIENT_SECRET") or "").strip(),
-            TAB_ENDPOINT["blog"],
-            query,
-        )
-        if items:
-            rank, ev = analyze_blog_search_items(items, match_tokens, blog_period, official_blog_ids)
-            return rank, {**ev, "basis": "web_blog_fallback"}
-
-        return 0, {"top": [{"rank": i + 1, "text": t[:220]} for i, t in enumerate(last_cands[:10])], "matched_rank": 0, "reason": "parse_empty"}
+            rank, ev = _find_web_rank_by_url(ht, match_tokens, official_blog_ids)
+            return rank, ev
+        return 0, {"matched_rank": 0, "reason": "fetch_failed"}
 
     ht = fetch_search_page(query, where=("video" if tab == "video" else None))
     if not ht:
