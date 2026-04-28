@@ -93,13 +93,18 @@
 
       <section class="upload-panel">
         <div class="upload-panel__scope">
-          <span class="toolbar__label" id="uploadScopeTabsLabel">키워드 범위</span>
-          <div
-            class="channel-tabs upload-panel__scope-tabs"
-            id="uploadScopeTabs"
-            role="tablist"
-            aria-labelledby="uploadScopeTabsLabel"
-          ></div>
+          <div class="upload-panel__scope-left">
+            <span class="toolbar__label" id="uploadScopeTabsLabel">키워드 범위</span>
+            <div
+              class="channel-tabs upload-panel__scope-tabs"
+              id="uploadScopeTabs"
+              role="tablist"
+              aria-labelledby="uploadScopeTabsLabel"
+            ></div>
+          </div>
+          <button type="button" id="cancelRescoreBtn" class="btn btn--danger upload-panel__cancel-btn" hidden>
+            채점 취소
+          </button>
         </div>
         <div class="upload-panel__row">
           <textarea
@@ -111,9 +116,6 @@
         <div class="upload-panel__row upload-panel__row--score">
           <button type="button" id="uploadRunBtn" class="btn">채점</button>
           <span id="uploadScoreStatus" class="upload-panel__score-status" aria-live="polite"></span>
-          <button type="button" id="cancelRescoreBtn" class="btn btn--danger upload-panel__cancel-btn" hidden>
-            채점 취소
-          </button>
           <button type="button" id="exportExcelBtn" class="btn btn--ghost upload-panel__export-btn">
             엑셀 내보내기
           </button>

@@ -68,7 +68,7 @@ body {
 }
 
 .header__character {
-  height: 140px;
+  height: 200px;
   width: auto;
   mix-blend-mode: multiply;
   pointer-events: none;
@@ -455,6 +455,14 @@ code {
 
 .upload-panel__scope {
   display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.upload-panel__scope-left {
+  display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
@@ -499,7 +507,6 @@ code {
 
 .upload-panel__cancel-btn {
   flex-shrink: 0;
-  margin-left: auto;
 }
 
 .upload-panel__rerun-btn,
@@ -508,10 +515,6 @@ code {
 }
 
 .upload-panel__export-btn + .upload-panel__rerun-btn {
-  margin-left: 0;
-}
-
-.upload-panel__cancel-btn:not([hidden]) + .upload-panel__export-btn {
   margin-left: 0;
 }
 
