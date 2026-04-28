@@ -942,6 +942,70 @@ def _find_web_rank_by_url(
     return 0, {"matched_rank": 0, "basis": "no_url_match", "top": top}
 
 
+def _find_web_rank_from_render_json(
+    ht: str,
+    match_tokens: list[str],
+    official_blog_ids: frozenset[str] = frozenset(),
+) -> tuple[int, dict[str, Any]]:
+    """
+    Naver HTML에 삽입된 VIEW 섹션 렌더 JSON에서 링크를 추출해 URL 기반 매칭.
+    _find_web_rank_by_url()의 정적 href 매칭이 0을 반환할 때 fallback으로 사용.
+    JS 렌더링으로 <a href>에 나타나지 않는 블로그 링크를 잡아낸다.
+    """
+    VIEW_MARKERS = [
+        "review/prs_template_v2_review_blog_rra_desk.ts",
+        "review/prs_template_v2_review_blog_tab_desk.ts",
+        "review/prs_template_v2_review_ugc_single_intention_desk.ts",
+        "review/prs_template_v2_review_ugc_single_intention_mob.ts",
+    ]
+    chunk = ""
+    for marker in VIEW_MARKERS:
+        idx = ht.find(marker)
+        if idx >= 0:
+            chunk = ht[idx: idx + 600000]
+            break
+    if not chunk:
+        return 0, {"matched_rank": 0, "basis": "no_view_section_in_json"}
+
+    link_pat = re.compile(
+        r'"(?:link|blogLink|postUrl|mobileLink|url)"\s*:\s*"(https?://(?:[^"\\]|\\.)+)"'
+    )
+    domain_tokens = [
+        t for t in match_tokens
+        if len(t) >= 5 and "naver.com" not in t and "." in t
+    ]
+
+    seen: set[str] = set()
+    extracted: list[str] = []
+    for m in link_pat.finditer(chunk):
+        url = m.group(1).replace("\\/", "/").replace("\\u002F", "/")
+        if url not in seen:
+            seen.add(url)
+            extracted.append(url)
+
+    top = [u[:150] for u in extracted[:15]]
+
+    for rank, url in enumerate(extracted, start=1):
+        url_l = url.lower()
+        for t in domain_tokens:
+            if t in url_l:
+                return rank, {
+                    "matched_url": url[:200], "matched_rank": rank,
+                    "basis": "web_render_json_domain", "top": top,
+                }
+        for bid in official_blog_ids:
+            if bid and (
+                f"blog.naver.com/{bid}" in url_l
+                or f"m.blog.naver.com/{bid}" in url_l
+            ):
+                return rank, {
+                    "matched_url": url[:200], "matched_rank": rank,
+                    "basis": "web_render_json_blog", "top": top,
+                }
+
+    return 0, {"matched_rank": 0, "basis": "no_render_json_match", "top": top}
+
+
 def find_rank_by_web_tab(
     tab: str,
     query: str,
@@ -973,6 +1037,9 @@ def find_rank_by_web_tab(
                 time.sleep(0.4)
                 continue
             rank, ev = _find_web_rank_by_url(ht, match_tokens, official_blog_ids)
+            if rank > 0:
+                return rank, ev
+            rank, ev = _find_web_rank_from_render_json(ht, match_tokens, official_blog_ids)
             return rank, ev
         return 0, {"matched_rank": 0, "reason": "fetch_failed"}
 
