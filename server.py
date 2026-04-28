@@ -1572,6 +1572,19 @@ def serve_app_js():
     return send_file(WEB_DIR / "app.js", mimetype="text/javascript", max_age=0)
 
 
+_IMAGE_MIMETYPES = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif"}
+
+@app.get("/<path:filename>")
+def serve_web_static(filename: str):
+    ext = Path(filename).suffix.lower()
+    mimetype = _IMAGE_MIMETYPES.get(ext)
+    if not mimetype:
+        abort(404)
+    candidate = (WEB_DIR / filename).resolve()
+    if not candidate.is_relative_to(WEB_DIR.resolve()) or not candidate.is_file():
+        abort(404)
+    return send_file(candidate, mimetype=mimetype, max_age=86400)
+
 
 KNOWN_FONT_FILES = (
     "MagdaCleanMono-Regular.otf",
