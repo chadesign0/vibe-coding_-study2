@@ -786,7 +786,7 @@
   "scoringNote": "API 자동 탭(지도/카페/보도자료/웹)은 1위=3점, 2~5위=2점, 6~10위=1점, 미노출=0점. 블로그는 hospitalBlogBases의 네이버 블로그 ID와 글/bloggerlink가 일치하면 인정하거나, 작성자·링크에 병원 토큰이 있으면 인정(제목·본문만 일치는 제외). 작성일은 blogRequirePostMonth·scoringYear·monthLabel로 제한. 파워링크/비즈사이트/동영상은 API 한계로 미지원(None).",
   "hospitalName": "두발로병원",
   "keywordScopes": {
-    "압구정정형외과": "all",
+    "압구정정형외과": "regional",
     "금호동정형외과": "regional",
     "신사역정형외과": "regional",
     "논현동신경외과": "regional",
@@ -2407,10 +2407,6 @@
     "national-pc": [
       {
         "region": "",
-        "keyword": "압구정정형외과"
-      },
-      {
-        "region": "",
         "keyword": "소아평발"
       },
       {
@@ -2521,10 +2517,6 @@
     "national-mob": [
       {
         "region": "",
-        "keyword": "압구정정형외과"
-      },
-      {
-        "region": "",
         "keyword": "소아평발"
       },
       {
@@ -2633,10 +2625,6 @@
       }
     ],
     "other-pc": [
-      {
-        "region": "",
-        "keyword": "압구정정형외과"
-      },
       {
         "region": "",
         "keyword": "춘천휜다리교정"
@@ -3435,10 +3423,6 @@
       }
     ],
     "other-mob": [
-      {
-        "region": "",
-        "keyword": "압구정정형외과"
-      },
       {
         "region": "",
         "keyword": "춘천휜다리교정"
@@ -4244,5 +4228,8 @@
     "national-mob": "2026 전국 MOB",
     "other-pc": "2026 기타 PC",
     "other-mob": "2026 기타 MOB"
-  }
+  },
+  "forceRescoreKeywords": [
+    "압구정정형외과"
+  ]
 }
