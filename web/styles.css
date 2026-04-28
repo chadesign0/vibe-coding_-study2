@@ -154,7 +154,7 @@ code {
 }
 
 .input--textarea {
-  height: auto;
+  height: 96px;
   min-height: 96px;
   padding-top: 0.65rem;
   padding-bottom: 0.65rem;
@@ -559,7 +559,7 @@ code {
 
 .table-wrap {
   overflow: auto;
-  max-height: min(70vh, 720px);
+  height: min(70vh, 720px);
 }
 
 .score-table {
