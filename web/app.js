@@ -15,6 +15,12 @@ function getConfiguredApiBase() {
     if (q) return q.replace(/\/+$/, "");
   } catch (_) {}
   try {
+    const h = window.location.hostname;
+    if (h && h !== "localhost" && h !== "127.0.0.1") {
+      return window.location.origin;
+    }
+  } catch (_) {}
+  try {
     const s = localStorage.getItem("scoringApiBase");
     if (s && String(s).trim()) return String(s).trim().replace(/\/+$/, "");
   } catch (_) {}
@@ -28,13 +34,18 @@ const SCORING_SERVER_UNAVAILABLE =
   "(팀 공용 서버가 있으면 주소에 ?api=https://서버주소 를 붙일 수 있습니다.)";
 
 /** 같은 탭·다른 포트·file:// 등에서도 채점 서버로 이어지도록 후보 URL 목록 */
+function isLocalDev() {
+  const h = window.location.hostname;
+  return h === "localhost" || h === "127.0.0.1" || h === "";
+}
+
 function getScoringDataUrls() {
   const base = getConfiguredApiBase();
   const list = [];
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
     list.push(new URL("/data/scoring-data.json", window.location.origin).href);
   }
-  list.push(`${base}/data/scoring-data.json`);
+  if (isLocalDev()) list.push(`${base}/data/scoring-data.json`);
   return [...new Set(list)];
 }
 
@@ -44,7 +55,7 @@ function getEvidenceUrls() {
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
     list.push(new URL("/data/last-run-evidence.json", window.location.origin).href);
   }
-  list.push(`${base}/data/last-run-evidence.json`);
+  if (isLocalDev()) list.push(`${base}/data/last-run-evidence.json`);
   return [...new Set(list)];
 }
 
@@ -64,6 +75,10 @@ const HIDDEN_COLS = new Set([6]); // 연관 검색어 열 숨김
 /** 네이버 통합검색 탭 채널 열 인덱스 (TAB_BY_COL 과 동일) */
 const CAFE_SCORE_COL = 10;
 const BLOG_SCORE_COL = 11;
+/** '키워드별 합계' 열 (scripts/build_april_month.py HEADER 와 동일) */
+const KEYWORD_TOTAL_COL = 15;
+const SCORE_COL_MIN = 7;
+const SCORE_COL_MAX = 14;
 
 const TAB_LABEL = {
   powerlink: "파워링크(순위)",
@@ -106,6 +121,7 @@ const state = {
   /** API 로딩 전에도 병원 드롭다운이 비지 않게 기본값 유지(초기 클릭 레이스 방지) */
   hospitals: ["포인트병원"],
   availableHospitals: new Set(["포인트병원"]),
+  aliases: {},
   hospitalIndex: 0,
   hospitalFilter: "",
   monthIndex: 0,
@@ -115,6 +131,8 @@ const state = {
   channelView: "all",
   /** 키워드 입력란에서 업로드 시 부여할 범위 (지역·전국·전체) */
   keywordUploadScope: "all",
+  /** 헤더 클릭 정렬: null=정렬 없음, number=해당 열 인덱스 */
+  sortColIdx: null,
 };
 
 let uploadInFlight = false;
@@ -166,8 +184,7 @@ function applySavedViewState() {
     state.monthIndex = v.monthIndex;
   }
   if (typeof v.sheetIndex === "number" && v.sheetIndex >= -1) {
-    // 안전 모드: 앱 시작 시 '전체 시트(-1)' 자동 진입은 막아 렌더러 크래시를 방지
-    state.sheetIndex = v.sheetIndex === -1 ? 0 : v.sheetIndex;
+    state.sheetIndex = v.sheetIndex;
   }
   if (typeof v.filter === "string") {
     state.filter = v.filter;
@@ -222,6 +239,14 @@ async function loadJson(url) {
   return res.json();
 }
 
+/** 손상·구형 JSON에서도 뷰어가 죽지 않도록 months 만 보정 */
+function normalizeScoringData(raw) {
+  if (!raw || typeof raw !== "object") return { months: [] };
+  const m = raw.months;
+  if (!Array.isArray(m)) return { ...raw, months: [] };
+  return raw;
+}
+
 /** 여러 경로 순차 시도 (Live Server, file://, 다른 포트에서도 127.0.0.1:8080 데이터 사용) */
 async function loadScoringDataFirstAvailable() {
   let lastErr = null;
@@ -250,7 +275,7 @@ async function loadHospitals() {
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
     urls.push(new URL("/api/hospitals", window.location.origin).href);
   }
-  urls.push(`${base}/api/hospitals`);
+  if (isLocalDev()) urls.push(`${base}/api/hospitals`);
   for (const url of [...new Set(urls)]) {
     try {
       const data = await loadJson(url);
@@ -259,10 +284,11 @@ async function loadHospitals() {
       return {
         hospitals: items.length ? items : ["포인트병원"],
         availableHospitals: new Set(available.length ? available : ["포인트병원"]),
+        aliases: (data?.aliases && typeof data.aliases === "object") ? data.aliases : {},
       };
     } catch (_) {}
   }
-  return { hospitals: ["포인트병원"], availableHospitals: new Set(["포인트병원"]) };
+  return { hospitals: ["포인트병원"], availableHospitals: new Set(["포인트병원"]), aliases: {} };
 }
 
 function currentHospitalName() {
@@ -272,10 +298,7 @@ function currentHospitalName() {
 function canonicalHospitalName(name) {
   const n = String(name || "").trim();
   if (!n) return "포인트병원";
-  if (n === "삼성본정형외과") return "삼성본병원";
-  // 식별명(블로그목록)과 채점용 hospitalName 이 다를 때 (snu서울병원.txt)
-  if (n === "SNU서울정형외과") return "SNU서울병원";
-  return n;
+  return state.aliases[n] ?? n;
 }
 
 function currentHospitalKey() {
@@ -344,7 +367,7 @@ async function postForm(path, formData) {
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
     urls.push(new URL(path, window.location.origin).href);
   }
-  urls.push(`${base}${path}`);
+  if (isLocalDev()) urls.push(`${base}${path}`);
   const unique = [...new Set(urls)];
 
   let anyReached = false;
@@ -379,7 +402,7 @@ async function postJsonForBlob(path, bodyObj) {
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
     urls.push(new URL(path, window.location.origin).href);
   }
-  urls.push(`${base}${path}`);
+  if (isLocalDev()) urls.push(`${base}${path}`);
   const unique = [...new Set(urls)];
   let anyReached = false;
   let lastErr = "요청 처리에 실패했습니다.";
@@ -409,7 +432,7 @@ async function loadScoreTask(taskId) {
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
     urls.push(new URL(`/api/score-task/${encodeURIComponent(taskId)}`, window.location.origin).href);
   }
-  urls.push(`${base}/api/score-task/${encodeURIComponent(taskId)}`);
+  if (isLocalDev()) urls.push(`${base}/api/score-task/${encodeURIComponent(taskId)}`);
   let lastErr = null;
   for (const url of [...new Set(urls)]) {
     try {
@@ -421,22 +444,122 @@ async function loadScoreTask(taskId) {
   throw lastErr ?? new Error("작업 상태를 확인하지 못했습니다.");
 }
 
+const TASK_SERVER_RESTARTED = "__SERVER_RESTARTED__";
+
+async function watchForDataUpdate(scoringStartedAt, onUpdate) {
+  const intervalMs = 30 * 1000;
+  const activeCheckEvery = 3; // 매 3번 폴링마다 GitHub Actions 실행 여부 확인
+  let baseMtime = null;
+  let pollCount = 0;
+  try {
+    const info = await loadJson("/api/scoring-data-info");
+    baseMtime = info?.mtime ?? null;
+  } catch (_) {}
+  while (true) {
+    await new Promise(r => setTimeout(r, intervalMs));
+    pollCount++;
+    const elapsedMin = Math.floor((Date.now() - scoringStartedAt) / 60000);
+    onUpdate(`채점 진행중 (${elapsedMin}분 경과)... 자동 확인 중`);
+    // 데이터 변경 확인
+    try {
+      const info = await loadJson("/api/scoring-data-info");
+      const newMtime = info?.mtime ?? null;
+      if (newMtime !== null && baseMtime !== null && newMtime > baseMtime) {
+        return "updated";
+      }
+      if (newMtime !== null && baseMtime === null) baseMtime = newMtime;
+    } catch (_) {}
+    // GitHub Actions 실행 중인지 확인 (매 90초마다)
+    if (pollCount % activeCheckEvery === 0) {
+      try {
+        const active = await loadJson("/api/active-rescore");
+        if (!active.active) {
+          // Actions 종료됨 — 마지막으로 mtime 확인
+          try {
+            const info = await loadJson("/api/scoring-data-info");
+            const newMtime = info?.mtime ?? null;
+            if (newMtime !== null && baseMtime !== null && newMtime > baseMtime) {
+              return "updated";
+            }
+            // baseMtime이 채점 시작 이후면 타임아웃 직후 이미 업데이트된 것 — 완료 처리
+            if (baseMtime !== null && baseMtime * 1000 > scoringStartedAt) {
+              return "updated";
+            }
+          } catch (_) {}
+          return "ended";
+        }
+      } catch (_) {}
+    }
+  }
+}
+
 async function waitForScoreTask(taskId, labelText) {
-  const timeoutMs = 20 * 60 * 1000; // 배포 환경에서도 20분 제한
+  const timeoutMs = 60 * 60 * 1000;
   const started = Date.now();
+  let networkErrStreak = 0;
+  let notFoundStreak = 0;
   while (true) {
     if (Date.now() - started > timeoutMs) {
-      throw new Error(`${labelText || "채점"} 작업 시간이 너무 오래 걸립니다. 서버 상태를 확인해주세요.`);
+      return TASK_SERVER_RESTARTED;
     }
-    const payload = await loadScoreTask(taskId);
+    let payload;
+    try {
+      payload = await loadScoreTask(taskId);
+      networkErrStreak = 0;
+      notFoundStreak = 0;
+    } catch (e) {
+      if ((e?.message || "").includes("404")) {
+        return TASK_SERVER_RESTARTED;
+      }
+      networkErrStreak++;
+      if (networkErrStreak >= 5) throw e;
+      setUploadScoreStatus(`연결 재시도중… (${networkErrStreak}/5)`);
+      await new Promise((r) => setTimeout(r, 3000));
+      continue;
+    }
     const task = payload?.task || {};
     const st = String(task.status || "");
+    const runner = String(task.runner || "");
+    const stage = String(task.stage || "");
+    const taskMsg = String(task.message || "").trim();
     if (st === "queued") {
-      setUploadScoreStatus("작업 대기중...");
+      if (runner === "github-actions" && stage === "dispatched") {
+        setUploadScoreStatus("GitHub Actions 가상머신 부팅중... (10~30초)");
+      } else if (taskMsg) {
+        setUploadScoreStatus(taskMsg);
+      } else {
+        setUploadScoreStatus("작업 대기중...");
+      }
     } else if (st === "running") {
-      setUploadScoreStatus("채점중...");
+      const total = task.totalKeywords;
+      const processed = task.processedKeywords;
+      const totalChunks = task.totalChunks;
+      const chunkIdx = task.currentChunkIndex;
+      if (
+        typeof total === "number" && total > 0 &&
+        typeof processed === "number" &&
+        typeof totalChunks === "number" && totalChunks > 1
+      ) {
+        stopScoreStatusTimer();
+        const displayChunk = typeof chunkIdx === "number" ? chunkIdx + 1 : 1;
+        setUploadScoreStatus(`채점중... ${processed}/${total} · 청크 ${displayChunk}/${totalChunks}`);
+      } else if (
+        typeof total === "number" && total > 0 &&
+        typeof processed === "number"
+      ) {
+        stopScoreStatusTimer();
+        const pct = total > 0 ? Math.floor((processed / total) * 100) : 0;
+        setUploadScoreStatus(`채점중... ${processed}/${total} (${pct}%)`);
+      } else if (runner === "github-actions") {
+        setUploadScoreStatus(taskMsg || "GitHub Actions에서 채점 실행중...");
+      } else {
+        setUploadScoreStatus("채점중...");
+      }
     } else if (st === "succeeded") {
-      return task;
+      if (stage === "data_ready") return task;
+      setUploadScoreStatus("데이터 동기화 중...");
+    } else if (st === "cancelled") {
+      return "__CANCELLED__";
     } else if (st === "failed") {
       const msg = String(task.message || task.error || "채점 실행 실패");
       throw new Error(msg);
@@ -461,6 +584,17 @@ function scoreReasonText(keyword, colIdx, cellValue) {
   const label = TAB_LABEL[tab] || tab;
   const ev = resolveEvidenceBlock(keyword)?.[tab];
   const shown = Number(cellValue || 0);
+  if (tab === "web") {
+    if (!ev) {
+      return `${label} ${score}점\n근거 데이터가 아직 없습니다.`;
+    }
+    const source = ev.source === "manual" ? "수동입력" : "웹수집";
+    const rule = score > 0 ? "메인 검색 노출(3점)" : "미노출(0점)";
+    const base = `${label} ${score}점\n${source} · ${rule}`;
+    const snippet = String(ev.matched_url || ev.top?.[0] || "").replace(/\s+/g, " ").trim();
+    if (!snippet) return base;
+    return `${base}\n근거: ${snippet.slice(0, 90)}${snippet.length > 90 ? "..." : ""}`;
+  }
   if (tab === "powerlink") {
     if (!ev) {
       return `${label}: 표시값 ${shown}\n근거 데이터가 아직 없습니다.`;
@@ -473,19 +607,20 @@ function scoreReasonText(keyword, colIdx, cellValue) {
     if (!snippet) return base;
     return `${base}\n근거: ${snippet.slice(0, 90)}${snippet.length > 90 ? "..." : ""}`;
   }
+  const score = shown;
   if (!ev) {
-    return `${label} ${shown}점\n근거 데이터가 아직 없습니다.`;
+    return `${label} ${score}점\n근거 데이터가 아직 없습니다.`;
   }
   const source = ev.source === "api" ? "API" : ev.source === "manual" ? "수동입력" : "웹수집";
   const rank = Number(ev.matched_rank ?? ev.rank ?? 0);
   let rule = "";
   if (rank <= 0) rule = "미노출(0점)";
-  else if (rank === 1) rule = "1위(3점)";
-  else if (rank <= 5) rule = "2~5위(2점)";
+  else if (rank <= 3) rule = "1~3위 첫화면(3점)";
+  else if (rank <= 5) rule = "4~5위(2점)";
   else if (rank <= 10) rule = "6~10위(1점)";
   else rule = "10위 밖(0점)";
 
-  const base = `${label} ${shown}점\n${source} 기준 ${rank > 0 ? `${rank}위` : "미노출"} · 규칙 ${rule}`;
+  const base = `${label} ${score}점\n${source} 기준 ${rank > 0 ? `${rank}위` : "미노출"} · 규칙 ${rule}`;
   const snippet = String(ev.matched_text || ev.top?.[0]?.text || "").replace(/\s+/g, " ").trim();
   if (!snippet) return base;
   return `${base}\n근거: ${snippet.slice(0, 90)}${snippet.length > 90 ? "..." : ""}`;
@@ -587,11 +722,62 @@ function dedupeRowsByKeyword(rows) {
   return out;
 }
 
+function cellNumericScore(cell) {
+  if (typeof cell === "number" && Number.isFinite(cell)) return cell;
+  if (cell === "" || cell == null) return 0;
+  const n = Number(cell);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * 현재 열 표시(전체/카페/블로그)에 맞는 행 점수 합.
+ * — 전체: JSON의 키워드별 합계 열(15) 우선, 없으면 가시 채점 열만 합산.
+ * — 카페·블로그만: 숨긴 채널 열을 제외한 채점 열만 합산.
+ */
+function rowScoreSumForCurrentView(row) {
+  if (!Array.isArray(row)) return 0;
+  if (state.channelView === "all") {
+    const t = row[KEYWORD_TOTAL_COL];
+    if (typeof t === "number" && Number.isFinite(t)) return t;
+    if (t !== "" && t != null) {
+      const n = Number(t);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  let s = 0;
+  for (let c = SCORE_COL_MIN; c <= SCORE_COL_MAX; c++) {
+    if (isTableColumnHidden(c)) continue;
+    s += cellNumericScore(row[c]);
+  }
+  return s;
+}
+
+function sumRowsKeywordScores(rows) {
+  let total = 0;
+  for (const row of rows || []) {
+    total += rowScoreSumForCurrentView(row);
+  }
+  return total;
+}
+
+/** 행 수 문구 + 키워드별 합계 배지(우측 패널 메타) */
+function updatePanelStats({ rowLine, keywordTotal, showKeywordBadge }) {
+  const rowCount = document.getElementById("rowCount");
+  const valEl = document.getElementById("keywordTotalValue");
+  const badge = document.getElementById("keywordTotalBadge");
+  if (rowCount) rowCount.textContent = rowLine ?? "";
+  if (valEl) {
+    valEl.textContent = Number.isFinite(keywordTotal)
+      ? keywordTotal.toLocaleString()
+      : String(keywordTotal ?? "");
+  }
+  if (badge) badge.hidden = showKeywordBadge === false;
+}
+
 function renderTable() {
   const head = document.getElementById("scoreHead");
   const body = document.getElementById("scoreBody");
   const sourceInfo = document.getElementById("sourceInfo");
-  const rowCount = document.getElementById("rowCount");
   const hospitalName = currentHospitalName();
   const monthLabel = currentMonthLabel();
   const month = getCurrentMonthRecord();
@@ -602,7 +788,7 @@ function renderTable() {
     head.innerHTML = "";
     body.innerHTML = "";
     sourceInfo.textContent = `${hospitalName} · ${monthLabel}`;
-    rowCount.textContent = "";
+    updatePanelStats({ rowLine: "", keywordTotal: 0, showKeywordBadge: false });
     const colCount = defaultVisibleColumnCount();
     body.innerHTML = `<tr><td colspan="${colCount}" class="num">${escapeHtml(
       `${hospitalName} 데이터는 아직 준비 중입니다. (배점표가 병합된 병원만 조회 가능)`
@@ -612,7 +798,7 @@ function renderTable() {
 
   if (!month || !month?.sheets?.length) {
     head.innerHTML = "";
-    rowCount.textContent = "행 0건";
+    updatePanelStats({ rowLine: "행 0건", keywordTotal: 0, showKeywordBadge: true });
     sourceInfo.textContent = `${hospitalName} · ${monthLabel} · 이 달 배점표 없음`;
     const colCount = defaultVisibleColumnCount();
     body.innerHTML = `<tr><td colspan="${colCount}" class="num">${escapeHtml(
@@ -630,40 +816,94 @@ function renderTable() {
   }
   const rawRows = sheetsForView.flatMap((s) => filteredRows(s));
   const dedupedRows = state.sheetIndex === -1 ? dedupeRowsByKeyword(rawRows) : rawRows;
+  const keywordGrandTotal = sumRowsKeywordScores(dedupedRows);
   const allSheetsOverLimit = state.sheetIndex === -1 && dedupedRows.length > MAX_ROWS_IN_ALL_SHEETS_VIEW;
   const baseRows = allSheetsOverLimit ? dedupedRows.slice(0, MAX_ROWS_IN_ALL_SHEETS_VIEW) : dedupedRows;
   const overRenderLimit = baseRows.length > MAX_RENDER_ROWS;
   const rows = overRenderLimit ? baseRows.slice(0, MAX_RENDER_ROWS) : baseRows;
-  rowCount.textContent = `행 ${rows.length.toLocaleString()}건`;
 
-  const ths = ((sheet?.header) || [])
+  // 원본 배열 변경 없이 복사본만 정렬 (데이터 무결성 유지)
+  const displayRows = state.sortColIdx !== null
+    ? [...rows].sort((a, b) => {
+        const av = typeof a?.[state.sortColIdx] === "number" ? a[state.sortColIdx] : -Infinity;
+        const bv = typeof b?.[state.sortColIdx] === "number" ? b[state.sortColIdx] : -Infinity;
+        return bv - av;
+      })
+    : rows;
+
+  updatePanelStats({
+    rowLine: `행 ${rows.length.toLocaleString()}건`,
+    keywordTotal: keywordGrandTotal,
+    showKeywordBadge: true,
+  });
+
+  // 조회수PC(4)·조회수MOB(5)·비즈사이트(8)·지도(9)·블로그(11)·보도자료(12)·동영상(13)·웹(14)·키워드합계(15)
+  const SORTABLE_COLS = new Set([4, 5, 8, 9, 11, 12, 13, 14, 15]);
+
+  const headerRow = sheet?.header || [];
+  const ths = headerRow
     .map((h, i) => {
       if (isTableColumnHidden(i)) return "";
       const label = columnHeaderLabel(h, i);
+      if (SORTABLE_COLS.has(i)) {
+        const isActive = state.sortColIdx === i;
+        const cls = isActive ? "th-sort th-sort-active" : "th-sort";
+        const icon = isActive ? "▼" : "↕";
+        return `<th scope="col" class="${cls}" data-sort-col="${i}" title="${escapeHtml(label)} 점수 높은 순 정렬">${escapeHtml(label)}<span class="sort-icon">${icon}</span></th>`;
+      }
       return `<th scope="col">${escapeHtml(label)}</th>`;
     })
     .join("");
 
   head.innerHTML = `<tr>${ths}</tr>`;
 
-  body.innerHTML = rows
+  head.querySelectorAll("th[data-sort-col]").forEach((th) => {
+    th.addEventListener("click", () => {
+      const col = Number(th.dataset.sortCol);
+      state.sortColIdx = state.sortColIdx === col ? null : col;
+      renderTable();
+    });
+  });
+
+  // 상대평가: 현재 행들의 합계(col 15) 기준 상위/중위/하위 33%
+  const totals = rows.map((row) => (typeof row?.[KEYWORD_TOTAL_COL] === "number" ? row[KEYWORD_TOTAL_COL] : 0));
+  const sorted = [...totals].sort((a, b) => a - b);
+  const lo = sorted[Math.floor(sorted.length * 0.33)] ?? 0;
+  const hi = sorted[Math.floor(sorted.length * 0.67)] ?? 0;
+  const rowTierClass = (total) => {
+    if (typeof total !== "number" || total === 0) return "";
+    if (total >= hi) return "row-high";
+    if (total >= lo) return "row-mid";
+    return "row-low";
+  };
+
+  body.innerHTML = displayRows
     .map((row) => {
       const keyword = String(row?.[2] ?? "").trim();
-      const cells = row
-        .map((cell, colIdx) => {
+      const r = Array.isArray(row) ? row : [];
+      const rowTotal = r[KEYWORD_TOTAL_COL];
+      const tierCls = rowTierClass(rowTotal);
+      // 헤더 열 개수 기준(행이 짧으면 빈 칸·길면 잘림)
+      const cells = headerRow
+        .map((_, colIdx) => {
+          const cell = r[colIdx];
           if (isTableColumnHidden(colIdx)) return "";
           const isScoreCol = colIdx >= 7 && colIdx <= 14;
+          const isTotalCol = colIdx === KEYWORD_TOTAL_COL;
           const isNumCol = [0, 4, 5, 15].includes(colIdx);
           const isKeywordCol = colIdx === 2;
           let cls = "";
           if (isScoreCol) cls = "score";
+          else if (isTotalCol) cls = "score total num";
           else if (isNumCol) cls = "num";
 
           const empty = cell === null || cell === undefined || cell === "";
           let inner;
           if (empty) {
             inner = "—";
-            if (isScoreCol) cls += " is-empty";
+            if (isScoreCol || isTotalCol) cls += " is-empty";
+          } else if (isTotalCol && typeof cell === "number") {
+            inner = `<span class="countup-num" data-target="${cell}">0</span>`;
           } else if (typeof cell === "number") {
             inner = String(cell);
           } else {
@@ -682,9 +922,11 @@ function renderTable() {
           return `<td class="${cls}"${titleAttr}${keywordAttr}>${inner}</td>`;
         })
         .join("");
-      return `<tr>${cells}</tr>`;
+      return `<tr${tierCls ? ` class="${tierCls}"` : ""}>${cells}</tr>`;
     })
     .join("");
+  runCountUp();
+
   if (allSheetsOverLimit || overRenderLimit) {
     const notes = [];
     if (allSheetsOverLimit) {
@@ -694,7 +936,11 @@ function renderTable() {
       notes.push(`브라우저 안정화를 위해 상위 ${MAX_RENDER_ROWS.toLocaleString()}건만 렌더`);
     }
     body.innerHTML += `<tr><td colspan="${defaultVisibleColumnCount()}" class="num">${notes.join(" · ")}. 검색어/시트로 범위를 좁혀주세요.</td></tr>`;
-    rowCount.textContent = `행 ${rows.length.toLocaleString()}건 (원본 ${dedupedRows.length.toLocaleString()}건)`;
+    updatePanelStats({
+      rowLine: `행 ${rows.length.toLocaleString()}건 (원본 ${dedupedRows.length.toLocaleString()}건)`,
+      keywordTotal: keywordGrandTotal,
+      showKeywordBadge: true,
+    });
   }
 }
 
@@ -733,6 +979,44 @@ function escapeHtml(s) {
     .replace(/'/g, "&#39;");
 }
 
+function runCountUp() {
+  const els = document.querySelectorAll("#scoreBody .countup-num");
+  els.forEach((el, i) => {
+    const target = Number(el.dataset.target);
+    if (target === 0) { el.textContent = "0"; return; }
+    const duration = 320;
+    const delay = i * 30;
+    setTimeout(() => {
+      const start = performance.now();
+      function step(now) {
+        const t = Math.min((now - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(ease * target);
+        if (t < 1) requestAnimationFrame(step);
+        else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    }, delay);
+  });
+}
+
+function updateTabIndicator(wrap, indicatorClass) {
+  const active = wrap.querySelector("[aria-selected='true']");
+  let indicator = wrap.querySelector(`.${indicatorClass}`);
+  if (!indicator) {
+    indicator = document.createElement("span");
+    indicator.className = indicatorClass;
+    wrap.appendChild(indicator);
+  }
+  if (!active) { indicator.style.width = "0"; return; }
+  requestAnimationFrame(() => {
+    const wrapRect = wrap.getBoundingClientRect();
+    const btnRect = active.getBoundingClientRect();
+    indicator.style.left = `${btnRect.left - wrapRect.left}px`;
+    indicator.style.width = `${btnRect.width}px`;
+  });
+}
+
 function renderMonthTabs() {
   const wrap = document.getElementById("monthTabs");
   wrap.innerHTML = FIXED_MONTH_TABS.map(
@@ -746,12 +1030,14 @@ function renderMonthTabs() {
     btn.addEventListener("click", () => {
       state.monthIndex = Number(btn.dataset.month);
       state.sheetIndex = 0;
+      state.sortColIdx = null;
       renderMonthTabs();
       renderSheetTabs();
       renderTable();
       persistViewState();
     });
   });
+  updateTabIndicator(wrap, "tab-indicator");
 }
 
 function openHospitalMenu() {
@@ -806,6 +1092,7 @@ function renderHospitalTabs() {
       state.hospitalIndex = Number(btn.dataset.hospital);
       state.monthIndex = monthTabIndexForToday();
       state.sheetIndex = 0;
+      state.sortColIdx = null;
       renderHospitalTabs();
       renderMonthTabs();
       renderSheetTabs();
@@ -824,48 +1111,42 @@ function renderHospitalTabs() {
 }
 
 function renderSheetTabs() {
-  const wrap = document.getElementById("sheetTabs");
   const quickWrap = document.getElementById("sheetQuickTabs");
   const m = getCurrentMonthRecord();
+  const y = new Date().getFullYear();
   const fallbackSheets = [
-    { title: "2026 지역 PC" },
-    { title: "2026 지역 MOB" },
-    { title: "2026 전국 PC" },
-    { title: "2026 전국 MOB" },
-    { title: "2026 기타 PC" },
-    { title: "2026 기타 MOB" },
+    { title: `${y} 지역 PC` },
+    { title: `${y} 지역 MOB` },
+    { title: `${y} 전국 PC` },
+    { title: `${y} 전국 MOB` },
+    { title: `${y} 기타 PC` },
+    { title: `${y} 기타 MOB` },
   ];
   const sheets = m?.sheets?.length ? m.sheets : fallbackSheets;
   if (state.sheetIndex >= sheets.length) state.sheetIndex = 0;
   const html = [
-    `<button type="button" class="tab" role="tab" aria-selected="${state.sheetIndex === -1}" data-sheet="-1">전체</button>`,
-    ...sheets
-    .map((s, i) => {
+    `<button type="button" class="channel-tab" role="tab" aria-selected="${state.sheetIndex === -1}" data-sheet="-1">전체</button>`,
+    ...sheets.map((s, i) => {
       const short = shortSheetLabel(s.title);
-      return `<button type="button" class="tab" role="tab" aria-selected="${i === state.sheetIndex}" data-sheet="${i}">${escapeHtml(
-        short
-      )}</button>`;
+      return `<button type="button" class="channel-tab" role="tab" aria-selected="${i === state.sheetIndex}" data-sheet="${i}">${escapeHtml(short)}</button>`;
     }),
   ].join("");
-  if (wrap) wrap.innerHTML = html;
-  if (quickWrap) {
-    // 구형 브라우저 호환: replaceAll 미지원 환경에서도 동작
-    quickWrap.innerHTML = html.split('class="tab"').join('class="channel-tab"');
-  }
+  if (quickWrap) quickWrap.innerHTML = html;
 
   const bindSheetClick = (container, selector) => {
     if (!container) return;
     container.querySelectorAll(selector).forEach((btn) => {
       btn.addEventListener("click", () => {
         state.sheetIndex = Number(btn.dataset.sheet);
+        state.sortColIdx = null;
         renderSheetTabs();
         renderTable();
         persistViewState();
       });
     });
   };
-  bindSheetClick(wrap, ".tab");
   bindSheetClick(quickWrap, ".channel-tab");
+  if (quickWrap) updateTabIndicator(quickWrap, "channel-tab-indicator");
 }
 
 function shortSheetLabel(title) {
@@ -930,6 +1211,7 @@ function renderChannelTabs() {
       persistViewState();
     });
   });
+  updateTabIndicator(wrap, "channel-tab-indicator");
 }
 
 function renderUploadScopeTabs() {
@@ -999,7 +1281,8 @@ async function reloadDataAndRender() {
   const hs = await loadHospitals();
   state.hospitals = hs.hospitals;
   state.availableHospitals = hs.availableHospitals;
-  state.data = await loadScoringDataFirstAvailable();
+  state.aliases = hs.aliases;
+  state.data = normalizeScoringData(await loadScoringDataFirstAvailable());
   const ev = await loadEvidenceFirstAvailable();
   state.evidenceRoot = ev && typeof ev === "object" ? ev : {};
   state.evidence = state.evidenceRoot.evidence || {};
@@ -1012,13 +1295,42 @@ async function reloadDataAndRender() {
   persistViewState();
 }
 
-/**
- * 키워드 업로드 후 표 갱신. 서버는 텍스트가 있으면 텍스트 우선.
- * @param {"file"|"text"|"both"} mode
- */
 function setUploadScoreStatus(text) {
   const el = document.getElementById("uploadScoreStatus");
   if (el) el.textContent = text || "";
+}
+
+function showCancelBtn() {
+  const btn = document.getElementById("cancelRescoreBtn");
+  if (btn) btn.hidden = false;
+}
+
+function hideCancelBtn() {
+  const btn = document.getElementById("cancelRescoreBtn");
+  if (btn) btn.hidden = true;
+}
+
+async function cancelRescore() {
+  const btn = document.getElementById("cancelRescoreBtn");
+  if (!btn || btn.disabled) return;
+  if (!confirm("진행 중인 채점을 취소하시겠습니까?\nGitHub Actions 실행이 중단되고 결과가 반영되지 않습니다.")) return;
+  btn.disabled = true;
+  btn.textContent = "취소 중...";
+  try {
+    const res = await fetch("/api/cancel-rescore", { method: "POST" }).then(r => r.json());
+    if (res.ok) {
+      showToast("채점이 취소됐습니다.");
+      setUploadScoreStatus("채점 취소됨");
+    } else {
+      showToast("취소 실패: " + (res.message || "알 수 없는 오류"));
+    }
+  } catch (e) {
+    showToast("취소 요청 실패: " + e.message);
+  } finally {
+    hideCancelBtn();
+    btn.disabled = false;
+    btn.textContent = "채점 취소";
+  }
 }
 
 function readRecentScoreDurations() {
@@ -1080,36 +1392,25 @@ function stopScoreStatusTimer() {
   scoreStatusTimer = null;
 }
 
+/**
+ * 키워드 채점 요청 후 표 갱신 (텍스트만 전송).
+ * @param {"text"|"both"} mode
+ */
 async function runKeywordUpload(mode) {
   const textEl = document.getElementById("keywordsText");
-  const fileEl = document.getElementById("keywordsFile");
   const uploadBtn = document.getElementById("uploadRunBtn");
   const text = (textEl?.value || "").trim();
-  const file = fileEl?.files?.[0];
 
   const form = new FormData();
   form.append("hospital_name", currentHospitalKey());
   form.append("month_label", currentMonthLabel());
-  if (mode === "file") {
-    if (!file) {
-      showToast("파일을 선택해주세요.");
-      return;
-    }
-    form.append("keywords_file", file);
-  } else if (mode === "text") {
-    if (!text) {
-      showToast("키워드를 입력해주세요.");
-      return;
-    }
-    form.append("keywords_text", text);
-  } else {
-    if (!text && !file) {
-      showToast("키워드 텍스트 또는 파일을 입력하세요.");
-      return;
-    }
-    if (text) form.append("keywords_text", text);
-    if (file) form.append("keywords_file", file);
+  if (!text) {
+    showToast(
+      mode === "text" ? "키워드를 입력해주세요." : "키워드를 입력하세요."
+    );
+    return;
   }
+  form.append("keywords_text", text);
   form.append("keyword_channel", "all");
   form.append("keyword_scope", state.keywordUploadScope || "all");
 
@@ -1117,6 +1418,8 @@ async function runKeywordUpload(mode) {
   uploadInFlight = true;
   if (uploadBtn) uploadBtn.disabled = true;
   startScoreStatusTimer();
+  let scoreFailed = false;
+  let scoreRestarted = false;
   try {
     showToast("채점 중… 잠시만 기다려주세요.");
     const res = await postForm("/api/upload-keywords", form);
@@ -1124,10 +1427,24 @@ async function runKeywordUpload(mode) {
     if (res?.accepted && res?.taskId) {
       finishedTask = await waitForScoreTask(res.taskId, "키워드 채점");
     }
+    if (finishedTask === TASK_SERVER_RESTARTED) {
+      scoreRestarted = true;
+      showToast("서버가 재시작됐습니다. 채점 완료 시 자동으로 반영됩니다.");
+      const updated = await watchForDataUpdate(scoreStartedAt, setUploadScoreStatus);
+      if (updated === "updated") {
+        scoreRestarted = false;
+        await reloadDataAndRender();
+        showToast("채점 완료 — 자동으로 표에 반영했습니다.");
+      } else {
+        scoreFailed = true;
+        scoreRestarted = false;
+        showToast("채점이 완료되지 않았습니다. GitHub Actions 로그를 확인해주세요.");
+      }
+      return;
+    }
     await reloadDataAndRender();
     saveRecentScoreDuration(Date.now() - scoreStartedAt);
     if (textEl) textEl.value = "";
-    if (fileEl && mode !== "text") fileEl.value = "";
     const monthTxt = res.monthLabel ? `${res.monthLabel} ` : "";
     const added = Number(res?.addedCount ?? 0);
     const q = finishedTask?.quality;
@@ -1140,10 +1457,15 @@ async function runKeywordUpload(mode) {
       showToast(`${monthTxt}${added}개 추가 완료 (총 ${res.count}건)`);
     }
   } catch (e) {
+    scoreFailed = true;
     showToast("채점 실패: " + (e?.message ?? e));
   } finally {
     stopScoreStatusTimer();
-    setUploadScoreStatus("채점 끝");
+    setUploadScoreStatus(
+      scoreFailed ? "채점 실패 (반영 안됨)" :
+      scoreRestarted ? "채점 진행중 (완료 후 새로고침)" :
+      "채점 끝"
+    );
     uploadInFlight = false;
     if (uploadBtn) uploadBtn.disabled = false;
   }
@@ -1153,11 +1475,14 @@ function bindUploadActions() {
   const uploadBtn = document.getElementById("uploadRunBtn");
   const rerunBtn = document.getElementById("uploadRerunBtn");
   const exportBtn = document.getElementById("exportExcelBtn");
+  const cancelBtn = document.getElementById("cancelRescoreBtn");
   const textEl = document.getElementById("keywordsText");
 
   uploadBtn?.addEventListener("click", () => {
     runKeywordUpload("both");
   });
+
+  cancelBtn?.addEventListener("click", () => cancelRescore());
 
   rerunBtn?.addEventListener("click", async () => {
     if (uploadInFlight) return;
@@ -1165,6 +1490,10 @@ function bindUploadActions() {
     uploadBtn && (uploadBtn.disabled = true);
     rerunBtn.disabled = true;
     startScoreStatusTimer();
+    showCancelBtn();
+    let scoreFailed = false;
+    let scoreRestarted = false;
+    let scoreCancelled = false;
     try {
       showToast("전체 재채점 중… 잠시만 기다려주세요.");
       const form = new FormData();
@@ -1172,7 +1501,27 @@ function bindUploadActions() {
       form.append("month_label", currentMonthLabel());
       const res = await postForm("/api/run-score", form);
       if (res?.accepted && res?.taskId) {
-        await waitForScoreTask(res.taskId, "재채점");
+        const result = await waitForScoreTask(res.taskId, "재채점");
+        if (result === "__CANCELLED__") {
+          scoreCancelled = true;
+          showToast("채점이 취소됐습니다.");
+          return;
+        }
+        if (result === TASK_SERVER_RESTARTED) {
+          scoreRestarted = true;
+          showToast("GitHub Actions에서 채점 진행중 — 완료되면 자동으로 반영됩니다.");
+          const updated = await watchForDataUpdate(scoreStartedAt, setUploadScoreStatus);
+          if (updated === "updated") {
+            scoreRestarted = false;
+            await reloadDataAndRender();
+            showToast("채점 완료 — 자동으로 표에 반영했습니다.");
+          } else {
+            scoreFailed = true;
+            scoreRestarted = false;
+            showToast("채점이 완료되지 않았습니다. GitHub Actions 로그를 확인해주세요.");
+          }
+          return;
+        }
       } else if (res && res.ok === false) {
         throw new Error(res.message || "재채점 실패");
       }
@@ -1180,10 +1529,17 @@ function bindUploadActions() {
       saveRecentScoreDuration(Date.now() - scoreStartedAt);
       showToast("전체 재채점 완료");
     } catch (e) {
+      scoreFailed = true;
       showToast("재채점 실패: " + (e?.message ?? e));
     } finally {
+      hideCancelBtn();
       stopScoreStatusTimer();
-      setUploadScoreStatus("채점 끝");
+      setUploadScoreStatus(
+        scoreCancelled ? "채점 취소됨" :
+        scoreFailed ? "재채점 실패 (반영 안됨)" :
+        scoreRestarted ? "채점 진행중 (완료 후 새로고침)" :
+        "채점 끝"
+      );
       uploadInFlight = false;
       uploadBtn && (uploadBtn.disabled = false);
       rerunBtn.disabled = false;
@@ -1233,6 +1589,35 @@ function bindUploadActions() {
   });
 }
 
+/** 시안과 동일: 월·시트 가로 탭 영역 마우스 드래그 스크롤 */
+function bindHorizontalDragScroll(el) {
+  if (!el) return;
+  let isDown = false;
+  let startPageX = 0;
+  let startScrollLeft = 0;
+  el.style.cursor = "grab";
+  el.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    isDown = true;
+    el.style.cursor = "grabbing";
+    startPageX = e.pageX;
+    startScrollLeft = el.scrollLeft;
+  });
+  el.addEventListener("mouseleave", () => {
+    isDown = false;
+    el.style.cursor = "grab";
+  });
+  el.addEventListener("mouseup", () => {
+    isDown = false;
+    el.style.cursor = "grab";
+  });
+  el.addEventListener("mousemove", (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    el.scrollLeft = startScrollLeft - (e.pageX - startPageX);
+  });
+}
+
 async function init() {
   bindFilter();
   bindUploadActions();
@@ -1241,7 +1626,8 @@ async function init() {
     const hs = await loadHospitals();
     state.hospitals = hs.hospitals;
     state.availableHospitals = hs.availableHospitals;
-    state.data = await loadScoringDataFirstAvailable();
+    state.aliases = hs.aliases;
+    state.data = normalizeScoringData(await loadScoringDataFirstAvailable());
     const ev = await loadEvidenceFirstAvailable();
     state.evidenceRoot = ev && typeof ev === "object" ? ev : {};
     state.evidence = state.evidenceRoot.evidence || {};
@@ -1270,6 +1656,44 @@ async function init() {
   renderUploadScopeTabs();
   renderTable();
   persistViewState();
+  bindHorizontalDragScroll(document.getElementById("monthTabs"));
+  bindHorizontalDragScroll(document.getElementById("sheetQuickTabs"));
 }
 
-init();
+async function checkActiveRescore() {
+  try {
+    const r = await loadJson("/api/active-rescore");
+    if (!r.active) return;
+    showCancelBtn();
+    const scoreStartedAt = Date.now();
+    try {
+      if (r.taskId) {
+        setUploadScoreStatus("GitHub Actions 채점 재연결중...");
+        const result = await waitForScoreTask(r.taskId, "재채점");
+        if (result === "__CANCELLED__") {
+          setUploadScoreStatus("채점 취소됨");
+          return;
+        }
+        if (result && typeof result === "object" && result.status === "succeeded") {
+          await reloadDataAndRender();
+          setUploadScoreStatus("채점 완료 — 자동 반영됨");
+          showToast("채점 완료 — 자동으로 표에 반영했습니다.");
+          return;
+        }
+      }
+      setUploadScoreStatus("GitHub Actions에서 채점 진행중... 완료 시 자동 반영됩니다.");
+      const updated = await watchForDataUpdate(scoreStartedAt, setUploadScoreStatus);
+      if (updated === "updated") {
+        await reloadDataAndRender();
+        setUploadScoreStatus("채점 완료 — 자동 반영됨");
+        showToast("채점 완료 — 자동으로 표에 반영했습니다.");
+      } else {
+        setUploadScoreStatus("채점이 완료되지 않았습니다. GitHub Actions 로그를 확인해주세요.");
+      }
+    } finally {
+      hideCancelBtn();
+    }
+  } catch (_) {}
+}
+
+init().then(() => { checkActiveRescore(); });
