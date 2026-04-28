@@ -61,9 +61,18 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
+  align-items: flex-end;
   padding: 3rem 0 2rem;
   border-bottom: 1px solid var(--border-dark);
   margin-bottom: 2.5rem;
+}
+
+.header__character {
+  height: 140px;
+  width: auto;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  flex-shrink: 0;
 }
 
 .header__eyebrow {
