@@ -586,11 +586,11 @@ function scoreReasonText(keyword, colIdx, cellValue) {
   const shown = Number(cellValue || 0);
   if (tab === "web") {
     if (!ev) {
-      return `${label} ${score}점\n근거 데이터가 아직 없습니다.`;
+      return `${label} ${shown}점\n근거 데이터가 아직 없습니다.`;
     }
     const source = ev.source === "manual" ? "수동입력" : "웹수집";
-    const rule = score > 0 ? "메인 검색 노출(3점)" : "미노출(0점)";
-    const base = `${label} ${score}점\n${source} · ${rule}`;
+    const rule = shown > 0 ? "메인 검색 노출(3점)" : "미노출(0점)";
+    const base = `${label} ${shown}점\n${source} · ${rule}`;
     const snippet = String(ev.matched_url || ev.top?.[0] || "").replace(/\s+/g, " ").trim();
     if (!snippet) return base;
     return `${base}\n근거: ${snippet.slice(0, 90)}${snippet.length > 90 ? "..." : ""}`;
