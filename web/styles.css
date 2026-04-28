@@ -68,8 +68,8 @@ body {
 }
 
 .header__character {
-  height: 260px;
-  width: auto;
+  width: 200px;
+  height: auto;
   mix-blend-mode: multiply;
   pointer-events: none;
   flex-shrink: 0;
