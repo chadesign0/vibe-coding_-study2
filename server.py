@@ -1258,17 +1258,21 @@ def enqueue_actions_rescore_task(
     *,
     hospital_name: str,
     month_label: str,
+    config_name: str | None = None,
+    full_rescore: bool = True,
 ) -> tuple[str, bool, str]:
     """
-    전체 재채점을 GitHub Actions에 위임.
+    GitHub Actions에 채점을 위임.
+    config_name 을 넘기면 build_runtime_config_for_rerun 을 건너뜀 (키워드 업로드 경로).
     반환: (task_id, created_new, error_message)
     """
     hn = canonical_hospital_name(hospital_name)
     key = _task_key("actions_rescore", hn, month_label)
 
-    config_name, err = build_runtime_config_for_rerun(month_label, hn)
-    if not config_name:
-        return "", False, err or "재채점 준비 실패"
+    if config_name is None:
+        config_name, err = build_runtime_config_for_rerun(month_label, hn)
+        if not config_name:
+            return "", False, err or "재채점 준비 실패"
 
     with SCORE_TASKS_LOCK:
         active_id = ACTIVE_SCORE_TASK_BY_KEY.get(key)
@@ -1286,7 +1290,7 @@ def enqueue_actions_rescore_task(
             "monthLabel": month_label,
             "message": f"{hn} · {month_label} 채점 준비중 (GitHub Actions 가상머신 부팅 대기, 약 10~30초)",
             "configName": config_name,
-            "fullRescore": True,
+            "fullRescore": full_rescore,
             "runner": "github-actions",
             "createdAt": now_iso(),
             "startedAt": None,
@@ -1311,7 +1315,7 @@ def enqueue_actions_rescore_task(
             month_label=month_label,
             config_name=config_name,
             webhook_url=webhook_url,
-            full_rescore=True,
+            full_rescore=full_rescore,
         )
         if not ok:
             _set_task_status(
@@ -1709,6 +1713,29 @@ def upload_keywords():
                 "hospitalName": hospital_name,
             }
         )
+    if USE_GITHUB_ACTIONS_FOR_RESCORE:
+        task_id, created_new, err = enqueue_actions_rescore_task(
+            hospital_name=hospital_name,
+            month_label=month_label,
+            config_name=config_name,
+            full_rescore=False,
+        )
+        if not task_id:
+            return jsonify({"ok": False, "message": err or "채점 트리거 실패"}), 500
+        return jsonify(
+            {
+                "ok": True,
+                "accepted": True,
+                "taskId": task_id,
+                "createdNewTask": created_new,
+                "runner": "github-actions",
+                "message": f"{hospital_name} · {month_label} 키워드 채점 작업을 시작했습니다.",
+                "count": len(merged),
+                "addedCount": added_count,
+                "monthLabel": month_label,
+                "hospitalName": hospital_name,
+            }
+        ), 202
     task_id, created_new = enqueue_score_task(
         kind="upload_keywords",
         hospital_name=hospital_name,
