@@ -30,18 +30,22 @@ body {
   margin: 0;
   min-height: 100vh;
   font-family: var(--font-body);
-  background: linear-gradient(135deg, #f7f4ef, #faf7f2, #f5f0e8, #fdf9f4, #f8f3ec, #f7f4ef);
-  background-size: 400% 400%;
-  animation: bgGradientFlow 10s ease infinite;
+  background-color: var(--bg);
   color: var(--text);
   line-height: 1.6;
   font-weight: 400;
 }
 
-@keyframes bgGradientFlow {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url('bg-checker.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.9;
+  z-index: -1;
 }
 
 .header__title,
