@@ -328,11 +328,11 @@ def rank_to_score(rank: int | None) -> int | None:
         return None
     if rank < 1:
         return 0
-    if rank == 1:
+    if rank <= 3:   # 네이버 통합검색 메인 페이지 노출 (첫 화면)
         return 3
-    if rank <= 5:
+    if rank <= 5:   # 블로그/전용탭 상단 5위
         return 2
-    if rank <= 10:
+    if rank <= 10:  # 6~10위
         return 1
     return 0
 
