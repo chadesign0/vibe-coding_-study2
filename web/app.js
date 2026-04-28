@@ -121,6 +121,7 @@ const state = {
   /** API 로딩 전에도 병원 드롭다운이 비지 않게 기본값 유지(초기 클릭 레이스 방지) */
   hospitals: ["포인트병원"],
   availableHospitals: new Set(["포인트병원"]),
+  aliases: {},
   hospitalIndex: 0,
   hospitalFilter: "",
   monthIndex: 0,
@@ -283,10 +284,11 @@ async function loadHospitals() {
       return {
         hospitals: items.length ? items : ["포인트병원"],
         availableHospitals: new Set(available.length ? available : ["포인트병원"]),
+        aliases: (data?.aliases && typeof data.aliases === "object") ? data.aliases : {},
       };
     } catch (_) {}
   }
-  return { hospitals: ["포인트병원"], availableHospitals: new Set(["포인트병원"]) };
+  return { hospitals: ["포인트병원"], availableHospitals: new Set(["포인트병원"]), aliases: {} };
 }
 
 function currentHospitalName() {
@@ -296,10 +298,7 @@ function currentHospitalName() {
 function canonicalHospitalName(name) {
   const n = String(name || "").trim();
   if (!n) return "포인트병원";
-  if (n === "삼성본정형외과") return "삼성본병원";
-  // 식별명(블로그목록)과 채점용 hospitalName 이 다를 때 (snu서울병원.txt)
-  if (n === "SNU서울정형외과") return "SNU서울병원";
-  return n;
+  return state.aliases[n] ?? n;
 }
 
 function currentHospitalKey() {
@@ -1282,6 +1281,7 @@ async function reloadDataAndRender() {
   const hs = await loadHospitals();
   state.hospitals = hs.hospitals;
   state.availableHospitals = hs.availableHospitals;
+  state.aliases = hs.aliases;
   state.data = normalizeScoringData(await loadScoringDataFirstAvailable());
   const ev = await loadEvidenceFirstAvailable();
   state.evidenceRoot = ev && typeof ev === "object" ? ev : {};
@@ -1626,6 +1626,7 @@ async function init() {
     const hs = await loadHospitals();
     state.hospitals = hs.hospitals;
     state.availableHospitals = hs.availableHospitals;
+    state.aliases = hs.aliases;
     state.data = normalizeScoringData(await loadScoringDataFirstAvailable());
     const ev = await loadEvidenceFirstAvailable();
     state.evidenceRoot = ev && typeof ev === "object" ? ev : {};

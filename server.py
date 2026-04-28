@@ -47,6 +47,7 @@ SHEET_ORDER: list[tuple[str, str]] = _make_sheet_order()
 # 블로그목록 식별명과 scoring-data 의 hospitalName 이 다를 때 (예: SNU서울정형외과 → SNU서울병원)
 HOSPITAL_CANONICAL: dict[str, str] = {
     "SNU서울정형외과": "SNU서울병원",
+    "삼성본정형외과": "삼성본병원",
 }
 
 # 배포 안정성: 채점은 비동기 작업으로 분리해서 API 응답 타임아웃/중복 실행을 방지.
@@ -2014,7 +2015,7 @@ def active_rescore():
 def hospitals():
     items = load_hospital_list()
     available = available_hospitals_from_scoring()
-    return jsonify({"ok": True, "hospitals": items, "availableHospitals": available})
+    return jsonify({"ok": True, "hospitals": items, "availableHospitals": available, "aliases": HOSPITAL_CANONICAL})
 
 
 @app.post("/api/export-xlsx")
