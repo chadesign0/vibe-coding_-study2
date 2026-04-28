@@ -585,6 +585,17 @@ function scoreReasonText(keyword, colIdx, cellValue) {
   const label = TAB_LABEL[tab] || tab;
   const ev = resolveEvidenceBlock(keyword)?.[tab];
   const shown = Number(cellValue || 0);
+  if (tab === "web") {
+    if (!ev) {
+      return `${label} ${score}점\n근거 데이터가 아직 없습니다.`;
+    }
+    const source = ev.source === "manual" ? "수동입력" : "웹수집";
+    const rule = score > 0 ? "메인 검색 노출(3점)" : "미노출(0점)";
+    const base = `${label} ${score}점\n${source} · ${rule}`;
+    const snippet = String(ev.matched_url || ev.top?.[0] || "").replace(/\s+/g, " ").trim();
+    if (!snippet) return base;
+    return `${base}\n근거: ${snippet.slice(0, 90)}${snippet.length > 90 ? "..." : ""}`;
+  }
   if (tab === "powerlink") {
     if (!ev) {
       return `${label}: 표시값 ${shown}\n근거 데이터가 아직 없습니다.`;
@@ -605,8 +616,8 @@ function scoreReasonText(keyword, colIdx, cellValue) {
   const rank = Number(ev.matched_rank ?? ev.rank ?? 0);
   let rule = "";
   if (rank <= 0) rule = "미노출(0점)";
-  else if (rank === 1) rule = "1위(3점)";
-  else if (rank <= 5) rule = "2~5위(2점)";
+  else if (rank <= 3) rule = "1~3위 첫화면(3점)";
+  else if (rank <= 5) rule = "4~5위(2점)";
   else if (rank <= 10) rule = "6~10위(1점)";
   else rule = "10위 밖(0점)";
 

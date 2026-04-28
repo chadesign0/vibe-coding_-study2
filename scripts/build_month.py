@@ -338,11 +338,15 @@ def rank_to_score(rank: int | None) -> int | None:
 
 
 def table_cell_for_tab(tab: str, raw_rank: int | None) -> int | None:
-    """표에 넣을 값. 파워링크만 순위(0=미노출, 1~10), 나머지 탭은 점수(0~3)."""
+    """표에 넣을 값. 파워링크만 순위(0=미노출, 1~10), 웹은 노출=3/미노출=0, 나머지 탭은 점수(0~3)."""
     if tab == "powerlink":
         if raw_rank is None:
             return None
         return int(raw_rank)
+    if tab == "web":
+        if raw_rank is None:
+            return None
+        return 3 if raw_rank > 0 else 0
     return rank_to_score(raw_rank)
 
 
