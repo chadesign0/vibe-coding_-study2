@@ -75,7 +75,7 @@ const HIDDEN_COLS = new Set([6]); // 연관 검색어 열 숨김
 /** 네이버 통합검색 탭 채널 열 인덱스 (TAB_BY_COL 과 동일) */
 const CAFE_SCORE_COL = 10;
 const BLOG_SCORE_COL = 11;
-/** '키워드별 합계' 열 (scripts/build_april_month.py HEADER 와 동일) */
+/** '키워드별 합계' 열 (scripts/build_month.py HEADER 와 동일) */
 const KEYWORD_TOTAL_COL = 15;
 const SCORE_COL_MIN = 7;
 const SCORE_COL_MAX = 14;

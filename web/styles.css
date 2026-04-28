@@ -9,9 +9,11 @@
   --accent: #1c1a17;
   --accent-warm: #6b5f4e;
   --radius: 0px;
-  --font-serif: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-sans: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: var(--font);
+  --font-sans: var(--font);
+  --font-body: var(--font);
+  --ctrl-height: 42.19px;
 }
 
 *,
@@ -130,7 +132,7 @@ code {
 /* ── 인풋 ── */
 .input {
   width: 100%;
-  height: 42.19px;
+  height: var(--ctrl-height);
   padding: 0 0.85rem;
   border: 1px solid var(--border);
   border-radius: 0;
@@ -167,7 +169,7 @@ code {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 42.19px;
+  height: var(--ctrl-height);
   padding: 0 1.5rem;
   font-family: var(--font-sans);
   font-size: 0.85rem;
@@ -204,7 +206,7 @@ code {
 
 .hospital-select__trigger {
   width: 100%;
-  height: 42.19px;
+  height: var(--ctrl-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -271,7 +273,7 @@ code {
 }
 
 .tab {
-  height: 42.19px;
+  height: var(--ctrl-height);
   padding: 0 0.9rem;
   border: 1px solid transparent;
   background: transparent;
@@ -488,6 +490,7 @@ code {
 
 .upload-panel__cancel-btn {
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .upload-panel__rerun-btn,
@@ -496,6 +499,10 @@ code {
 }
 
 .upload-panel__export-btn + .upload-panel__rerun-btn {
+  margin-left: 0;
+}
+
+.upload-panel__cancel-btn:not([hidden]) + .upload-panel__export-btn {
   margin-left: 0;
 }
 
