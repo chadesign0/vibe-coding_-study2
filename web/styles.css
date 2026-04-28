@@ -61,19 +61,18 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  padding: 3rem 2rem 2rem;
-  margin: 0 -2rem 2.5rem;
+  padding: 3rem 0 2rem;
   border-bottom: 1px solid var(--border-dark);
-  background: var(--bg);
+  margin-bottom: 2.5rem;
 }
 
 .header__eyebrow {
   font-family: var(--font-sans);
   font-size: 0.68rem;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.10em;
   text-transform: uppercase;
-  color: var(--accent-warm);
+  color: var(--muted);
   margin: 0 0 0.6rem;
 }
 
@@ -91,7 +90,7 @@ body {
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent-warm);
+  color: var(--muted);
   margin: 0.75rem 0 0;
   font-weight: 400;
 }
