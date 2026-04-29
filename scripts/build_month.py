@@ -744,6 +744,56 @@ def extract_candidates_bizsite(ht: str) -> list[str]:
     return vals[:20]
 
 
+def extract_video_items_with_dates(ht: str) -> list[tuple[str, str | None]]:
+    """동영상 탭 후보 목록 + 업로드 날짜 추출. (text, raw_date_str | None) 리스트 반환."""
+    marker = '"blockId":"video/prs_template_v2_video_tab_desk.ts"'
+    idx = ht.find(marker)
+    if idx >= 0:
+        chunk = ht[idx : idx + 500000]
+        author_pat = re.compile(r'"authorHtml":"((?:\\.|[^"\\])*)"')
+        author_matches = list(author_pat.finditer(chunk))
+        if author_matches:
+            date_pat = re.compile(r'"date":"((?:\\.|[^"\\])*)"')
+            date_matches = list(date_pat.finditer(chunk))
+            result: list[tuple[str, str | None]] = []
+            for i, am in enumerate(author_matches):
+                try:
+                    author = strip_html(json.loads('"' + am.group(1) + '"'))
+                except Exception:
+                    author = strip_html(am.group(1))
+                if not author:
+                    continue
+                # 현재 authorHtml과 다음 authorHtml 사이에서 date 필드 탐색
+                lo = am.start()
+                hi = author_matches[i + 1].start() if i + 1 < len(author_matches) else lo + 4000
+                date_raw: str | None = None
+                for dm in date_matches:
+                    if lo <= dm.start() < hi:
+                        date_raw = dm.group(1)
+                        break
+                # 앞쪽 2000자 범위도 보조 탐색
+                if date_raw is None:
+                    for dm in date_matches:
+                        if max(0, lo - 2000) <= dm.start() < lo:
+                            date_raw = dm.group(1)
+                result.append((author, date_raw))
+            if result:
+                return result[:30]
+    # DOM 파싱 fallback (날짜 없음)
+    soup = BeautifulSoup(ht, "html.parser")
+    vals: list[tuple[str, str | None]] = []
+    for sel in ["#main_pack li.bx", "section.sp_nvideo li.bx", "ul.lst_video li"]:
+        nodes = soup.select(sel)
+        if nodes:
+            for n in nodes:
+                t = strip_html(n.get_text(" ", strip=True))
+                if t:
+                    vals.append((t, None))
+            if vals:
+                break
+    return vals[:30]
+
+
 def extract_candidates_video(ht: str) -> list[str]:
     # 1) 동영상 탭 렌더 데이터(fender)에서 작성자/제목을 우선 추출
     marker = '"blockId":"video/prs_template_v2_video_tab_desk.ts"'
@@ -1052,13 +1102,33 @@ def find_rank_by_web_tab(
         return None, {"reason": "http_error"}
     if tab == "bizsite":
         cands = extract_candidates_bizsite(ht)
+        rank = find_rank_in_candidates(cands, match_tokens)
+        top = [{"rank": i + 1, "text": t[:220]} for i, t in enumerate(cands[:10])]
+        return rank, {"top": top, "matched_rank": rank}
     elif tab == "video":
-        cands = extract_candidates_video(ht)
+        items = extract_video_items_with_dates(ht)
+        has_date_filter = blog_period is not None
+        score_year, score_month = blog_period if blog_period else (0, 0)
+        top_ev: list[dict[str, Any]] = []
+        matched = 0
+        for i, (txt, date_raw) in enumerate(items[:10], start=1):
+            row: dict[str, Any] = {"rank": i, "text": txt[:220]}
+            if has_date_filter:
+                pd = parse_cafe_date(date_raw)
+                in_m = pd is not None and pd.year == score_year and pd.month == score_month
+                row["date"] = date_raw
+                row["inScoringMonth"] = in_m
+            else:
+                in_m = True
+            top_ev.append(row)
+            if matched == 0 and in_m and any(n in normalize_text(txt) for n in match_tokens):
+                matched = i
+        ev: dict[str, Any] = {"top": top_ev, "matched_rank": matched}
+        if has_date_filter:
+            ev["scoringPeriod"] = {"year": score_year, "month": score_month}
+        return matched, ev
     else:
         return None, {"reason": "unsupported_web_tab"}
-    rank = find_rank_in_candidates(cands, match_tokens)
-    top = [{"rank": i + 1, "text": t[:220]} for i, t in enumerate(cands[:10])]
-    return rank, {"top": top, "matched_rank": rank}
 
 
 def build_row(row_no: int, region: str, keyword: str, points: dict[str, int | None], pc: int | None, mobile: int | None, related: str | None) -> list[Any]:
