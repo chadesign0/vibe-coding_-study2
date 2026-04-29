@@ -46,7 +46,8 @@
     "신도림손목통증": "all",
     "신도림수부병원": "all",
     "구로도수치료": "all",
-    "구로통증": "all"
+    "구로통증": "all",
+    "구로골절": "all"
   },
   "keywords": [
     "신도림정형외과",
@@ -78,7 +79,8 @@
     "신도림손목통증",
     "신도림수부병원",
     "구로도수치료",
-    "구로통증"
+    "구로통증",
+    "구로골절"
   ],
   "scoringNote": "API 자동 탭(지도/카페/보도자료/웹)은 1위=3점, 2~5위=2점, 6~10위=1점, 미노출=0점. 블로그는 hospitalBlogBases의 네이버 블로그 ID와 글/bloggerlink가 일치하면 인정하거나, 작성자·링크에 병원 토큰이 있으면 인정(제목·본문만 일치는 제외). 작성일은 blogRequirePostMonth·scoringYear·monthLabel로 제한. 파워링크/비즈사이트/동영상은 API 한계로 미지원(None).",
   "hospitalName": "신도림서울정형외과",
@@ -112,7 +114,8 @@
     "신도림손목통증": "regional",
     "신도림수부병원": "regional",
     "구로도수치료": "regional",
-    "구로통증": "regional"
+    "구로통증": "regional",
+    "구로골절": "regional"
   },
   "rowsBySheetKey": {
     "regional-pc": [
@@ -235,6 +238,10 @@
       {
         "region": "",
         "keyword": "구로통증"
+      },
+      {
+        "region": "",
+        "keyword": "구로골절"
       }
     ],
     "regional-mob": [
@@ -357,6 +364,10 @@
       {
         "region": "",
         "keyword": "구로통증"
+      },
+      {
+        "region": "",
+        "keyword": "구로골절"
       }
     ],
     "national-pc": [],
@@ -373,6 +384,6 @@
     "other-mob": "2026 기타 MOB"
   },
   "forceRescoreKeywords": [
-    "신도림정형외과"
+    "구로골절"
   ]
 }
