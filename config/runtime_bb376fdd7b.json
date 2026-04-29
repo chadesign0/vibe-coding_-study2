@@ -114,36 +114,265 @@
     "구로도수치료": "regional",
     "구로통증": "regional"
   },
+  "rowsBySheetKey": {
+    "regional-pc": [
+      {
+        "region": "",
+        "keyword": "신도림정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "신도림신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "구로정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "구로신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "신도림역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "신도림역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "신도림동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "신도림동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "구로역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "구로역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "구로동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "구로동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "신도림도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "신도림통증"
+      },
+      {
+        "region": "",
+        "keyword": "신도림골절"
+      },
+      {
+        "region": "",
+        "keyword": "신도림소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "신도림무릎"
+      },
+      {
+        "region": "",
+        "keyword": "신도림무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "신도림무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "신도림어깨"
+      },
+      {
+        "region": "",
+        "keyword": "신도림어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "신도림어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "신도림야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "신도림정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "신도림신경외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "신도림물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "신도림손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "신도림수부병원"
+      },
+      {
+        "region": "",
+        "keyword": "구로도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "구로통증"
+      }
+    ],
+    "regional-mob": [
+      {
+        "region": "",
+        "keyword": "신도림정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "신도림신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "구로정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "구로신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "신도림역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "신도림역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "신도림동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "신도림동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "구로역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "구로역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "구로동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "구로동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "신도림도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "신도림통증"
+      },
+      {
+        "region": "",
+        "keyword": "신도림골절"
+      },
+      {
+        "region": "",
+        "keyword": "신도림소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "신도림무릎"
+      },
+      {
+        "region": "",
+        "keyword": "신도림무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "신도림무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "신도림어깨"
+      },
+      {
+        "region": "",
+        "keyword": "신도림어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "신도림어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "신도림야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "신도림정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "신도림신경외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "신도림물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "신도림손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "신도림수부병원"
+      },
+      {
+        "region": "",
+        "keyword": "구로도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "구로통증"
+      }
+    ],
+    "national-pc": [],
+    "national-mob": [],
+    "other-pc": [],
+    "other-mob": []
+  },
+  "sheetTitles": {
+    "regional-pc": "2026 지역 PC",
+    "regional-mob": "2026 지역 MOB",
+    "national-pc": "2026 전국 PC",
+    "national-mob": "2026 전국 MOB",
+    "other-pc": "2026 기타 PC",
+    "other-mob": "2026 기타 MOB"
+  },
   "forceRescoreKeywords": [
-    "신도림정형외과",
-    "신도림신경외과",
-    "구로정형외과",
-    "구로신경외과",
-    "신도림역정형외과",
-    "신도림역신경외과",
-    "신도림동정형외과",
-    "신도림동신경외과",
-    "구로역정형외과",
-    "구로역신경외과",
-    "구로동정형외과",
-    "구로동신경외과",
-    "신도림도수치료",
-    "신도림통증",
-    "신도림골절",
-    "신도림소아정형외과",
-    "신도림무릎",
-    "신도림무릎병원",
-    "신도림무릎통증",
-    "신도림어깨",
-    "신도림어깨병원",
-    "신도림어깨통증",
-    "신도림야간진료",
-    "신도림정형외과추천",
-    "신도림신경외과추천",
-    "신도림물리치료",
-    "신도림손목통증",
-    "신도림수부병원",
-    "구로도수치료",
-    "구로통증"
+    "신도림정형외과"
   ]
 }
