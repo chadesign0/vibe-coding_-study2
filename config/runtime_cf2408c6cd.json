@@ -49,7 +49,37 @@
     "도담동신경외과": "all",
     "아름동신경외과": "all",
     "새롬동신경외과": "all",
-    "세종병원": "all"
+    "세종병원": "all",
+    "세종시병원": "all",
+    "세종MRI": "all",
+    "세종척추": "all",
+    "세종시척추": "all",
+    "세종척추병원": "all",
+    "세종시척추병원": "all",
+    "세종척추병원추천": "all",
+    "세종척추통증": "all",
+    "세종척추골절": "all",
+    "세종척추치료": "all",
+    "세종허리병원": "all",
+    "세종허리디스크": "all",
+    "세종척추관협착증": "all",
+    "세종척추측만증": "all",
+    "세종척추전방전위증": "all",
+    "세종일자목증후군": "all",
+    "세종후종인대골화증": "all",
+    "세종신경성형술": "all",
+    "세종관절": "all",
+    "세종관절병원": "all",
+    "세종관절염": "all",
+    "세종퇴행성관절염": "all",
+    "세종전방십자인대파열": "all",
+    "세종어깨": "all",
+    "세종어깨병원": "all",
+    "세종어깨탈구": "all",
+    "세종오십견": "all",
+    "세종어깨관절염": "all",
+    "세종슬랩병변": "all",
+    "세종소아정형외과": "all"
   },
   "keywords": [
     "세종정형외과",
@@ -81,7 +111,37 @@
     "도담동신경외과",
     "아름동신경외과",
     "새롬동신경외과",
-    "세종병원"
+    "세종병원",
+    "세종시병원",
+    "세종MRI",
+    "세종척추",
+    "세종시척추",
+    "세종척추병원",
+    "세종시척추병원",
+    "세종척추병원추천",
+    "세종척추통증",
+    "세종척추골절",
+    "세종척추치료",
+    "세종허리병원",
+    "세종허리디스크",
+    "세종척추관협착증",
+    "세종척추측만증",
+    "세종척추전방전위증",
+    "세종일자목증후군",
+    "세종후종인대골화증",
+    "세종신경성형술",
+    "세종관절",
+    "세종관절병원",
+    "세종관절염",
+    "세종퇴행성관절염",
+    "세종전방십자인대파열",
+    "세종어깨",
+    "세종어깨병원",
+    "세종어깨탈구",
+    "세종오십견",
+    "세종어깨관절염",
+    "세종슬랩병변",
+    "세종소아정형외과"
   ],
   "scoringNote": "API 자동 탭(지도/카페/보도자료/웹)은 1위=3점, 2~5위=2점, 6~10위=1점, 미노출=0점. 블로그는 hospitalBlogBases의 네이버 블로그 ID와 글/bloggerlink가 일치하면 인정하거나, 작성자·링크에 병원 토큰이 있으면 인정(제목·본문만 일치는 제외). 작성일은 blogRequirePostMonth·scoringYear·monthLabel로 제한. 파워링크/비즈사이트/동영상은 API 한계로 미지원(None).",
   "hospitalName": "서울현병원",
@@ -115,38 +175,566 @@
     "도담동신경외과": "regional",
     "아름동신경외과": "regional",
     "새롬동신경외과": "regional",
-    "세종병원": "regional"
+    "세종병원": "regional",
+    "세종시병원": "regional",
+    "세종MRI": "regional",
+    "세종척추": "regional",
+    "세종시척추": "regional",
+    "세종척추병원": "regional",
+    "세종시척추병원": "regional",
+    "세종척추병원추천": "regional",
+    "세종척추통증": "regional",
+    "세종척추골절": "regional",
+    "세종척추치료": "regional",
+    "세종허리병원": "regional",
+    "세종허리디스크": "regional",
+    "세종척추관협착증": "regional",
+    "세종척추측만증": "regional",
+    "세종척추전방전위증": "regional",
+    "세종일자목증후군": "regional",
+    "세종후종인대골화증": "regional",
+    "세종신경성형술": "regional",
+    "세종관절": "regional",
+    "세종관절병원": "regional",
+    "세종관절염": "regional",
+    "세종퇴행성관절염": "regional",
+    "세종전방십자인대파열": "regional",
+    "세종어깨": "regional",
+    "세종어깨병원": "regional",
+    "세종어깨탈구": "regional",
+    "세종오십견": "regional",
+    "세종어깨관절염": "regional",
+    "세종슬랩병변": "regional",
+    "세종소아정형외과": "regional"
+  },
+  "rowsBySheetKey": {
+    "regional-pc": [
+      {
+        "region": "",
+        "keyword": "세종정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "세종시정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "나성동병원"
+      },
+      {
+        "region": "",
+        "keyword": "나성동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "다정동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "어진동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "한솔동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "대평동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "보람동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "소담동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "반곡동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "종촌동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "도담동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "아름동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "새롬동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "세종신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "세종시신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "나성동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "다정동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "어진동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "한솔동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "대평동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "보람동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "소담동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "반곡동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "종촌동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "도담동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "아름동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "새롬동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "세종병원"
+      },
+      {
+        "region": "",
+        "keyword": "세종시병원"
+      },
+      {
+        "region": "",
+        "keyword": "세종MRI"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추"
+      },
+      {
+        "region": "",
+        "keyword": "세종시척추"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "세종시척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추병원추천"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추통증"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추골절"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추치료"
+      },
+      {
+        "region": "",
+        "keyword": "세종허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "세종허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추관협착증"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추측만증"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추전방전위증"
+      },
+      {
+        "region": "",
+        "keyword": "세종일자목증후군"
+      },
+      {
+        "region": "",
+        "keyword": "세종후종인대골화증"
+      },
+      {
+        "region": "",
+        "keyword": "세종신경성형술"
+      },
+      {
+        "region": "",
+        "keyword": "세종관절"
+      },
+      {
+        "region": "",
+        "keyword": "세종관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "세종관절염"
+      },
+      {
+        "region": "",
+        "keyword": "세종퇴행성관절염"
+      },
+      {
+        "region": "",
+        "keyword": "세종전방십자인대파열"
+      },
+      {
+        "region": "",
+        "keyword": "세종어깨"
+      },
+      {
+        "region": "",
+        "keyword": "세종어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "세종어깨탈구"
+      },
+      {
+        "region": "",
+        "keyword": "세종오십견"
+      },
+      {
+        "region": "",
+        "keyword": "세종어깨관절염"
+      },
+      {
+        "region": "",
+        "keyword": "세종슬랩병변"
+      },
+      {
+        "region": "",
+        "keyword": "세종소아정형외과"
+      }
+    ],
+    "regional-mob": [
+      {
+        "region": "",
+        "keyword": "세종정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "세종시정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "나성동병원"
+      },
+      {
+        "region": "",
+        "keyword": "나성동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "다정동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "어진동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "한솔동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "대평동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "보람동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "소담동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "반곡동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "종촌동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "도담동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "아름동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "새롬동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "세종신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "세종시신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "나성동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "다정동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "어진동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "한솔동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "대평동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "보람동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "소담동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "반곡동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "종촌동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "도담동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "아름동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "새롬동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "세종병원"
+      },
+      {
+        "region": "",
+        "keyword": "세종시병원"
+      },
+      {
+        "region": "",
+        "keyword": "세종MRI"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추"
+      },
+      {
+        "region": "",
+        "keyword": "세종시척추"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "세종시척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추병원추천"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추통증"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추골절"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추치료"
+      },
+      {
+        "region": "",
+        "keyword": "세종허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "세종허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추관협착증"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추측만증"
+      },
+      {
+        "region": "",
+        "keyword": "세종척추전방전위증"
+      },
+      {
+        "region": "",
+        "keyword": "세종일자목증후군"
+      },
+      {
+        "region": "",
+        "keyword": "세종후종인대골화증"
+      },
+      {
+        "region": "",
+        "keyword": "세종신경성형술"
+      },
+      {
+        "region": "",
+        "keyword": "세종관절"
+      },
+      {
+        "region": "",
+        "keyword": "세종관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "세종관절염"
+      },
+      {
+        "region": "",
+        "keyword": "세종퇴행성관절염"
+      },
+      {
+        "region": "",
+        "keyword": "세종전방십자인대파열"
+      },
+      {
+        "region": "",
+        "keyword": "세종어깨"
+      },
+      {
+        "region": "",
+        "keyword": "세종어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "세종어깨탈구"
+      },
+      {
+        "region": "",
+        "keyword": "세종오십견"
+      },
+      {
+        "region": "",
+        "keyword": "세종어깨관절염"
+      },
+      {
+        "region": "",
+        "keyword": "세종슬랩병변"
+      },
+      {
+        "region": "",
+        "keyword": "세종소아정형외과"
+      }
+    ],
+    "national-pc": [],
+    "national-mob": [],
+    "other-pc": [],
+    "other-mob": []
+  },
+  "sheetTitles": {
+    "regional-pc": "2026 지역 PC",
+    "regional-mob": "2026 지역 MOB",
+    "national-pc": "2026 전국 PC",
+    "national-mob": "2026 전국 MOB",
+    "other-pc": "2026 기타 PC",
+    "other-mob": "2026 기타 MOB"
   },
   "forceRescoreKeywords": [
-    "세종정형외과",
-    "세종시정형외과",
-    "나성동병원",
-    "나성동정형외과",
-    "다정동정형외과",
-    "어진동정형외과",
-    "한솔동정형외과",
-    "대평동정형외과",
-    "보람동정형외과",
-    "소담동정형외과",
-    "반곡동정형외과",
-    "종촌동정형외과",
-    "도담동정형외과",
-    "아름동정형외과",
-    "새롬동정형외과",
-    "세종신경외과",
-    "세종시신경외과",
-    "나성동신경외과",
-    "다정동신경외과",
-    "어진동신경외과",
-    "한솔동신경외과",
-    "대평동신경외과",
-    "보람동신경외과",
-    "소담동신경외과",
-    "반곡동신경외과",
-    "종촌동신경외과",
-    "도담동신경외과",
-    "아름동신경외과",
-    "새롬동신경외과",
-    "세종병원"
+    "세종시병원",
+    "세종MRI",
+    "세종척추",
+    "세종시척추",
+    "세종척추병원",
+    "세종시척추병원",
+    "세종척추병원추천",
+    "세종척추통증",
+    "세종척추골절",
+    "세종척추치료",
+    "세종허리병원",
+    "세종허리디스크",
+    "세종척추관협착증",
+    "세종척추측만증",
+    "세종척추전방전위증",
+    "세종일자목증후군",
+    "세종후종인대골화증",
+    "세종신경성형술",
+    "세종관절",
+    "세종관절병원",
+    "세종관절염",
+    "세종퇴행성관절염",
+    "세종전방십자인대파열",
+    "세종어깨",
+    "세종어깨병원",
+    "세종어깨탈구",
+    "세종오십견",
+    "세종어깨관절염",
+    "세종슬랩병변",
+    "세종소아정형외과"
   ]
 }
