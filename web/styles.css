@@ -67,11 +67,61 @@ body {
   margin-bottom: 2.5rem;
 }
 
-.header__character {
+.header__chars {
+  position: relative;
   width: 240px;
+  flex-shrink: 0;
+}
+
+.header__character {
+  width: 100%;
   height: auto;
   pointer-events: none;
-  flex-shrink: 0;
+  display: block;
+}
+
+.char-zone {
+  position: absolute;
+  top: 0;
+  width: 25%;
+  height: 100%;
+}
+
+.char-zone::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  border: 7px solid transparent;
+  border-top: 8px solid #3a3a3a;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .16s, transform .16s;
+}
+
+.char-zone::after {
+  content: attr(data-bubble);
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  background: #fff;
+  border: 2px solid #3a3a3a;
+  border-radius: 10px;
+  padding: 3px 9px;
+  font-size: .78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .16s, transform .16s;
+}
+
+.char-zone:hover::before,
+.char-zone:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .header__eyebrow {
