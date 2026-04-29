@@ -180,27 +180,10 @@ def content_item_in_scoring_month(tab: str, item: dict[str, Any], year: int, mon
 
 def blog_evidence_period(cfg: dict[str, Any]) -> tuple[int, int] | None:
     """
-    블로그 채점 시 인정할 게시 연·월. monthLabel(예: 4월) + scoringYear(없으면 올해).
-    blogRequirePostMonth가 false이면 None → 작성일 무시(기존 동작).
+    블로그 채점 시 인정할 게시 연·월.
+    날짜 필터 비활성화 — 병원 정보 노출 여부만으로 채점.
     """
-    if not cfg.get("blogRequirePostMonth", True):
-        return None
-    m = re.match(r"^(\d{1,2})월\s*$", str(cfg.get("monthLabel") or "").strip())
-    if not m:
-        return None
-    month = int(m.group(1))
-    if not (1 <= month <= 12):
-        return None
-    env_y = (os.getenv("SCORING_YEAR") or "").strip()
-    if env_y.isdigit():
-        year = int(env_y)
-    else:
-        y = cfg.get("scoringYear")
-        if y is not None and str(y).strip() != "":
-            year = int(y)
-        else:
-            year = datetime.now().year
-    return (year, month)
+    return None
 
 
 def blog_item_in_scoring_month(item: dict[str, Any], year: int, month: int) -> bool:
