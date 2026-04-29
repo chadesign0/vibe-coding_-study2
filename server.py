@@ -55,6 +55,7 @@ SCORE_TASKS: dict[str, dict[str, object]] = {}
 ACTIVE_SCORE_TASK_BY_KEY: dict[str, str] = {}
 SCORE_TASKS_LOCK = threading.Lock()
 MERGE_LOCK = threading.Lock()  # scoring-data.json / last-run-evidence.json 동시 쓰기 방지
+GITHUB_PUSH_LOCK = threading.Lock()  # GitHub push 동시 실행 방지 (422 race 방지)
 
 # 전체 재채점은 청크 단위로 나누어 실행 (OOM/재시작 리스크 완화)
 # Render 무료 플랜 OOM 회피용: 50개씩 분할. GitHub Actions 모드에서는 사용하지 않음.
@@ -387,20 +388,6 @@ def merge_keywords_keep_order(existing: list[str], incoming: list[str]) -> list[
             continue
         seen.add(k)
         out.append(k)
-    return out
-
-
-def append_keywords_allow_duplicates(existing: list[str], incoming: list[str]) -> list[str]:
-    """중복 허용: 기존 + 신규를 순서대로 연결(빈 문자열만 제거)."""
-    out: list[str] = []
-    for kw in existing:
-        k = (kw or "").strip()
-        if k:
-            out.append(k)
-    for kw in incoming:
-        k = (kw or "").strip()
-        if k:
-            out.append(k)
     return out
 
 
@@ -829,21 +816,13 @@ def delete_keyword_from_evidence(keyword: str) -> bool:
     return changed
 
 
-def _github_push_scoring_files() -> None:
-    """채점 완료 후 scoring-data.json + last-run-evidence.json 을 GitHub에 자동 커밋.
-    Git Data API 사용 → 대용량 파일(1MB+) 처리 가능."""
+def _github_commit_files(file_paths: list[Path], message: str) -> None:
+    """주어진 파일 목록을 GitHub main에 단일 커밋으로 push. GITHUB_PUSH_LOCK 안에서 호출."""
     token = os.getenv("GITHUB_TOKEN", "").strip()
     if not token:
         return
     owner = os.getenv("GITHUB_REPO_OWNER", "chadesign0").strip()
     repo  = os.getenv("GITHUB_REPO_NAME",  "vibe-coding_-study2").strip()
-
-    files: list[Path] = []
-    if DATA_PATH.exists():
-        files.append(DATA_PATH)
-    if not files:
-        return
-
     headers = {
         "Authorization": f"token {token}",
         "Accept": "application/vnd.github+json",
@@ -860,46 +839,43 @@ def _github_push_scoring_files() -> None:
         with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read())
 
-    try:
-        # 1. 각 파일 blob 생성
-        tree_entries = []
-        for fp in files:
-            blob = gh(f"{base}/git/blobs", {
-                "content": base64.b64encode(fp.read_bytes()).decode(),
-                "encoding": "base64",
-            })
-            tree_entries.append({
-                "path": fp.relative_to(ROOT).as_posix(),
-                "mode": "100644", "type": "blob", "sha": blob["sha"],
-            })
+    tree_entries = []
+    for fp in file_paths:
+        blob = gh(f"{base}/git/blobs", {
+            "content": base64.b64encode(fp.read_bytes()).decode(),
+            "encoding": "base64",
+        })
+        tree_entries.append({
+            "path": fp.relative_to(ROOT).as_posix(),
+            "mode": "100644", "type": "blob", "sha": blob["sha"],
+        })
+    ref = gh(f"{base}/git/refs/heads/main")
+    latest_sha = ref["object"]["sha"]
+    tree_sha = gh(f"{base}/git/commits/{latest_sha}")["tree"]["sha"]
+    new_tree_sha = gh(f"{base}/git/trees", {
+        "base_tree": tree_sha, "tree": tree_entries,
+    })["sha"]
+    new_sha = gh(f"{base}/git/commits", {
+        "message": message,
+        "tree": new_tree_sha,
+        "parents": [latest_sha],
+    })["sha"]
+    gh(f"{base}/git/refs/heads/main", {"sha": new_sha}, method="PATCH")
+    print(f"[github] 커밋 성공: {new_sha[:7]} — {message}")
 
-        # 2. 현재 main 커밋 SHA
-        ref = gh(f"{base}/git/refs/heads/main")
-        latest_sha = ref["object"]["sha"]
 
-        # 3. 현재 tree SHA
-        tree_sha = gh(f"{base}/git/commits/{latest_sha}")["tree"]["sha"]
-
-        # 4. 새 tree 생성
-        new_tree_sha = gh(f"{base}/git/trees", {
-            "base_tree": tree_sha, "tree": tree_entries,
-        })["sha"]
-
-        # 5. 커밋 생성
-        from datetime import datetime as _dt
-        now = _dt.now().strftime("%Y-%m-%d %H:%M")
-        new_sha = gh(f"{base}/git/commits", {
-            "message": f"auto: 채점 데이터 업데이트 ({now})",
-            "tree": new_tree_sha,
-            "parents": [latest_sha],
-        })["sha"]
-
-        # 6. main 브랜치 업데이트
-        gh(f"{base}/git/refs/heads/main", {"sha": new_sha}, method="PATCH")
-        print(f"[github] 자동 커밋 성공: {new_sha[:7]}")
-
-    except Exception as e:
-        print(f"[github] 커밋 실패: {e}")
+def _github_push_scoring_files() -> None:
+    """채점 완료 후 scoring-data.json + last-run-evidence.json 을 GitHub에 자동 커밋."""
+    files = [p for p in [DATA_PATH, ROOT / "data" / "last-run-evidence.json"] if p.exists()]
+    if not files:
+        return
+    from datetime import datetime as _dt
+    msg = f"auto: 채점 데이터 업데이트 ({_dt.now().strftime('%Y-%m-%d %H:%M')})"
+    with GITHUB_PUSH_LOCK:
+        try:
+            _github_commit_files(files, msg)
+        except Exception as e:
+            print(f"[github] scoring push 실패: {e}")
 
 
 def _kakao_notify(text: str) -> None:
@@ -1343,51 +1319,14 @@ def enqueue_actions_rescore_task(
 
 def _github_push_runtime_config(config_name: str) -> None:
     """runtime config 파일을 GitHub main에 push (Actions가 읽을 수 있도록)."""
-    token = os.getenv("GITHUB_TOKEN", "").strip()
-    if not token:
-        return
-    owner = os.getenv("GITHUB_REPO_OWNER", "chadesign0").strip()
-    repo  = os.getenv("GITHUB_REPO_NAME",  "vibe-coding_-study2").strip()
     cfg_path = ROOT / "config" / config_name
     if not cfg_path.exists():
         return
-    headers = {
-        "Authorization": f"token {token}",
-        "Accept": "application/vnd.github+json",
-        "Content-Type": "application/json",
-    }
-    base = f"https://api.github.com/repos/{owner}/{repo}"
-
-    def gh(url: str, data: dict | None = None, method: str | None = None) -> dict:
-        body = json.dumps(data).encode() if data is not None else None
-        req = urllib.request.Request(
-            url, data=body, headers=headers,
-            method=method or ("POST" if body else "GET"),
-        )
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.loads(resp.read())
-
-    blob = gh(f"{base}/git/blobs", {
-        "content": base64.b64encode(cfg_path.read_bytes()).decode(),
-        "encoding": "base64",
-    })
-    ref = gh(f"{base}/git/refs/heads/main")
-    latest_sha = ref["object"]["sha"]
-    tree_sha = gh(f"{base}/git/commits/{latest_sha}")["tree"]["sha"]
-    new_tree_sha = gh(f"{base}/git/trees", {
-        "base_tree": tree_sha,
-        "tree": [{
-            "path": cfg_path.relative_to(ROOT).as_posix(),
-            "mode": "100644", "type": "blob", "sha": blob["sha"],
-        }],
-    })["sha"]
-    new_sha = gh(f"{base}/git/commits", {
-        "message": f"chore: runtime config 동기화 ({config_name})",
-        "tree": new_tree_sha,
-        "parents": [latest_sha],
-    })["sha"]
-    gh(f"{base}/git/refs/heads/main", {"sha": new_sha}, method="PATCH")
-    print(f"[github] runtime config push 성공: {config_name}")
+    with GITHUB_PUSH_LOCK:
+        try:
+            _github_commit_files([cfg_path], f"chore: runtime config 동기화 ({config_name})")
+        except Exception as e:
+            print(f"[github] runtime config push 실패: {e}")
 
 
 def enqueue_chunked_rescore_task(
