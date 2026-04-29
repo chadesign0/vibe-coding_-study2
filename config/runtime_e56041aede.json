@@ -47,7 +47,37 @@
     "백운동정형외과": "all",
     "안산관절병원": "all",
     "안산본오동정형외과": "all",
-    "성포동정형외과": "all"
+    "성포동정형외과": "all",
+    "안산족저근막염": "all",
+    "안산시병원": "all",
+    "고잔동신경외과": "all",
+    "초지역정형외과": "all",
+    "본오동신경외과": "all",
+    "안산허리": "all",
+    "안산허리통증": "all",
+    "상록구정형외과": "all",
+    "초지역신경외과": "all",
+    "초지동신경외과": "all",
+    "중앙동신경외과": "all",
+    "안산무릎": "all",
+    "안산무릎병원": "all",
+    "안산시신경외과": "all",
+    "고잔역정형외과": "all",
+    "단원구병원": "all",
+    "고잔역병원": "all",
+    "안산관절": "all",
+    "안산척추": "all",
+    "안산디스크": "all",
+    "안산어깨수술": "all",
+    "안산고관절": "all",
+    "안산고관절병원": "all",
+    "안산무릎수술": "all",
+    "단원구정형외과": "all",
+    "단원정형외과": "all",
+    "단원구청정형외과": "all",
+    "단원구신경외과": "all",
+    "단원신경외과": "all",
+    "단원구청신경외과": "all"
   },
   "keywords": [
     "안산정형외과",
@@ -79,7 +109,37 @@
     "백운동정형외과",
     "안산관절병원",
     "안산본오동정형외과",
-    "성포동정형외과"
+    "성포동정형외과",
+    "안산족저근막염",
+    "안산시병원",
+    "고잔동신경외과",
+    "초지역정형외과",
+    "본오동신경외과",
+    "안산허리",
+    "안산허리통증",
+    "상록구정형외과",
+    "초지역신경외과",
+    "초지동신경외과",
+    "중앙동신경외과",
+    "안산무릎",
+    "안산무릎병원",
+    "안산시신경외과",
+    "고잔역정형외과",
+    "단원구병원",
+    "고잔역병원",
+    "안산관절",
+    "안산척추",
+    "안산디스크",
+    "안산어깨수술",
+    "안산고관절",
+    "안산고관절병원",
+    "안산무릎수술",
+    "단원구정형외과",
+    "단원정형외과",
+    "단원구청정형외과",
+    "단원구신경외과",
+    "단원신경외과",
+    "단원구청신경외과"
   ],
   "scoringNote": "API 자동 탭(지도/카페/보도자료/웹)은 1위=3점, 2~5위=2점, 6~10위=1점, 미노출=0점. 블로그는 hospitalBlogBases의 네이버 블로그 ID와 글/bloggerlink가 일치하면 인정하거나, 작성자·링크에 병원 토큰이 있으면 인정(제목·본문만 일치는 제외). 작성일은 blogRequirePostMonth·scoringYear·monthLabel로 제한. 파워링크/비즈사이트/동영상은 API 한계로 미지원(None).",
   "hospitalName": "클래스병원",
@@ -113,38 +173,566 @@
     "백운동정형외과": "regional",
     "안산관절병원": "regional",
     "안산본오동정형외과": "regional",
-    "성포동정형외과": "regional"
+    "성포동정형외과": "regional",
+    "안산족저근막염": "regional",
+    "안산시병원": "regional",
+    "고잔동신경외과": "regional",
+    "초지역정형외과": "regional",
+    "본오동신경외과": "regional",
+    "안산허리": "regional",
+    "안산허리통증": "regional",
+    "상록구정형외과": "regional",
+    "초지역신경외과": "regional",
+    "초지동신경외과": "regional",
+    "중앙동신경외과": "regional",
+    "안산무릎": "regional",
+    "안산무릎병원": "regional",
+    "안산시신경외과": "regional",
+    "고잔역정형외과": "regional",
+    "단원구병원": "regional",
+    "고잔역병원": "regional",
+    "안산관절": "regional",
+    "안산척추": "regional",
+    "안산디스크": "regional",
+    "안산어깨수술": "regional",
+    "안산고관절": "regional",
+    "안산고관절병원": "regional",
+    "안산무릎수술": "regional",
+    "단원구정형외과": "regional",
+    "단원정형외과": "regional",
+    "단원구청정형외과": "regional",
+    "단원구신경외과": "regional",
+    "단원신경외과": "regional",
+    "단원구청신경외과": "regional"
+  },
+  "rowsBySheetKey": {
+    "regional-pc": [
+      {
+        "region": "",
+        "keyword": "안산정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "고잔정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산알츠하이머"
+      },
+      {
+        "region": "",
+        "keyword": "본오동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "고잔동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "중앙동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "초지동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "중앙동병원"
+      },
+      {
+        "region": "",
+        "keyword": "중앙역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "고잔동병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산MRI"
+      },
+      {
+        "region": "",
+        "keyword": "안산척추통증"
+      },
+      {
+        "region": "",
+        "keyword": "성포동병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산중앙동병원"
+      },
+      {
+        "region": "",
+        "keyword": "초지동병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "안산척추병원추천"
+      },
+      {
+        "region": "",
+        "keyword": "안산어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "안산시정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "백운동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산본오동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "성포동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산족저근막염"
+      },
+      {
+        "region": "",
+        "keyword": "안산시병원"
+      },
+      {
+        "region": "",
+        "keyword": "고잔동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "초지역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "본오동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산허리"
+      },
+      {
+        "region": "",
+        "keyword": "안산허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "상록구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "초지역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "초지동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "중앙동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산무릎"
+      },
+      {
+        "region": "",
+        "keyword": "안산무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산시신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "고잔역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "단원구병원"
+      },
+      {
+        "region": "",
+        "keyword": "고잔역병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산관절"
+      },
+      {
+        "region": "",
+        "keyword": "안산척추"
+      },
+      {
+        "region": "",
+        "keyword": "안산디스크"
+      },
+      {
+        "region": "",
+        "keyword": "안산어깨수술"
+      },
+      {
+        "region": "",
+        "keyword": "안산고관절"
+      },
+      {
+        "region": "",
+        "keyword": "안산고관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산무릎수술"
+      },
+      {
+        "region": "",
+        "keyword": "단원구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "단원정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "단원구청정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "단원구신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "단원신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "단원구청신경외과"
+      }
+    ],
+    "regional-mob": [
+      {
+        "region": "",
+        "keyword": "안산정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "고잔정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산알츠하이머"
+      },
+      {
+        "region": "",
+        "keyword": "본오동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "고잔동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "중앙동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "초지동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산척추병원"
+      },
+      {
+        "region": "",
+        "keyword": "중앙동병원"
+      },
+      {
+        "region": "",
+        "keyword": "중앙역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "고잔동병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산MRI"
+      },
+      {
+        "region": "",
+        "keyword": "안산척추통증"
+      },
+      {
+        "region": "",
+        "keyword": "성포동병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산중앙동병원"
+      },
+      {
+        "region": "",
+        "keyword": "초지동병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "안산척추병원추천"
+      },
+      {
+        "region": "",
+        "keyword": "안산어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "안산시정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "백운동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산본오동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "성포동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산족저근막염"
+      },
+      {
+        "region": "",
+        "keyword": "안산시병원"
+      },
+      {
+        "region": "",
+        "keyword": "고잔동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "초지역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "본오동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산허리"
+      },
+      {
+        "region": "",
+        "keyword": "안산허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "상록구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "초지역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "초지동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "중앙동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "안산무릎"
+      },
+      {
+        "region": "",
+        "keyword": "안산무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산시신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "고잔역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "단원구병원"
+      },
+      {
+        "region": "",
+        "keyword": "고잔역병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산관절"
+      },
+      {
+        "region": "",
+        "keyword": "안산척추"
+      },
+      {
+        "region": "",
+        "keyword": "안산디스크"
+      },
+      {
+        "region": "",
+        "keyword": "안산어깨수술"
+      },
+      {
+        "region": "",
+        "keyword": "안산고관절"
+      },
+      {
+        "region": "",
+        "keyword": "안산고관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "안산무릎수술"
+      },
+      {
+        "region": "",
+        "keyword": "단원구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "단원정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "단원구청정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "단원구신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "단원신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "단원구청신경외과"
+      }
+    ],
+    "national-pc": [],
+    "national-mob": [],
+    "other-pc": [],
+    "other-mob": []
+  },
+  "sheetTitles": {
+    "regional-pc": "2026 지역 PC",
+    "regional-mob": "2026 지역 MOB",
+    "national-pc": "2026 전국 PC",
+    "national-mob": "2026 전국 MOB",
+    "other-pc": "2026 기타 PC",
+    "other-mob": "2026 기타 MOB"
   },
   "forceRescoreKeywords": [
-    "안산정형외과",
-    "안산병원",
-    "안산신경외과",
-    "고잔정형외과",
-    "안산알츠하이머",
-    "본오동정형외과",
-    "고잔동정형외과",
-    "안산도수치료",
-    "중앙동정형외과",
-    "초지동정형외과",
-    "안산척추병원",
-    "중앙동병원",
-    "중앙역정형외과",
-    "고잔동병원",
-    "안산소아정형외과",
-    "안산MRI",
-    "안산척추통증",
-    "성포동병원",
-    "안산중앙동병원",
-    "초지동병원",
-    "안산허리디스크",
-    "안산척추병원추천",
-    "안산어깨통증",
-    "안산시정형외과",
-    "안산허리병원",
-    "안산정형외과추천",
-    "백운동정형외과",
-    "안산관절병원",
-    "안산본오동정형외과",
-    "성포동정형외과"
+    "안산족저근막염",
+    "안산시병원",
+    "고잔동신경외과",
+    "초지역정형외과",
+    "본오동신경외과",
+    "안산허리",
+    "안산허리통증",
+    "상록구정형외과",
+    "초지역신경외과",
+    "초지동신경외과",
+    "중앙동신경외과",
+    "안산무릎",
+    "안산무릎병원",
+    "안산시신경외과",
+    "고잔역정형외과",
+    "단원구병원",
+    "고잔역병원",
+    "안산관절",
+    "안산척추",
+    "안산디스크",
+    "안산어깨수술",
+    "안산고관절",
+    "안산고관절병원",
+    "안산무릎수술",
+    "단원구정형외과",
+    "단원정형외과",
+    "단원구청정형외과",
+    "단원구신경외과",
+    "단원신경외과",
+    "단원구청신경외과"
   ]
 }
