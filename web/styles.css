@@ -83,8 +83,9 @@ body {
 .char-zone {
   position: absolute;
   top: 0;
-  width: 25%;
+  width: 22%;
   height: 100%;
+  transform: translateX(-50%);
 }
 
 .char-zone::before {
