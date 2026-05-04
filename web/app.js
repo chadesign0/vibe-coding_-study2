@@ -475,6 +475,7 @@ async function watchForDataUpdate(scoringStartedAt, onUpdate) {
         const active = await loadJson("/api/active-rescore");
         if (!active.active) {
           // Actions 종료됨 — pull-scoring-data 처리 여유 후 재확인 (최대 2회 × 15초)
+          let resumeOuter = false;
           for (let retry = 0; retry < 2; retry++) {
             await new Promise(r => setTimeout(r, 15000));
             try {
@@ -487,12 +488,12 @@ async function watchForDataUpdate(scoringStartedAt, onUpdate) {
                 return "updated";
               }
             } catch (_) {}
-            // 새 Actions 작업이 시작됐으면 루프 복귀
             try {
               const recheck = await loadJson("/api/active-rescore");
-              if (recheck.active) { retry = 99; }
+              if (recheck.active) { resumeOuter = true; break; }
             } catch (_) {}
           }
+          if (resumeOuter) continue;
           return "ended";
         }
       } catch (_) {}
