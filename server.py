@@ -1164,16 +1164,26 @@ def _pull_scoring_data_from_github() -> None:
         ("data/last-run-evidence.json", ROOT / "data" / "last-run-evidence.json"),
     ]
     for remote_path, local_path in targets:
-        try:
-            url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/{remote_path}"
-            req = urllib.request.Request(url, headers={"Accept": "application/json"})
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                content = resp.read()
-            local_path.parent.mkdir(parents=True, exist_ok=True)
-            local_path.write_bytes(content)
-            print(f"[github] {remote_path} 동기화 완료 ({len(content)} bytes)")
-        except Exception as e:
-            print(f"[github] {remote_path} 동기화 실패: {e}")
+        last_err: Exception | None = None
+        for attempt in range(3):
+            try:
+                import time as _time
+                bust = int(_time.time())
+                url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/{remote_path}?_t={bust}"
+                req = urllib.request.Request(url, headers={"Cache-Control": "no-cache", "Pragma": "no-cache"})
+                with urllib.request.urlopen(req, timeout=60) as resp:
+                    content = resp.read()
+                local_path.parent.mkdir(parents=True, exist_ok=True)
+                local_path.write_bytes(content)
+                print(f"[github] {remote_path} 동기화 완료 ({len(content)} bytes, attempt {attempt+1})")
+                last_err = None
+                break
+            except Exception as e:
+                last_err = e
+                if attempt < 2:
+                    import time as _time2; _time2.sleep(5)
+        if last_err:
+            print(f"[github] {remote_path} 동기화 실패 (3회 시도): {last_err}")
 
 
 def _trigger_github_actions_workflow(

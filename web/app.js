@@ -474,18 +474,25 @@ async function watchForDataUpdate(scoringStartedAt, onUpdate) {
       try {
         const active = await loadJson("/api/active-rescore");
         if (!active.active) {
-          // Actions 종료됨 — 마지막으로 mtime 확인
-          try {
-            const info = await loadJson("/api/scoring-data-info");
-            const newMtime = info?.mtime ?? null;
-            if (newMtime !== null && baseMtime !== null && newMtime > baseMtime) {
-              return "updated";
-            }
-            // baseMtime이 채점 시작 이후면 타임아웃 직후 이미 업데이트된 것 — 완료 처리
-            if (baseMtime !== null && baseMtime * 1000 > scoringStartedAt) {
-              return "updated";
-            }
-          } catch (_) {}
+          // Actions 종료됨 — pull-scoring-data 처리 여유 후 재확인 (최대 2회 × 15초)
+          for (let retry = 0; retry < 2; retry++) {
+            await new Promise(r => setTimeout(r, 15000));
+            try {
+              const info = await loadJson("/api/scoring-data-info");
+              const newMtime = info?.mtime ?? null;
+              if (newMtime !== null && baseMtime !== null && newMtime > baseMtime) {
+                return "updated";
+              }
+              if (baseMtime !== null && baseMtime * 1000 > scoringStartedAt) {
+                return "updated";
+              }
+            } catch (_) {}
+            // 새 Actions 작업이 시작됐으면 루프 복귀
+            try {
+              const recheck = await loadJson("/api/active-rescore");
+              if (recheck.active) { retry = 99; }
+            } catch (_) {}
+          }
           return "ended";
         }
       } catch (_) {}
