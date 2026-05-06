@@ -406,13 +406,27 @@ def fetch_keyword_volumes_searchad(keywords: list[str], api_key: str, secret_key
 
 
 def api_search(client_id: str, client_secret: str, endpoint: str, query: str) -> list[dict[str, Any]] | None:
+    """네이버 검색 API 호출. 일시적 실패(rate limit/5xx/네트워크)는 3회까지 재시도.
+    - 200 OK: items 반환 (없으면 빈 리스트)
+    - 4xx (429 제외): 영구 실패로 간주, 즉시 None
+    - 429/5xx/네트워크 예외: 백오프 후 재시도
+    """
     url = f"https://openapi.naver.com/v1/search/{endpoint}.json"
     headers = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret}
     params = {"query": query, "display": 100, "sort": "sim"}
-    r = requests.get(url, headers=headers, params=params, timeout=30)
-    if r.status_code >= 400:
-        return None
-    return r.json().get("items") or []
+    for attempt in range(3):
+        try:
+            r = requests.get(url, headers=headers, params=params, timeout=30)
+            if r.status_code == 200:
+                return r.json().get("items") or []
+            if r.status_code != 429 and 400 <= r.status_code < 500:
+                # 클라이언트 에러(잘못된 쿼리/인증 등)는 재시도해도 동일 — 즉시 실패
+                return None
+        except Exception:
+            pass
+        if attempt < 2:
+            time.sleep(0.8 * (2 ** attempt))  # 0.8s, 1.6s
+    return None
 
 
 def item_text_for_tab(tab: str, item: dict[str, Any]) -> str:
@@ -638,18 +652,22 @@ def fetch_powerlink_more_page(query: str) -> str | None:
     """
     url = "https://ad.search.naver.com/search.naver?where=ad&query=" + quote_plus(query)
     session = _get_web_session()
-    try:
-        r = session.get(url, timeout=30)
-        if r.status_code >= 400:
-            return None
-        time.sleep(random.uniform(1.5, 3.5))
-        enc = (r.apparent_encoding or r.encoding or "utf-8").strip()
+    for _ in range(3):
         try:
-            return r.content.decode(enc, errors="ignore")
+            r = session.get(url, timeout=30)
+            if r.status_code >= 400:
+                time.sleep(random.uniform(1.5, 3.5))
+                continue
+            time.sleep(random.uniform(1.5, 3.5))
+            enc = (r.apparent_encoding or r.encoding or "utf-8").strip()
+            try:
+                return r.content.decode(enc, errors="ignore")
+            except Exception:
+                return r.text
         except Exception:
-            return r.text
-    except Exception:
-        return None
+            time.sleep(random.uniform(1.5, 3.5))
+            continue
+    return None
 
 
 def extract_candidates_powerlink(ht: str) -> list[str]:
@@ -758,7 +776,9 @@ def extract_candidates_bizsite(ht: str) -> list[str]:
 
 
 def extract_video_items_with_dates(ht: str) -> list[tuple[str, str | None]]:
-    """동영상 탭 후보 목록 + 업로드 날짜 추출. (text, raw_date_str | None) 리스트 반환."""
+    """동영상 탭 후보 목록 + 업로드 날짜 추출. (text, raw_date_str | None) 리스트 반환.
+    text 는 채널명(author) + 영상 제목(title) 결합본 — 두 곳 어디에 병원명이 있어도 매칭되도록.
+    """
     marker = '"blockId":"video/prs_template_v2_video_tab_desk.ts"'
     idx = ht.find(marker)
     if idx >= 0:
@@ -767,7 +787,9 @@ def extract_video_items_with_dates(ht: str) -> list[tuple[str, str | None]]:
         author_matches = list(author_pat.finditer(chunk))
         if author_matches:
             date_pat = re.compile(r'"date":"((?:\\.|[^"\\])*)"')
+            title_pat = re.compile(r'"title":"((?:\\.|[^"\\])*)"')
             date_matches = list(date_pat.finditer(chunk))
+            title_matches = list(title_pat.finditer(chunk))
             result: list[tuple[str, str | None]] = []
             for i, am in enumerate(author_matches):
                 try:
@@ -789,7 +811,18 @@ def extract_video_items_with_dates(ht: str) -> list[tuple[str, str | None]]:
                     for dm in date_matches:
                         if max(0, lo - 2000) <= dm.start() < lo:
                             date_raw = dm.group(1)
-                result.append((author, date_raw))
+                # 같은 영역에서 영상 제목 추출
+                title = ""
+                for tm in title_matches:
+                    if lo <= tm.start() < hi:
+                        try:
+                            title = strip_html(json.loads('"' + tm.group(1) + '"'))
+                        except Exception:
+                            title = strip_html(tm.group(1))
+                        if title:
+                            break
+                text = f"{author} {title}".strip() if title else author
+                result.append((text, date_raw))
             if result:
                 return result[:30]
     # DOM 파싱 fallback (날짜 없음)
