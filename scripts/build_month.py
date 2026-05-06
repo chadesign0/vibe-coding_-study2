@@ -74,19 +74,18 @@ def env_choice(name: str, default: str, allowed: set[str]) -> str:
 
 def scoring_powerlink_basis() -> str:
     """
-    powerlink_more: 광고 더보기 페이지 기준(기존 방식)
-    powerlink_main: 사람이 통합검색 첫 화면에서 확인하는 기준
+    powerlink_more: 광고 더보기 페이지 기준 — 광고 전체에서 순위 산정 (기본)
+    powerlink_main: 통합검색 첫 화면 기준 — 첫 화면에 노출되는 광고만 점수
     """
-    return env_choice("SCORING_POWERLINK_BASIS", "main", {"main", "more"})
+    return env_choice("SCORING_POWERLINK_BASIS", "more", {"main", "more"})
 
 
 def scoring_video_mode() -> str:
     """
-    video=off is intentionally conservative. The Naver video surface changes often,
-    so the old HTML parser can create false positives. Set SCORING_VIDEO_MODE=html
-    to restore the previous parser-based behavior.
+    html: HTML 파서로 동영상 채점 (채널명+제목 결합 매칭, 기본)
+    off:  동영상 채점 비활성화 — 모든 동영상 점수를 0으로 강제
     """
-    return env_choice("SCORING_VIDEO_MODE", "off", {"off", "html"})
+    return env_choice("SCORING_VIDEO_MODE", "html", {"off", "html"})
 
 
 def scoring_policy_meta() -> dict[str, Any]:

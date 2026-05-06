@@ -68,8 +68,8 @@ jobs:
           SCORING_WEBHOOK_URL: ${{ inputs.webhook_url }}
           SCORING_WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           SCORING_VERIFY_SAMPLE: ${{ vars.SCORING_VERIFY_SAMPLE || '1' }}
-          SCORING_POWERLINK_BASIS: ${{ vars.SCORING_POWERLINK_BASIS || 'main' }}
-          SCORING_VIDEO_MODE: ${{ vars.SCORING_VIDEO_MODE || 'off' }}
+          SCORING_POWERLINK_BASIS: ${{ vars.SCORING_POWERLINK_BASIS || 'more' }}
+          SCORING_VIDEO_MODE: ${{ vars.SCORING_VIDEO_MODE || 'html' }}
           NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
           NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
           NAVER_AD_API_KEY: ${{ secrets.NAVER_AD_API_KEY }}
