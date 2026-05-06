@@ -67,6 +67,36 @@ def _get_web_session() -> requests.Session:
 TOTAL_COL = 15
 
 
+def env_choice(name: str, default: str, allowed: set[str]) -> str:
+    raw = (os.getenv(name) or default).strip().lower()
+    return raw if raw in allowed else default
+
+
+def scoring_powerlink_basis() -> str:
+    """
+    powerlink_more: 광고 더보기 페이지 기준(기존 방식)
+    powerlink_main: 사람이 통합검색 첫 화면에서 확인하는 기준
+    """
+    return env_choice("SCORING_POWERLINK_BASIS", "main", {"main", "more"})
+
+
+def scoring_video_mode() -> str:
+    """
+    video=off is intentionally conservative. The Naver video surface changes often,
+    so the old HTML parser can create false positives. Set SCORING_VIDEO_MODE=html
+    to restore the previous parser-based behavior.
+    """
+    return env_choice("SCORING_VIDEO_MODE", "off", {"off", "html"})
+
+
+def scoring_policy_meta() -> dict[str, Any]:
+    return {
+        "powerlinkBasis": scoring_powerlink_basis(),
+        "videoMode": scoring_video_mode(),
+        "webMatchRule": "official_url_or_official_blog_url_only",
+    }
+
+
 def decode_response_text(r: requests.Response) -> str:
     """
     네이버 응답에서 한글이 깨지면 병원명 매칭이 실패할 수 있어 UTF-8 우선 디코딩한다.
@@ -1051,20 +1081,32 @@ def find_rank_by_web_tab(
     official_blog_ids: frozenset[str] = frozenset(),
 ) -> tuple[int | None, dict[str, Any]]:
     if tab == "powerlink":
-        ht_more = fetch_powerlink_more_page(query)
-        if ht_more:
-            cands = extract_candidates_powerlink_more(ht_more)
-            rank = find_rank_in_candidates(cands, match_tokens)
-            top = [{"rank": i + 1, "text": t[:220]} for i, t in enumerate(cands[:10])]
-            return rank, {"top": top, "matched_rank": rank, "basis": "powerlink_more"}
-        # 더보기 페이지 실패 시 기존 통합검색 블록 파서로 폴백
+        if scoring_powerlink_basis() == "more":
+            ht_more = fetch_powerlink_more_page(query)
+            if ht_more:
+                cands = extract_candidates_powerlink_more(ht_more)
+                rank = find_rank_in_candidates(cands, match_tokens)
+                top = [{"rank": i + 1, "text": t[:220]} for i, t in enumerate(cands[:10])]
+                return rank, {
+                    "top": top,
+                    "matched_rank": rank,
+                    "basis": "powerlink_more",
+                    "scoringBasis": "naver_ad_more_page",
+                }
+            # 더보기 페이지 실패 시 기존 통합검색 블록 파서로 폴백
+        # 기본값: 사람이 확인하는 통합검색 첫 화면 기준.
         ht = fetch_search_page(query)
         if not ht:
             return None, {"reason": "http_error"}
         cands = extract_candidates_powerlink(ht)
         rank = find_rank_in_candidates(cands, match_tokens)
         top = [{"rank": i + 1, "text": t[:220]} for i, t in enumerate(cands[:10])]
-        return rank, {"top": top, "matched_rank": rank, "basis": "powerlink_main_fallback"}
+        return rank, {
+            "top": top,
+            "matched_rank": rank,
+            "basis": "powerlink_main",
+            "scoringBasis": "naver_integrated_search_main",
+        }
     if tab == "web":
         # URL 기반 매칭: 결과 링크(href)에 병원 도메인/공식 블로그 ID가 직접 포함될 때만 점수 부여.
         # 텍스트에 병원명이 '언급'되는 경우는 제외 — 타 병원 비교 포스트 오매칭 방지.
@@ -1079,6 +1121,15 @@ def find_rank_by_web_tab(
             rank, ev = _find_web_rank_from_render_json(ht, match_tokens, official_blog_ids)
             return rank, ev
         return 0, {"matched_rank": 0, "reason": "fetch_failed"}
+
+    if tab == "video" and scoring_video_mode() == "off":
+        return 0, {
+            "top": [],
+            "matched_rank": 0,
+            "basis": "video_disabled",
+            "reason": "video_channel_is_unstable",
+            "note": "동영상 채널은 네이버 화면 변동이 커서 기본 채점에서 제외합니다. 예전 방식은 SCORING_VIDEO_MODE=html 로 되돌릴 수 있습니다.",
+        }
 
     ht = fetch_search_page(query, where=("video" if tab == "video" else None))
     if not ht:
@@ -1518,6 +1569,7 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
         volumes = {kw: {"pc": 0, "mobile": 0, "related": kw} for kw in fresh_keywords}
 
     month = build_month_payload(cfg, ranks, volumes, (None if full_rescore else reused_rows))
+    month["scoringPolicy"] = scoring_policy_meta()
 
     # 배포 안전장치: 라이브 재조회 샘플과의 일치율이 임계치 미만이면 실패 처리
     verify_enabled = (os.getenv("SCORING_VERIFY_SAMPLE") or "1").strip().lower() in {"1", "true", "yes"}
@@ -1535,6 +1587,9 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
         replay_ranks, _ = fetch_keyword_ranks(cfg_verify, cid, csec)
         matched = 0
         total = 0
+        channel_stats: dict[str, dict[str, int]] = {
+            tab: {"matched": 0, "total": 0} for tab in COL_BY_TAB.keys()
+        }
         for kw in sample:
             for tab in COL_BY_TAB.keys():
                 v1 = table_cell_for_tab(tab, ranks.get(kw, {}).get(tab))
@@ -1542,9 +1597,25 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
                 if v1 is None and v2 is None:
                     continue
                 total += 1
+                channel_stats[tab]["total"] += 1
                 if v1 == v2:
                     matched += 1
+                    channel_stats[tab]["matched"] += 1
         replay_acc = (matched / total) if total else 1.0
+        channel_accuracy = {
+            tab: round((stat["matched"] / stat["total"]) * 100, 1)
+            for tab, stat in channel_stats.items()
+            if stat["total"]
+        }
+        quality_base = {
+            "accuracyPct": round(replay_acc * 100, 1),
+            "warnThresholdPct": round(verify_warn_threshold * 100, 1),
+            "lowThresholdPct": round(verify_low_threshold * 100, 1),
+            "sampleSize": len(sample),
+            "checkedItems": total,
+            "channelAccuracyPct": channel_accuracy,
+            "scoringPolicy": scoring_policy_meta(),
+        }
         print(
             f"샘플 재조회 일치율: {replay_acc*100:.1f}% "
             f"(경고 {verify_warn_threshold*100:.1f}% / 낮음 {verify_low_threshold*100:.1f}%, 샘플 {len(sample)}개)"
@@ -1552,31 +1623,19 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
         if replay_acc < verify_low_threshold:
             quality_meta = {
                 "level": "low",
-                "accuracyPct": round(replay_acc * 100, 1),
-                "warnThresholdPct": round(verify_warn_threshold * 100, 1),
-                "lowThresholdPct": round(verify_low_threshold * 100, 1),
-                "sampleSize": len(sample),
-                "checkedItems": total,
+                **quality_base,
             }
             print(f"QUALITY_GATE:LOW:{replay_acc*100:.1f}")
         elif replay_acc < verify_warn_threshold:
             quality_meta = {
                 "level": "warn",
-                "accuracyPct": round(replay_acc * 100, 1),
-                "warnThresholdPct": round(verify_warn_threshold * 100, 1),
-                "lowThresholdPct": round(verify_low_threshold * 100, 1),
-                "sampleSize": len(sample),
-                "checkedItems": total,
+                **quality_base,
             }
             print(f"QUALITY_GATE:WARN:{replay_acc*100:.1f}")
         else:
             quality_meta = {
                 "level": "ok",
-                "accuracyPct": round(replay_acc * 100, 1),
-                "warnThresholdPct": round(verify_warn_threshold * 100, 1),
-                "lowThresholdPct": round(verify_low_threshold * 100, 1),
-                "sampleSize": len(sample),
-                "checkedItems": total,
+                **quality_base,
             }
             print(f"QUALITY_GATE:OK:{replay_acc*100:.1f}")
 
