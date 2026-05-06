@@ -1290,12 +1290,10 @@ def enqueue_actions_rescore_task(
         ACTIVE_SCORE_TASK_BY_KEY[key] = task_id
 
     def _dispatch() -> None:
-        try:
-            _github_push_runtime_config(config_name)
-        except Exception as e:
-            print(f"[github] runtime config push 실패: {e}")
-
         webhook_url = f"{RENDER_PUBLIC_URL}/api/webhook/score-progress"
+        # config push보다 dispatch를 먼저 실행: config push → main 브랜치 커밋 → Render 자동재배포 →
+        # 프로세스 kill이 dispatch 전에 발생하는 race condition 방지.
+        # Actions runner 시작까지 30~60초 소요되므로 dispatch 직후 config를 push해도 충분히 안전.
         ok, dispatch_err = _trigger_github_actions_workflow(
             task_id=task_id,
             hospital_name=hn,
@@ -1322,6 +1320,10 @@ def enqueue_actions_rescore_task(
             message=f"{hn} · {month_label} 채점 가상머신 부팅중... (10~30초 소요)",
             stage="dispatched",
         )
+        try:
+            _github_push_runtime_config(config_name)
+        except Exception as e:
+            print(f"[github] runtime config push 실패: {e}")
 
     threading.Thread(target=_dispatch, daemon=True).start()
     return task_id, True, ""
