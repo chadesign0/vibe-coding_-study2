@@ -875,6 +875,7 @@ def extract_candidates_web_from_integrated(ht: str) -> list[str]:
     vals: list[str] = []
     # 0) data-block-id별 블로그·UGC 묶음 (네이버가 템플릿 id를 바꾸면 여기에 추가)
     for bid in (
+        "web/prs_template_v2_web_basic_desk.ts",
         "review/prs_template_v2_review_blog_rra_desk.ts",
         "review/prs_template_v2_review_ugc_single_intention_desk.ts",
         "review/prs_template_v2_review_ugc_single_intention_mob.ts",
@@ -909,18 +910,19 @@ def extract_candidates_web_from_integrated(ht: str) -> list[str]:
             if vals:
                 return vals[:30]
 
-    # 2) 렌더 데이터 fallback
-    marker = "review/prs_template_v2_review_blog_rra_desk.ts"
-    idx = ht.find(marker)
-    if idx < 0:
-        marker = "review/prs_template_v2_review_blog_tab_desk.ts"
-        idx = ht.find(marker)
-    if idx < 0:
-        marker = "review/prs_template_v2_review_ugc_single_intention_desk.ts"
-        idx = ht.find(marker)
-    if idx < 0:
-        marker = "review/prs_template_v2_review_ugc_single_intention_mob.ts"
-        idx = ht.find(marker)
+    # 2) 렌더 데이터 fallback — 신형 web_basic이 페이지에 있으면 우선
+    idx = -1
+    for marker in (
+        "web/prs_template_v2_web_basic_desk.ts",
+        "review/prs_template_v2_review_blog_rra_desk.ts",
+        "review/prs_template_v2_review_blog_tab_desk.ts",
+        "review/prs_template_v2_review_ugc_single_intention_desk.ts",
+        "review/prs_template_v2_review_ugc_single_intention_mob.ts",
+    ):
+        i = ht.find(marker)
+        if i >= 0:
+            idx = i
+            break
     if idx >= 0:
         chunk = ht[idx : idx + 450000]
         author_pat = re.compile(r'"authorHtml":"((?:\\.|[^"\\])*)"')
@@ -982,8 +984,18 @@ def _find_web_rank_by_url(
         href = (a.get("href") or "").strip()
         if not href or href.startswith("#") or "javascript" in href.lower():
             continue
-        # 광고 및 네이버 내부 검색·네비 링크 제외
-        if any(s in href for s in ("ad.search.naver.com", "link.naver.com", "search.naver.com/search")):
+        # 절대 URL(http/https)만 외부 결과로 인정 — 상대경로 검색옵션 링크(?ssc=...) 제외
+        if not href.lower().startswith(("http://", "https://")):
+            continue
+        # 광고 및 네이버 내부 검색·네비·도움말 링크 제외
+        if any(s in href for s in (
+            "ad.search.naver.com",
+            "link.naver.com",
+            "search.naver.com/search",
+            "ader.naver.com",
+            "help.naver.com",
+            "saedu.naver.com",
+        )):
             continue
         if href not in seen:
             seen.add(href)
@@ -1023,22 +1035,26 @@ def _find_web_rank_from_render_json(
     JS 렌더링으로 <a href>에 나타나지 않는 블로그 링크를 잡아낸다.
     """
     VIEW_MARKERS = [
+        "web/prs_template_v2_web_basic_desk.ts",
         "review/prs_template_v2_review_blog_rra_desk.ts",
         "review/prs_template_v2_review_blog_tab_desk.ts",
         "review/prs_template_v2_review_ugc_single_intention_desk.ts",
         "review/prs_template_v2_review_ugc_single_intention_mob.ts",
     ]
-    chunk = ""
+    # 여러 마커가 동시에 있을 수 있으므로 가장 빠른 위치부터 한 번에 큰 청크를 잡는다.
+    earliest = -1
     for marker in VIEW_MARKERS:
         idx = ht.find(marker)
-        if idx >= 0:
-            chunk = ht[idx: idx + 600000]
-            break
-    if not chunk:
+        if idx >= 0 and (earliest < 0 or idx < earliest):
+            earliest = idx
+    if earliest < 0:
         return 0, {"matched_rank": 0, "basis": "no_view_section_in_json"}
+    chunk = ht[earliest: earliest + 600000]
 
+    # 신형 web_basic 블록은 titleHref/contentHref/imageHref/href 키 사용,
+    # 구형 review/blog 블록은 link/blogLink/postUrl/mobileLink/url 키 사용.
     link_pat = re.compile(
-        r'"(?:link|blogLink|postUrl|mobileLink|url)"\s*:\s*"(https?://(?:[^"\\]|\\.)+)"'
+        r'"(?:link|blogLink|postUrl|mobileLink|url|titleHref|contentHref|imageHref|href)"\s*:\s*"(https?://(?:[^"\\]|\\.)+)"'
     )
     domain_tokens = [
         t for t in match_tokens
