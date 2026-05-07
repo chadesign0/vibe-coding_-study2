@@ -1279,7 +1279,9 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                 with _lock:
                     _done[0] += 1
                     idx = _done[0]
-                if idx == total_keywords or idx % progress_step == 0:
+                if idx == 1 or idx == total_keywords or idx % progress_step == 0:
+                    pct = (idx * 100) // total_keywords if total_keywords else 0
+                    print(f"  진행 {idx}/{total_keywords} ({pct}%) - {kw}", flush=True)
                     post_progress_webhook(
                         status="running",
                         message=f"채점 진행중 {idx}/{total_keywords}",
