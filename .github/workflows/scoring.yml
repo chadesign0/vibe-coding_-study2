@@ -91,7 +91,7 @@ jobs:
             exit 0
           fi
 
-          git commit -m "auto: GitHub Actions 채점 결과 업데이트 ($(date -u +'%Y-%m-%d %H:%M UTC'))"
+          git commit -m "auto: GitHub Actions 채점 결과 업데이트 ($(date -u +'%Y-%m-%d %H:%M UTC')) [skip render]"
 
           for i in 1 2 3 4 5; do
             echo "::group::Push attempt $i/5"

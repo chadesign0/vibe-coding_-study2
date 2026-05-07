@@ -870,7 +870,7 @@ def _github_push_scoring_files() -> None:
     if not files:
         return
     from datetime import datetime as _dt
-    msg = f"auto: 채점 데이터 업데이트 ({_dt.now().strftime('%Y-%m-%d %H:%M')})"
+    msg = f"auto: 채점 데이터 업데이트 ({_dt.now().strftime('%Y-%m-%d %H:%M')}) [skip render]"
     with GITHUB_PUSH_LOCK:
         try:
             _github_commit_files(files, msg)
@@ -1336,7 +1336,7 @@ def _github_push_runtime_config(config_name: str) -> None:
         return
     with GITHUB_PUSH_LOCK:
         try:
-            _github_commit_files([cfg_path], f"chore: runtime config 동기화 ({config_name})")
+            _github_commit_files([cfg_path], f"chore: runtime config 동기화 ({config_name}) [skip render]")
         except Exception as e:
             print(f"[github] runtime config push 실패: {e}")
 
