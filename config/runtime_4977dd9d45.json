@@ -1,5 +1,5 @@
 {
-  "monthLabel": "4월",
+  "monthLabel": "5월",
   "blogRequirePostMonth": true,
   "sourceFileNote": "네이버 검색 API 자동 채점 + 수동 보완",
   "hospitalNames": [
@@ -1119,15 +1119,5 @@
     "national-mob": "2026 전국 MOB",
     "other-pc": "2026 기타 PC",
     "other-mob": "2026 기타 MOB"
-  },
-  "forceRescoreKeywords": [
-    "용인석회화건염",
-    "김량장동아킬레스건염",
-    "용인방아쇠수지",
-    "처인구척추굽음",
-    "용인드퀘르벵증후군",
-    "용인근처정형외과",
-    "용인스포츠손상클리닉",
-    "용인스포츠손상병원"
-  ]
+  }
 }
