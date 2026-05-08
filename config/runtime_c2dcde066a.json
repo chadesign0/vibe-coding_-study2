@@ -1,0 +1,1366 @@
+{
+  "monthLabel": "5월",
+  "blogRequirePostMonth": true,
+  "sourceFileNote": "네이버 검색 API 자동 채점 + 수동 보완",
+  "hospitalNames": [
+    "SNU건전비뇨의학과"
+  ],
+  "hospitalDomains": [
+    "https://www.seoulurology.com/"
+  ],
+  "hospitalBlogBases": [
+    "https://blog.naver.com/snugunjunpr",
+    "https://blog.naver.com/secmet99"
+  ],
+  "manualRanks": {
+    "주엽역무릎통증": 1
+  },
+  "manualRanksByTab": {},
+  "regionDefault": "",
+  "keywordChannels": {
+    "광진구비뇨기과": "all",
+    "건대입구비뇨기과": "all",
+    "광진구비뇨의학과": "all",
+    "광진구요로결석": "all",
+    "광진구전립선암": "all",
+    "광진구전립선비대증": "all",
+    "광진구전립선염": "all",
+    "광진구혈뇨": "all",
+    "광진구고환암": "all",
+    "광진구빈뇨": "all",
+    "광진구방광염": "all",
+    "광진구요도염": "all",
+    "광진구신우신염": "all",
+    "건대입구비뇨의학과": "all",
+    "건대입구요로결석": "all",
+    "건대입구전립선암": "all",
+    "건대입구전립선비대증": "all",
+    "건대입구전립선염": "all",
+    "건대입구혈뇨": "all",
+    "건대입구고환암": "all",
+    "건대입구빈뇨": "all",
+    "건대입구방광염": "all",
+    "건대입구요도염": "all",
+    "건대입구신우신염": "all",
+    "건대입구역비뇨기과": "all",
+    "건대입구역비뇨의학과": "all",
+    "건대입구역요로결석": "all",
+    "건대입구역전립선암": "all",
+    "건대입구역전립선비대증": "all",
+    "건대입구역전립선염": "all",
+    "건대입구역혈뇨": "all",
+    "건대입구역고환암": "all",
+    "건대입구역빈뇨": "all",
+    "건대입구역방광염": "all",
+    "건대입구역요도염": "all",
+    "건대입구역신우신염": "all",
+    "화양동비뇨기과": "all",
+    "화양동비뇨의학과": "all",
+    "화양동요로결석": "all",
+    "화양동전립선암": "all",
+    "화양동전립선비대증": "all",
+    "화양동전립선염": "all",
+    "화양동혈뇨": "all",
+    "화양동고환암": "all",
+    "화양동빈뇨": "all",
+    "화양동방광염": "all",
+    "화양동요도염": "all",
+    "화양동신우신염": "all",
+    "자양동비뇨기과": "all",
+    "자양동비뇨의학과": "all",
+    "자양동요로결석": "all",
+    "자양동전립선암": "all",
+    "자양동전립선비대증": "all",
+    "자양동전립선염": "all",
+    "자양동혈뇨": "all",
+    "자양동고환암": "all",
+    "자양동빈뇨": "all",
+    "자양동방광염": "all",
+    "자양동요도염": "all",
+    "자양동신우신염": "all",
+    "건대입구요실금": "all",
+    "자양동비뇨기과포경수술": "all",
+    "건대입구역비뇨기과정관수술": "all",
+    "군자동비뇨기과전립선암": "all",
+    "구의동비뇨기과": "all",
+    "성수동비뇨기과": "all",
+    "자양역비뇨기의학과": "all",
+    "구의역비뇨의학과": "all",
+    "성수동전립선암": "all",
+    "성수동혈뇨": "all",
+    "자양역전립선비대증": "all",
+    "광진구방광암": "all",
+    "건대입구콩팥암": "all",
+    "화양동야간뇨": "all",
+    "군자동요로결석": "all",
+    "성수동요실금": "all",
+    "건대입구역사정": "all",
+    "화양동전립선결찰술": "all",
+    "자양역비임균성요도염": "all",
+    "광진구음낭수종": "all",
+    "광진구비뇨기과소변자주마려움": "all",
+    "건대입구역콩팥암": "all",
+    "구의역전립선염": "all",
+    "화양동정계정맥류": "all",
+    "성수동PSA수치": "all",
+    "군자동요실금": "all",
+    "자양역혈뇨": "all",
+    "광진구소변안나오는증상": "all",
+    "성수동요로결석": "all",
+    "구의역전립선암": "all",
+    "구의동전립선비대증": "all",
+    "구의역비뇨기과": "all",
+    "화양동요실금": "all",
+    "구의동전립선염": "all",
+    "성수동방광염": "all",
+    "구의동요로결석": "all",
+    "자양동방광암": "all",
+    "건대입구역요실금": "all",
+    "구의동방광암": "all",
+    "군자동방광암": "all",
+    "군자동빈뇨": "all",
+    "군자동방광염": "all",
+    "군자동비뇨기과": "all",
+    "군자동비뇨의학과": "all",
+    "군자동전립선염": "all",
+    "군자동전립선암": "all",
+    "군자동혈뇨": "all",
+    "군자동콩팥암": "all",
+    "성수동비뇨의학과": "all",
+    "성수동방광암": "all",
+    "성수동빈뇨": "all",
+    "성수동전립선염": "all",
+    "성수동콩팥암": "all",
+    "구의동혈뇨": "all",
+    "군자동전립선비대증": "all",
+    "광장동비뇨기과": "all",
+    "광장동비뇨의학과": "all",
+    "광장동전립선비대증": "all",
+    "광장동요로결석": "all",
+    "구의역전립선결찰술": "all"
+  },
+  "keywords": [
+    "광진구비뇨기과",
+    "건대입구비뇨기과",
+    "광진구비뇨의학과",
+    "광진구요로결석",
+    "광진구전립선암",
+    "광진구전립선비대증",
+    "광진구전립선염",
+    "광진구혈뇨",
+    "광진구고환암",
+    "광진구빈뇨",
+    "광진구방광염",
+    "광진구요도염",
+    "광진구신우신염",
+    "건대입구비뇨의학과",
+    "건대입구요로결석",
+    "건대입구전립선암",
+    "건대입구전립선비대증",
+    "건대입구전립선염",
+    "건대입구혈뇨",
+    "건대입구고환암",
+    "건대입구빈뇨",
+    "건대입구방광염",
+    "건대입구요도염",
+    "건대입구신우신염",
+    "건대입구역비뇨기과",
+    "건대입구역비뇨의학과",
+    "건대입구역요로결석",
+    "건대입구역전립선암",
+    "건대입구역전립선비대증",
+    "건대입구역전립선염",
+    "건대입구역혈뇨",
+    "건대입구역고환암",
+    "건대입구역빈뇨",
+    "건대입구역방광염",
+    "건대입구역요도염",
+    "건대입구역신우신염",
+    "화양동비뇨기과",
+    "화양동비뇨의학과",
+    "화양동요로결석",
+    "화양동전립선암",
+    "화양동전립선비대증",
+    "화양동전립선염",
+    "화양동혈뇨",
+    "화양동고환암",
+    "화양동빈뇨",
+    "화양동방광염",
+    "화양동요도염",
+    "화양동신우신염",
+    "자양동비뇨기과",
+    "자양동비뇨의학과",
+    "자양동요로결석",
+    "자양동전립선암",
+    "자양동전립선비대증",
+    "자양동전립선염",
+    "자양동혈뇨",
+    "자양동고환암",
+    "자양동빈뇨",
+    "자양동방광염",
+    "자양동요도염",
+    "자양동신우신염",
+    "건대입구요실금",
+    "자양동비뇨기과포경수술",
+    "건대입구역비뇨기과정관수술",
+    "군자동비뇨기과전립선암",
+    "구의동비뇨기과",
+    "성수동비뇨기과",
+    "자양역비뇨기의학과",
+    "구의역비뇨의학과",
+    "성수동전립선암",
+    "성수동혈뇨",
+    "자양역전립선비대증",
+    "광진구방광암",
+    "건대입구콩팥암",
+    "화양동야간뇨",
+    "군자동요로결석",
+    "성수동요실금",
+    "건대입구역사정",
+    "화양동전립선결찰술",
+    "자양역비임균성요도염",
+    "광진구음낭수종",
+    "광진구비뇨기과소변자주마려움",
+    "건대입구역콩팥암",
+    "구의역전립선염",
+    "화양동정계정맥류",
+    "성수동PSA수치",
+    "군자동요실금",
+    "자양역혈뇨",
+    "광진구소변안나오는증상",
+    "성수동요로결석",
+    "구의역전립선암",
+    "구의동전립선비대증",
+    "구의역비뇨기과",
+    "화양동요실금",
+    "구의동전립선염",
+    "성수동방광염",
+    "구의동요로결석",
+    "자양동방광암",
+    "건대입구역요실금",
+    "구의동방광암",
+    "군자동방광암",
+    "군자동빈뇨",
+    "군자동방광염",
+    "군자동비뇨기과",
+    "군자동비뇨의학과",
+    "군자동전립선염",
+    "군자동전립선암",
+    "군자동혈뇨",
+    "군자동콩팥암",
+    "성수동비뇨의학과",
+    "성수동방광암",
+    "성수동빈뇨",
+    "성수동전립선염",
+    "성수동콩팥암",
+    "구의동혈뇨",
+    "군자동전립선비대증",
+    "광장동비뇨기과",
+    "광장동비뇨의학과",
+    "광장동전립선비대증",
+    "광장동요로결석",
+    "구의역전립선결찰술"
+  ],
+  "scoringNote": "API 자동 탭(지도/카페/보도자료/웹)은 1위=3점, 2~5위=2점, 6~10위=1점, 미노출=0점. 블로그는 hospitalBlogBases의 네이버 블로그 ID와 글/bloggerlink가 일치하면 인정하거나, 작성자·링크에 병원 토큰이 있으면 인정(제목·본문만 일치는 제외). 작성일은 blogRequirePostMonth·scoringYear·monthLabel로 제한. 파워링크/비즈사이트/동영상은 API 한계로 미지원(None).",
+  "hospitalName": "SNU건전비뇨의학과",
+  "keywordScopes": {
+    "광진구비뇨기과": "regional",
+    "건대입구비뇨기과": "regional",
+    "광진구비뇨의학과": "regional",
+    "광진구요로결석": "regional",
+    "광진구전립선암": "regional",
+    "광진구전립선비대증": "regional",
+    "광진구전립선염": "regional",
+    "광진구혈뇨": "regional",
+    "광진구고환암": "regional",
+    "광진구빈뇨": "regional",
+    "광진구방광염": "regional",
+    "광진구요도염": "regional",
+    "광진구신우신염": "regional",
+    "건대입구비뇨의학과": "regional",
+    "건대입구요로결석": "regional",
+    "건대입구전립선암": "regional",
+    "건대입구전립선비대증": "regional",
+    "건대입구전립선염": "regional",
+    "건대입구혈뇨": "regional",
+    "건대입구고환암": "regional",
+    "건대입구빈뇨": "regional",
+    "건대입구방광염": "regional",
+    "건대입구요도염": "regional",
+    "건대입구신우신염": "regional",
+    "건대입구역비뇨기과": "regional",
+    "건대입구역비뇨의학과": "regional",
+    "건대입구역요로결석": "regional",
+    "건대입구역전립선암": "regional",
+    "건대입구역전립선비대증": "regional",
+    "건대입구역전립선염": "regional",
+    "건대입구역혈뇨": "regional",
+    "건대입구역고환암": "regional",
+    "건대입구역빈뇨": "regional",
+    "건대입구역방광염": "regional",
+    "건대입구역요도염": "regional",
+    "건대입구역신우신염": "regional",
+    "화양동비뇨기과": "regional",
+    "화양동비뇨의학과": "regional",
+    "화양동요로결석": "regional",
+    "화양동전립선암": "regional",
+    "화양동전립선비대증": "regional",
+    "화양동전립선염": "regional",
+    "화양동혈뇨": "regional",
+    "화양동고환암": "regional",
+    "화양동빈뇨": "regional",
+    "화양동방광염": "regional",
+    "화양동요도염": "regional",
+    "화양동신우신염": "regional",
+    "자양동비뇨기과": "regional",
+    "자양동비뇨의학과": "regional",
+    "자양동요로결석": "regional",
+    "자양동전립선암": "regional",
+    "자양동전립선비대증": "regional",
+    "자양동전립선염": "regional",
+    "자양동혈뇨": "regional",
+    "자양동고환암": "regional",
+    "자양동빈뇨": "regional",
+    "자양동방광염": "regional",
+    "자양동요도염": "regional",
+    "자양동신우신염": "regional",
+    "건대입구요실금": "regional",
+    "자양동비뇨기과포경수술": "regional",
+    "건대입구역비뇨기과정관수술": "regional",
+    "군자동비뇨기과전립선암": "regional",
+    "구의동비뇨기과": "regional",
+    "성수동비뇨기과": "regional",
+    "자양역비뇨기의학과": "regional",
+    "구의역비뇨의학과": "regional",
+    "성수동전립선암": "regional",
+    "성수동혈뇨": "regional",
+    "자양역전립선비대증": "regional",
+    "광진구방광암": "regional",
+    "건대입구콩팥암": "regional",
+    "화양동야간뇨": "regional",
+    "군자동요로결석": "regional",
+    "성수동요실금": "regional",
+    "건대입구역사정": "regional",
+    "화양동전립선결찰술": "regional",
+    "자양역비임균성요도염": "regional",
+    "광진구음낭수종": "regional",
+    "광진구비뇨기과소변자주마려움": "regional",
+    "건대입구역콩팥암": "regional",
+    "구의역전립선염": "regional",
+    "화양동정계정맥류": "regional",
+    "성수동PSA수치": "regional",
+    "군자동요실금": "regional",
+    "자양역혈뇨": "regional",
+    "광진구소변안나오는증상": "regional",
+    "성수동요로결석": "regional",
+    "구의역전립선암": "regional",
+    "구의동전립선비대증": "regional",
+    "구의역비뇨기과": "regional",
+    "화양동요실금": "regional",
+    "구의동전립선염": "regional",
+    "성수동방광염": "regional",
+    "구의동요로결석": "regional",
+    "자양동방광암": "regional",
+    "건대입구역요실금": "regional",
+    "구의동방광암": "regional",
+    "군자동방광암": "regional",
+    "군자동빈뇨": "regional",
+    "군자동방광염": "regional",
+    "군자동비뇨기과": "regional",
+    "군자동비뇨의학과": "regional",
+    "군자동전립선염": "regional",
+    "군자동전립선암": "regional",
+    "군자동혈뇨": "regional",
+    "군자동콩팥암": "regional",
+    "성수동비뇨의학과": "regional",
+    "성수동방광암": "regional",
+    "성수동빈뇨": "regional",
+    "성수동전립선염": "regional",
+    "성수동콩팥암": "regional",
+    "구의동혈뇨": "regional",
+    "군자동전립선비대증": "regional",
+    "광장동비뇨기과": "regional",
+    "광장동비뇨의학과": "regional",
+    "광장동전립선비대증": "regional",
+    "광장동요로결석": "regional",
+    "구의역전립선결찰술": "regional"
+  },
+  "rowsBySheetKey": {
+    "regional-pc": [
+      {
+        "region": "",
+        "keyword": "광진구비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "광진구비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "광진구요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "광진구전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "광진구전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "광진구전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "광진구혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "광진구고환암"
+      },
+      {
+        "region": "",
+        "keyword": "광진구빈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "광진구방광염"
+      },
+      {
+        "region": "",
+        "keyword": "광진구요도염"
+      },
+      {
+        "region": "",
+        "keyword": "광진구신우신염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구고환암"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구빈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구방광염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구요도염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구신우신염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역고환암"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역빈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역방광염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역요도염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역신우신염"
+      },
+      {
+        "region": "",
+        "keyword": "화양동비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "화양동비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "화양동요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "화양동전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "화양동전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "화양동전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "화양동혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "화양동고환암"
+      },
+      {
+        "region": "",
+        "keyword": "화양동빈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "화양동방광염"
+      },
+      {
+        "region": "",
+        "keyword": "화양동요도염"
+      },
+      {
+        "region": "",
+        "keyword": "화양동신우신염"
+      },
+      {
+        "region": "",
+        "keyword": "자양동비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "자양동비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "자양동요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "자양동전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "자양동전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "자양동전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "자양동혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "자양동고환암"
+      },
+      {
+        "region": "",
+        "keyword": "자양동빈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "자양동방광염"
+      },
+      {
+        "region": "",
+        "keyword": "자양동요도염"
+      },
+      {
+        "region": "",
+        "keyword": "자양동신우신염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구요실금"
+      },
+      {
+        "region": "",
+        "keyword": "자양동비뇨기과포경수술"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역비뇨기과정관수술"
+      },
+      {
+        "region": "",
+        "keyword": "군자동비뇨기과전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "구의동비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "성수동비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "자양역비뇨기의학과"
+      },
+      {
+        "region": "",
+        "keyword": "구의역비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "성수동전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "성수동혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "자양역전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "광진구방광암"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구콩팥암"
+      },
+      {
+        "region": "",
+        "keyword": "화양동야간뇨"
+      },
+      {
+        "region": "",
+        "keyword": "군자동요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "성수동요실금"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역사정"
+      },
+      {
+        "region": "",
+        "keyword": "화양동전립선결찰술"
+      },
+      {
+        "region": "",
+        "keyword": "자양역비임균성요도염"
+      },
+      {
+        "region": "",
+        "keyword": "광진구음낭수종"
+      },
+      {
+        "region": "",
+        "keyword": "광진구비뇨기과소변자주마려움"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역콩팥암"
+      },
+      {
+        "region": "",
+        "keyword": "구의역전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "화양동정계정맥류"
+      },
+      {
+        "region": "",
+        "keyword": "성수동PSA수치"
+      },
+      {
+        "region": "",
+        "keyword": "군자동요실금"
+      },
+      {
+        "region": "",
+        "keyword": "자양역혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "광진구소변안나오는증상"
+      },
+      {
+        "region": "",
+        "keyword": "성수동요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "구의역전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "구의동전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "구의역비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "화양동요실금"
+      },
+      {
+        "region": "",
+        "keyword": "구의동전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "성수동방광염"
+      },
+      {
+        "region": "",
+        "keyword": "구의동요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "자양동방광암"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역요실금"
+      },
+      {
+        "region": "",
+        "keyword": "구의동방광암"
+      },
+      {
+        "region": "",
+        "keyword": "군자동방광암"
+      },
+      {
+        "region": "",
+        "keyword": "군자동빈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "군자동방광염"
+      },
+      {
+        "region": "",
+        "keyword": "군자동비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "군자동비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "군자동전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "군자동전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "군자동혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "군자동콩팥암"
+      },
+      {
+        "region": "",
+        "keyword": "성수동비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "성수동방광암"
+      },
+      {
+        "region": "",
+        "keyword": "성수동빈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "성수동전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "성수동콩팥암"
+      },
+      {
+        "region": "",
+        "keyword": "구의동혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "군자동전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "광장동비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "광장동비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "광장동전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "광장동요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "구의역전립선결찰술"
+      }
+    ],
+    "regional-mob": [
+      {
+        "region": "",
+        "keyword": "광진구비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "광진구비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "광진구요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "광진구전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "광진구전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "광진구전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "광진구혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "광진구고환암"
+      },
+      {
+        "region": "",
+        "keyword": "광진구빈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "광진구방광염"
+      },
+      {
+        "region": "",
+        "keyword": "광진구요도염"
+      },
+      {
+        "region": "",
+        "keyword": "광진구신우신염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구고환암"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구빈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구방광염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구요도염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구신우신염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역고환암"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역빈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역방광염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역요도염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역신우신염"
+      },
+      {
+        "region": "",
+        "keyword": "화양동비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "화양동비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "화양동요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "화양동전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "화양동전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "화양동전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "화양동혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "화양동고환암"
+      },
+      {
+        "region": "",
+        "keyword": "화양동빈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "화양동방광염"
+      },
+      {
+        "region": "",
+        "keyword": "화양동요도염"
+      },
+      {
+        "region": "",
+        "keyword": "화양동신우신염"
+      },
+      {
+        "region": "",
+        "keyword": "자양동비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "자양동비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "자양동요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "자양동전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "자양동전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "자양동전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "자양동혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "자양동고환암"
+      },
+      {
+        "region": "",
+        "keyword": "자양동빈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "자양동방광염"
+      },
+      {
+        "region": "",
+        "keyword": "자양동요도염"
+      },
+      {
+        "region": "",
+        "keyword": "자양동신우신염"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구요실금"
+      },
+      {
+        "region": "",
+        "keyword": "자양동비뇨기과포경수술"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역비뇨기과정관수술"
+      },
+      {
+        "region": "",
+        "keyword": "군자동비뇨기과전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "구의동비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "성수동비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "자양역비뇨기의학과"
+      },
+      {
+        "region": "",
+        "keyword": "구의역비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "성수동전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "성수동혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "자양역전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "광진구방광암"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구콩팥암"
+      },
+      {
+        "region": "",
+        "keyword": "화양동야간뇨"
+      },
+      {
+        "region": "",
+        "keyword": "군자동요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "성수동요실금"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역사정"
+      },
+      {
+        "region": "",
+        "keyword": "화양동전립선결찰술"
+      },
+      {
+        "region": "",
+        "keyword": "자양역비임균성요도염"
+      },
+      {
+        "region": "",
+        "keyword": "광진구음낭수종"
+      },
+      {
+        "region": "",
+        "keyword": "광진구비뇨기과소변자주마려움"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역콩팥암"
+      },
+      {
+        "region": "",
+        "keyword": "구의역전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "화양동정계정맥류"
+      },
+      {
+        "region": "",
+        "keyword": "성수동PSA수치"
+      },
+      {
+        "region": "",
+        "keyword": "군자동요실금"
+      },
+      {
+        "region": "",
+        "keyword": "자양역혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "광진구소변안나오는증상"
+      },
+      {
+        "region": "",
+        "keyword": "성수동요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "구의역전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "구의동전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "구의역비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "화양동요실금"
+      },
+      {
+        "region": "",
+        "keyword": "구의동전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "성수동방광염"
+      },
+      {
+        "region": "",
+        "keyword": "구의동요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "자양동방광암"
+      },
+      {
+        "region": "",
+        "keyword": "건대입구역요실금"
+      },
+      {
+        "region": "",
+        "keyword": "구의동방광암"
+      },
+      {
+        "region": "",
+        "keyword": "군자동방광암"
+      },
+      {
+        "region": "",
+        "keyword": "군자동빈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "군자동방광염"
+      },
+      {
+        "region": "",
+        "keyword": "군자동비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "군자동비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "군자동전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "군자동전립선암"
+      },
+      {
+        "region": "",
+        "keyword": "군자동혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "군자동콩팥암"
+      },
+      {
+        "region": "",
+        "keyword": "성수동비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "성수동방광암"
+      },
+      {
+        "region": "",
+        "keyword": "성수동빈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "성수동전립선염"
+      },
+      {
+        "region": "",
+        "keyword": "성수동콩팥암"
+      },
+      {
+        "region": "",
+        "keyword": "구의동혈뇨"
+      },
+      {
+        "region": "",
+        "keyword": "군자동전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "광장동비뇨기과"
+      },
+      {
+        "region": "",
+        "keyword": "광장동비뇨의학과"
+      },
+      {
+        "region": "",
+        "keyword": "광장동전립선비대증"
+      },
+      {
+        "region": "",
+        "keyword": "광장동요로결석"
+      },
+      {
+        "region": "",
+        "keyword": "구의역전립선결찰술"
+      }
+    ],
+    "national-pc": [],
+    "national-mob": [],
+    "other-pc": [],
+    "other-mob": []
+  },
+  "sheetTitles": {
+    "regional-pc": "2026 지역 PC",
+    "regional-mob": "2026 지역 MOB",
+    "national-pc": "2026 전국 PC",
+    "national-mob": "2026 전국 MOB",
+    "other-pc": "2026 기타 PC",
+    "other-mob": "2026 기타 MOB"
+  }
+}
