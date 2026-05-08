@@ -114,7 +114,20 @@
     "용인드퀘르벵증후군": "all",
     "용인근처정형외과": "all",
     "용인스포츠손상클리닉": "all",
-    "용인스포츠손상병원": "all"
+    "용인스포츠손상병원": "all",
+    "처인구손목병원": "all",
+    "유림동발목통증": "all",
+    "유림동무릎병원": "all",
+    "용인중앙시장역허리병원": "all",
+    "명지대역정형외과": "all",
+    "처인구청무릎정형외과": "all",
+    "중앙동어깨통증": "all",
+    "명지대역무릎치료": "all",
+    "송문리어깨통증": "all",
+    "용인중앙시장역무릎통증": "all",
+    "고진역종합병원": "all",
+    "유림동정형외과": "all",
+    "역북동요추염좌": "all"
   },
   "keywords": [
     "용인정형외과",
@@ -214,109 +227,135 @@
     "용인드퀘르벵증후군",
     "용인근처정형외과",
     "용인스포츠손상클리닉",
-    "용인스포츠손상병원"
+    "용인스포츠손상병원",
+    "처인구손목병원",
+    "유림동발목통증",
+    "유림동무릎병원",
+    "용인중앙시장역허리병원",
+    "명지대역정형외과",
+    "처인구청무릎정형외과",
+    "중앙동어깨통증",
+    "명지대역무릎치료",
+    "송문리어깨통증",
+    "용인중앙시장역무릎통증",
+    "고진역종합병원",
+    "유림동정형외과",
+    "역북동요추염좌"
   ],
   "scoringNote": "API 자동 탭(지도/카페/보도자료/웹)은 1위=3점, 2~5위=2점, 6~10위=1점, 미노출=0점. 블로그는 hospitalBlogBases의 네이버 블로그 ID와 글/bloggerlink가 일치하면 인정하거나, 작성자·링크에 병원 토큰이 있으면 인정(제목·본문만 일치는 제외). 작성일은 blogRequirePostMonth·scoringYear·monthLabel로 제한. 파워링크/비즈사이트/동영상은 API 한계로 미지원(None).",
   "hospitalName": "서울본정형외과",
   "keywordScopes": {
-    "용인정형외과": "regional",
-    "용인시정형외과": "regional",
-    "처인구정형외과": "regional",
-    "송담대역정형외과": "regional",
-    "송담대정형외과": "regional",
-    "김량장동정형외과": "regional",
-    "김량장정형외과": "regional",
-    "역북동정형외과": "regional",
-    "역북정형외과": "regional",
-    "용인도수치료": "regional",
-    "용인시도수치료": "regional",
-    "처인구도수치료": "regional",
-    "송담대역도수치료": "regional",
-    "김량장동도수치료": "regional",
-    "역북동도수치료": "regional",
-    "용인신경외과": "regional",
-    "용인시신경외과": "regional",
-    "처인구신경외과": "regional",
-    "송담대역신경외과": "regional",
-    "김량장동신경외과": "regional",
-    "역북동신경외과": "regional",
-    "용인통증": "regional",
-    "용인시통증": "regional",
-    "처인구통증": "regional",
-    "송담대역통증": "regional",
-    "용인골절": "regional",
-    "용인시골절": "regional",
-    "처인구골절": "regional",
-    "송담대역골절": "regional",
-    "용인물리치료": "regional",
-    "용인시물리치료": "regional",
-    "처인구물리치료": "regional",
-    "송담대물리치료": "regional",
-    "용인소아정형외과": "regional",
-    "용인시소아정형외과": "regional",
-    "용인무릎": "regional",
-    "용인무릎병원": "regional",
-    "용인시무릎": "regional",
-    "용인시무릎병원": "regional",
-    "용인무릎통증": "regional",
-    "용인시무릎통증": "regional",
-    "용인어깨": "regional",
-    "용인어깨병원": "regional",
-    "용인시어깨": "regional",
-    "용인시어깨병원": "regional",
-    "용인어깨통증": "regional",
-    "용인시어깨통증": "regional",
-    "용인야간진료": "regional",
-    "용인시야간진료": "regional",
-    "용인정형외과추천": "regional",
-    "용인시정형외과추천": "regional",
-    "처인구야간진료": "regional",
-    "처인구정형외과추천": "regional",
-    "용인처인구정형외과": "regional",
-    "용인처인구신경외과": "regional",
-    "처인구무릎통증": "regional",
-    "처인구허리통증": "regional",
-    "처인구어깨통증": "regional",
-    "용인소아골절": "regional",
-    "용인중앙시장정형외과": "regional",
-    "용인중앙시장신경외과": "regional",
-    "용인중앙시장야간진료": "regional",
-    "김량장동물리치료": "regional",
-    "김량장동어깨병원": "regional",
-    "역북동물리치료": "regional",
-    "역북동무릎병원": "regional",
-    "역북동어깨병원": "regional",
-    "김량장동무릎병원": "regional",
-    "처인구소아정형외과": "regional",
-    "용인오십견치료": "regional",
-    "용인허리통증": "regional",
-    "처인구재활치료": "regional",
-    "용인소아평발": "regional",
-    "처인구관절병원": "regional",
-    "용인발목골절": "regional",
-    "처인구거북목": "regional",
-    "처인구방아쇠수지증": "regional",
-    "용인목디스크": "regional",
-    "처인구일자목": "regional",
-    "용인척추관협착증": "regional",
-    "김량장동손목통증": "regional",
-    "처인구협착증치료": "regional",
-    "처인구어깨치료": "regional",
-    "용인거북목": "regional",
-    "처인구팔꿈치통증": "regional",
-    "용인손목통증": "regional",
-    "처인구허리디스크": "regional",
-    "처인구손목통증": "regional",
-    "역북동고관절충돌증후군": "regional",
-    "역북동야간진료": "regional",
-    "용인석회화건염": "regional",
-    "김량장동아킬레스건염": "regional",
-    "용인방아쇠수지": "regional",
-    "처인구척추굽음": "regional",
-    "용인드퀘르벵증후군": "regional",
-    "용인근처정형외과": "regional",
-    "용인스포츠손상클리닉": "regional",
-    "용인스포츠손상병원": "regional"
+    "용인정형외과": "all",
+    "용인시정형외과": "all",
+    "처인구정형외과": "all",
+    "송담대역정형외과": "all",
+    "송담대정형외과": "all",
+    "김량장동정형외과": "all",
+    "김량장정형외과": "all",
+    "역북동정형외과": "all",
+    "역북정형외과": "all",
+    "용인도수치료": "all",
+    "용인시도수치료": "all",
+    "처인구도수치료": "all",
+    "송담대역도수치료": "all",
+    "김량장동도수치료": "all",
+    "역북동도수치료": "all",
+    "용인신경외과": "all",
+    "용인시신경외과": "all",
+    "처인구신경외과": "all",
+    "송담대역신경외과": "all",
+    "김량장동신경외과": "all",
+    "역북동신경외과": "all",
+    "용인통증": "all",
+    "용인시통증": "all",
+    "처인구통증": "all",
+    "송담대역통증": "all",
+    "용인골절": "all",
+    "용인시골절": "all",
+    "처인구골절": "all",
+    "송담대역골절": "all",
+    "용인물리치료": "all",
+    "용인시물리치료": "all",
+    "처인구물리치료": "all",
+    "송담대물리치료": "all",
+    "용인소아정형외과": "all",
+    "용인시소아정형외과": "all",
+    "용인무릎": "all",
+    "용인무릎병원": "all",
+    "용인시무릎": "all",
+    "용인시무릎병원": "all",
+    "용인무릎통증": "all",
+    "용인시무릎통증": "all",
+    "용인어깨": "all",
+    "용인어깨병원": "all",
+    "용인시어깨": "all",
+    "용인시어깨병원": "all",
+    "용인어깨통증": "all",
+    "용인시어깨통증": "all",
+    "용인야간진료": "all",
+    "용인시야간진료": "all",
+    "용인정형외과추천": "all",
+    "용인시정형외과추천": "all",
+    "처인구야간진료": "all",
+    "처인구정형외과추천": "all",
+    "용인처인구정형외과": "all",
+    "용인처인구신경외과": "all",
+    "처인구무릎통증": "all",
+    "처인구허리통증": "all",
+    "처인구어깨통증": "all",
+    "용인소아골절": "all",
+    "용인중앙시장정형외과": "all",
+    "용인중앙시장신경외과": "all",
+    "용인중앙시장야간진료": "all",
+    "김량장동물리치료": "all",
+    "김량장동어깨병원": "all",
+    "역북동물리치료": "all",
+    "역북동무릎병원": "all",
+    "역북동어깨병원": "all",
+    "김량장동무릎병원": "all",
+    "처인구소아정형외과": "all",
+    "용인오십견치료": "all",
+    "용인허리통증": "all",
+    "처인구재활치료": "all",
+    "용인소아평발": "all",
+    "처인구관절병원": "all",
+    "용인발목골절": "all",
+    "처인구거북목": "all",
+    "처인구방아쇠수지증": "all",
+    "용인목디스크": "all",
+    "처인구일자목": "all",
+    "용인척추관협착증": "all",
+    "김량장동손목통증": "all",
+    "처인구협착증치료": "all",
+    "처인구어깨치료": "all",
+    "용인거북목": "all",
+    "처인구팔꿈치통증": "all",
+    "용인손목통증": "all",
+    "처인구허리디스크": "all",
+    "처인구손목통증": "all",
+    "역북동고관절충돌증후군": "all",
+    "역북동야간진료": "all",
+    "용인석회화건염": "all",
+    "김량장동아킬레스건염": "all",
+    "용인방아쇠수지": "all",
+    "처인구척추굽음": "all",
+    "용인드퀘르벵증후군": "all",
+    "용인근처정형외과": "all",
+    "용인스포츠손상클리닉": "all",
+    "용인스포츠손상병원": "regional",
+    "처인구손목병원": "all",
+    "유림동발목통증": "all",
+    "유림동무릎병원": "all",
+    "용인중앙시장역허리병원": "all",
+    "명지대역정형외과": "all",
+    "처인구청무릎정형외과": "all",
+    "중앙동어깨통증": "all",
+    "명지대역무릎치료": "all",
+    "송문리어깨통증": "all",
+    "용인중앙시장역무릎통증": "all",
+    "고진역종합병원": "all",
+    "유림동정형외과": "all",
+    "역북동요추염좌": "all"
   },
   "rowsBySheetKey": {
     "regional-pc": [
@@ -711,6 +750,58 @@
       {
         "region": "",
         "keyword": "용인스포츠손상병원"
+      },
+      {
+        "region": "",
+        "keyword": "처인구손목병원"
+      },
+      {
+        "region": "",
+        "keyword": "유림동발목통증"
+      },
+      {
+        "region": "",
+        "keyword": "유림동무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장역허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "명지대역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구청무릎정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "중앙동어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "명지대역무릎치료"
+      },
+      {
+        "region": "",
+        "keyword": "송문리어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장역무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "고진역종합병원"
+      },
+      {
+        "region": "",
+        "keyword": "유림동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북동요추염좌"
       }
     ],
     "regional-mob": [
@@ -1105,12 +1196,1828 @@
       {
         "region": "",
         "keyword": "용인스포츠손상병원"
+      },
+      {
+        "region": "",
+        "keyword": "처인구손목병원"
+      },
+      {
+        "region": "",
+        "keyword": "유림동발목통증"
+      },
+      {
+        "region": "",
+        "keyword": "유림동무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장역허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "명지대역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구청무릎정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "중앙동어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "명지대역무릎치료"
+      },
+      {
+        "region": "",
+        "keyword": "송문리어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장역무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "고진역종합병원"
+      },
+      {
+        "region": "",
+        "keyword": "유림동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북동요추염좌"
       }
     ],
-    "national-pc": [],
-    "national-mob": [],
-    "other-pc": [],
-    "other-mob": []
+    "national-pc": [
+      {
+        "region": "",
+        "keyword": "용인정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인시정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "송담대정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "김량장정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인시도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "역북동도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인시신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인시통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구통증"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인골절"
+      },
+      {
+        "region": "",
+        "keyword": "용인시골절"
+      },
+      {
+        "region": "",
+        "keyword": "처인구골절"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역골절"
+      },
+      {
+        "region": "",
+        "keyword": "용인물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인시물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "송담대물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인시소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인무릎"
+      },
+      {
+        "region": "",
+        "keyword": "용인무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인시무릎"
+      },
+      {
+        "region": "",
+        "keyword": "용인시무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인시무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인어깨"
+      },
+      {
+        "region": "",
+        "keyword": "용인어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인시어깨"
+      },
+      {
+        "region": "",
+        "keyword": "용인시어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인시어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "용인시야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "용인정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "용인시정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "처인구야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "용인처인구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인처인구신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인소아골절"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "역북동물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "역북동무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "역북동어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "처인구소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인오십견치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구재활치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인소아평발"
+      },
+      {
+        "region": "",
+        "keyword": "처인구관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인발목골절"
+      },
+      {
+        "region": "",
+        "keyword": "처인구거북목"
+      },
+      {
+        "region": "",
+        "keyword": "처인구방아쇠수지증"
+      },
+      {
+        "region": "",
+        "keyword": "용인목디스크"
+      },
+      {
+        "region": "",
+        "keyword": "처인구일자목"
+      },
+      {
+        "region": "",
+        "keyword": "용인척추관협착증"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구협착증치료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구어깨치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인거북목"
+      },
+      {
+        "region": "",
+        "keyword": "처인구팔꿈치통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "처인구손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "역북동고관절충돌증후군"
+      },
+      {
+        "region": "",
+        "keyword": "역북동야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "용인석회화건염"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동아킬레스건염"
+      },
+      {
+        "region": "",
+        "keyword": "용인방아쇠수지"
+      },
+      {
+        "region": "",
+        "keyword": "처인구척추굽음"
+      },
+      {
+        "region": "",
+        "keyword": "용인드퀘르벵증후군"
+      },
+      {
+        "region": "",
+        "keyword": "용인근처정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인스포츠손상클리닉"
+      },
+      {
+        "region": "",
+        "keyword": "처인구손목병원"
+      },
+      {
+        "region": "",
+        "keyword": "유림동발목통증"
+      },
+      {
+        "region": "",
+        "keyword": "유림동무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장역허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "명지대역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구청무릎정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "중앙동어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "명지대역무릎치료"
+      },
+      {
+        "region": "",
+        "keyword": "송문리어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장역무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "고진역종합병원"
+      },
+      {
+        "region": "",
+        "keyword": "유림동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북동요추염좌"
+      }
+    ],
+    "national-mob": [
+      {
+        "region": "",
+        "keyword": "용인정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인시정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "송담대정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "김량장정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인시도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "역북동도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인시신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인시통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구통증"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인골절"
+      },
+      {
+        "region": "",
+        "keyword": "용인시골절"
+      },
+      {
+        "region": "",
+        "keyword": "처인구골절"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역골절"
+      },
+      {
+        "region": "",
+        "keyword": "용인물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인시물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "송담대물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인시소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인무릎"
+      },
+      {
+        "region": "",
+        "keyword": "용인무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인시무릎"
+      },
+      {
+        "region": "",
+        "keyword": "용인시무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인시무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인어깨"
+      },
+      {
+        "region": "",
+        "keyword": "용인어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인시어깨"
+      },
+      {
+        "region": "",
+        "keyword": "용인시어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인시어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "용인시야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "용인정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "용인시정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "처인구야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "용인처인구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인처인구신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인소아골절"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "역북동물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "역북동무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "역북동어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "처인구소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인오십견치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구재활치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인소아평발"
+      },
+      {
+        "region": "",
+        "keyword": "처인구관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인발목골절"
+      },
+      {
+        "region": "",
+        "keyword": "처인구거북목"
+      },
+      {
+        "region": "",
+        "keyword": "처인구방아쇠수지증"
+      },
+      {
+        "region": "",
+        "keyword": "용인목디스크"
+      },
+      {
+        "region": "",
+        "keyword": "처인구일자목"
+      },
+      {
+        "region": "",
+        "keyword": "용인척추관협착증"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구협착증치료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구어깨치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인거북목"
+      },
+      {
+        "region": "",
+        "keyword": "처인구팔꿈치통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "처인구손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "역북동고관절충돌증후군"
+      },
+      {
+        "region": "",
+        "keyword": "역북동야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "용인석회화건염"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동아킬레스건염"
+      },
+      {
+        "region": "",
+        "keyword": "용인방아쇠수지"
+      },
+      {
+        "region": "",
+        "keyword": "처인구척추굽음"
+      },
+      {
+        "region": "",
+        "keyword": "용인드퀘르벵증후군"
+      },
+      {
+        "region": "",
+        "keyword": "용인근처정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인스포츠손상클리닉"
+      },
+      {
+        "region": "",
+        "keyword": "처인구손목병원"
+      },
+      {
+        "region": "",
+        "keyword": "유림동발목통증"
+      },
+      {
+        "region": "",
+        "keyword": "유림동무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장역허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "명지대역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구청무릎정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "중앙동어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "명지대역무릎치료"
+      },
+      {
+        "region": "",
+        "keyword": "송문리어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장역무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "고진역종합병원"
+      },
+      {
+        "region": "",
+        "keyword": "유림동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북동요추염좌"
+      }
+    ],
+    "other-pc": [
+      {
+        "region": "",
+        "keyword": "용인정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인시정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "송담대정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "김량장정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인시도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "역북동도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인시신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인시통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구통증"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인골절"
+      },
+      {
+        "region": "",
+        "keyword": "용인시골절"
+      },
+      {
+        "region": "",
+        "keyword": "처인구골절"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역골절"
+      },
+      {
+        "region": "",
+        "keyword": "용인물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인시물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "송담대물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인시소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인무릎"
+      },
+      {
+        "region": "",
+        "keyword": "용인무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인시무릎"
+      },
+      {
+        "region": "",
+        "keyword": "용인시무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인시무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인어깨"
+      },
+      {
+        "region": "",
+        "keyword": "용인어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인시어깨"
+      },
+      {
+        "region": "",
+        "keyword": "용인시어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인시어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "용인시야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "용인정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "용인시정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "처인구야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "용인처인구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인처인구신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인소아골절"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "역북동물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "역북동무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "역북동어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "처인구소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인오십견치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구재활치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인소아평발"
+      },
+      {
+        "region": "",
+        "keyword": "처인구관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인발목골절"
+      },
+      {
+        "region": "",
+        "keyword": "처인구거북목"
+      },
+      {
+        "region": "",
+        "keyword": "처인구방아쇠수지증"
+      },
+      {
+        "region": "",
+        "keyword": "용인목디스크"
+      },
+      {
+        "region": "",
+        "keyword": "처인구일자목"
+      },
+      {
+        "region": "",
+        "keyword": "용인척추관협착증"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구협착증치료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구어깨치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인거북목"
+      },
+      {
+        "region": "",
+        "keyword": "처인구팔꿈치통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "처인구손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "역북동고관절충돌증후군"
+      },
+      {
+        "region": "",
+        "keyword": "역북동야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "용인석회화건염"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동아킬레스건염"
+      },
+      {
+        "region": "",
+        "keyword": "용인방아쇠수지"
+      },
+      {
+        "region": "",
+        "keyword": "처인구척추굽음"
+      },
+      {
+        "region": "",
+        "keyword": "용인드퀘르벵증후군"
+      },
+      {
+        "region": "",
+        "keyword": "용인근처정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인스포츠손상클리닉"
+      },
+      {
+        "region": "",
+        "keyword": "처인구손목병원"
+      },
+      {
+        "region": "",
+        "keyword": "유림동발목통증"
+      },
+      {
+        "region": "",
+        "keyword": "유림동무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장역허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "명지대역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구청무릎정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "중앙동어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "명지대역무릎치료"
+      },
+      {
+        "region": "",
+        "keyword": "송문리어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장역무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "고진역종합병원"
+      },
+      {
+        "region": "",
+        "keyword": "유림동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북동요추염좌"
+      }
+    ],
+    "other-mob": [
+      {
+        "region": "",
+        "keyword": "용인정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인시정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "송담대정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "김량장정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인시도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "역북동도수치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인시신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북동신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인시통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구통증"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인골절"
+      },
+      {
+        "region": "",
+        "keyword": "용인시골절"
+      },
+      {
+        "region": "",
+        "keyword": "처인구골절"
+      },
+      {
+        "region": "",
+        "keyword": "송담대역골절"
+      },
+      {
+        "region": "",
+        "keyword": "용인물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인시물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "송담대물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인시소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인무릎"
+      },
+      {
+        "region": "",
+        "keyword": "용인무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인시무릎"
+      },
+      {
+        "region": "",
+        "keyword": "용인시무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인시무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인어깨"
+      },
+      {
+        "region": "",
+        "keyword": "용인어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인시어깨"
+      },
+      {
+        "region": "",
+        "keyword": "용인시어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인시어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "용인시야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "용인정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "용인시정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "처인구야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구정형외과추천"
+      },
+      {
+        "region": "",
+        "keyword": "용인처인구정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인처인구신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인소아골절"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장신경외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "역북동물리치료"
+      },
+      {
+        "region": "",
+        "keyword": "역북동무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "역북동어깨병원"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "처인구소아정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인오십견치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인허리통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구재활치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인소아평발"
+      },
+      {
+        "region": "",
+        "keyword": "처인구관절병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인발목골절"
+      },
+      {
+        "region": "",
+        "keyword": "처인구거북목"
+      },
+      {
+        "region": "",
+        "keyword": "처인구방아쇠수지증"
+      },
+      {
+        "region": "",
+        "keyword": "용인목디스크"
+      },
+      {
+        "region": "",
+        "keyword": "처인구일자목"
+      },
+      {
+        "region": "",
+        "keyword": "용인척추관협착증"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구협착증치료"
+      },
+      {
+        "region": "",
+        "keyword": "처인구어깨치료"
+      },
+      {
+        "region": "",
+        "keyword": "용인거북목"
+      },
+      {
+        "region": "",
+        "keyword": "처인구팔꿈치통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "처인구허리디스크"
+      },
+      {
+        "region": "",
+        "keyword": "처인구손목통증"
+      },
+      {
+        "region": "",
+        "keyword": "역북동고관절충돌증후군"
+      },
+      {
+        "region": "",
+        "keyword": "역북동야간진료"
+      },
+      {
+        "region": "",
+        "keyword": "용인석회화건염"
+      },
+      {
+        "region": "",
+        "keyword": "김량장동아킬레스건염"
+      },
+      {
+        "region": "",
+        "keyword": "용인방아쇠수지"
+      },
+      {
+        "region": "",
+        "keyword": "처인구척추굽음"
+      },
+      {
+        "region": "",
+        "keyword": "용인드퀘르벵증후군"
+      },
+      {
+        "region": "",
+        "keyword": "용인근처정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "용인스포츠손상클리닉"
+      },
+      {
+        "region": "",
+        "keyword": "처인구손목병원"
+      },
+      {
+        "region": "",
+        "keyword": "유림동발목통증"
+      },
+      {
+        "region": "",
+        "keyword": "유림동무릎병원"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장역허리병원"
+      },
+      {
+        "region": "",
+        "keyword": "명지대역정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "처인구청무릎정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "중앙동어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "명지대역무릎치료"
+      },
+      {
+        "region": "",
+        "keyword": "송문리어깨통증"
+      },
+      {
+        "region": "",
+        "keyword": "용인중앙시장역무릎통증"
+      },
+      {
+        "region": "",
+        "keyword": "고진역종합병원"
+      },
+      {
+        "region": "",
+        "keyword": "유림동정형외과"
+      },
+      {
+        "region": "",
+        "keyword": "역북동요추염좌"
+      }
+    ]
   },
   "sheetTitles": {
     "regional-pc": "2026 지역 PC",
@@ -1119,5 +3026,117 @@
     "national-mob": "2026 전국 MOB",
     "other-pc": "2026 기타 PC",
     "other-mob": "2026 기타 MOB"
-  }
+  },
+  "forceRescoreKeywords": [
+    "용인정형외과",
+    "용인시정형외과",
+    "처인구정형외과",
+    "송담대역정형외과",
+    "송담대정형외과",
+    "김량장동정형외과",
+    "김량장정형외과",
+    "역북동정형외과",
+    "역북정형외과",
+    "용인도수치료",
+    "용인시도수치료",
+    "처인구도수치료",
+    "송담대역도수치료",
+    "김량장동도수치료",
+    "역북동도수치료",
+    "용인신경외과",
+    "용인시신경외과",
+    "처인구신경외과",
+    "송담대역신경외과",
+    "김량장동신경외과",
+    "역북동신경외과",
+    "용인통증",
+    "용인시통증",
+    "처인구통증",
+    "송담대역통증",
+    "용인골절",
+    "용인시골절",
+    "처인구골절",
+    "송담대역골절",
+    "용인물리치료",
+    "용인시물리치료",
+    "처인구물리치료",
+    "송담대물리치료",
+    "용인소아정형외과",
+    "용인시소아정형외과",
+    "용인무릎",
+    "용인무릎병원",
+    "용인시무릎",
+    "용인시무릎병원",
+    "용인무릎통증",
+    "용인시무릎통증",
+    "용인어깨",
+    "용인어깨병원",
+    "용인시어깨",
+    "용인시어깨병원",
+    "용인어깨통증",
+    "용인시어깨통증",
+    "용인야간진료",
+    "용인시야간진료",
+    "용인정형외과추천",
+    "용인시정형외과추천",
+    "처인구야간진료",
+    "처인구정형외과추천",
+    "용인처인구정형외과",
+    "용인처인구신경외과",
+    "처인구무릎통증",
+    "처인구허리통증",
+    "처인구어깨통증",
+    "용인소아골절",
+    "용인중앙시장정형외과",
+    "용인중앙시장신경외과",
+    "용인중앙시장야간진료",
+    "김량장동물리치료",
+    "김량장동어깨병원",
+    "역북동물리치료",
+    "역북동어깨병원",
+    "역북동무릎병원",
+    "김량장동무릎병원",
+    "처인구소아정형외과",
+    "용인오십견치료",
+    "용인허리통증",
+    "처인구재활치료",
+    "용인소아평발",
+    "처인구관절병원",
+    "용인발목골절",
+    "처인구거북목",
+    "처인구방아쇠수지증",
+    "용인목디스크",
+    "처인구일자목",
+    "용인척추관협착증",
+    "김량장동손목통증",
+    "처인구협착증치료",
+    "처인구어깨치료",
+    "용인거북목",
+    "처인구팔꿈치통증",
+    "용인손목통증",
+    "처인구허리디스크",
+    "처인구손목통증",
+    "역북동고관절충돌증후군",
+    "역북동야간진료",
+    "용인석회화건염",
+    "김량장동아킬레스건염",
+    "용인방아쇠수지",
+    "처인구척추굽음",
+    "용인드퀘르벵증후군",
+    "용인근처정형외과",
+    "용인스포츠손상클리닉",
+    "처인구손목병원",
+    "유림동발목통증",
+    "유림동무릎병원",
+    "용인중앙시장역허리병원",
+    "명지대역정형외과",
+    "처인구청무릎정형외과",
+    "중앙동어깨통증",
+    "명지대역무릎치료",
+    "송문리어깨통증",
+    "용인중앙시장역무릎통증",
+    "고진역종합병원",
+    "유림동정형외과",
+    "역북동요추염좌"
+  ]
 }
