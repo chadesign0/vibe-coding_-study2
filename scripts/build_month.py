@@ -517,6 +517,12 @@ def find_rank_by_api_tab(
         return None, {"reason": "unsupported endpoint"}
     items = api_search(client_id, client_secret, endpoint, query)
     if items is None:
+        # map: 공식 지역 API 호출 자체 실패해도 통합검색 plat 카드(drt 메타)에서 fallback 매칭 시도
+        if tab == "map":
+            fb_rank, fb_ev = _try_map_drt_fallback(query, match_tokens, primary_basis="api_error")
+            if fb_rank > 0:
+                return fb_rank, fb_ev
+            return 0, {"reason": "api_error", **fb_ev}
         return None, {"reason": "api_error"}
     if tab == "blog":
         return analyze_blog_search_items(items, match_tokens, blog_period, official_blog_ids)
@@ -573,6 +579,12 @@ def find_rank_by_api_tab(
             extra["matched_text"] = txt[:220]
             if has_date_filter:
                 extra["matched_date"] = date_val
+    # map: 공식 지역 API top10에 매칭 없을 때 통합검색 plat 카드(drt 메타) fallback
+    if tab == "map" and matched == 0:
+        fb_rank, fb_ev = _try_map_drt_fallback(query, match_tokens, primary_basis="api_top10_no_match")
+        if fb_rank > 0:
+            return fb_rank, {**fb_ev, "primaryApiTop": top}
+        extra["drtFallback"] = fb_ev
     return (matched if matched else 0), {"top": top, "matched_rank": matched, **extra}
 
 
@@ -614,6 +626,44 @@ def fetch_integrated_search_page(query: str) -> str | None:
                 continue
         time.sleep(random.uniform(1.5, 3.5))
     return None
+
+
+_DRT_META_RE = re.compile(r'"id":"(\d+)","dbType":"drt","name":"([^"]+)"')
+
+
+def _try_map_drt_fallback(query: str, match_tokens: list[str], *, primary_basis: str) -> tuple[int, dict[str, Any]]:
+    """
+    NAVER 공식 지역검색 API top10 매칭 실패 시 통합검색 페이지의 플레이스 카드(drt 메타) fallback.
+
+    NAVER 공식 지역검색 API(local.json)는 통상 5건만 반환하며 거리·텍스트 매칭 기반.
+    통합검색 페이지의 플레이스 카드는 위치/카테고리/리뷰 종합 추천 결과로 다른 hospital list가 노출될 수 있다.
+    사용자가 브라우저에서 보는 화면 = 통합검색 카드라 0점 미스매치를 보강한다.
+
+    drt 메타는 통상 8건. 그 안에 매칭되면 해당 순위(1~8) 부여, 없으면 0점.
+    """
+    ht = fetch_integrated_search_page(query)
+    if not ht:
+        return 0, {
+            "matched_rank": 0,
+            "basis": "drt_fallback_fetch_failed",
+            "primaryBasis": primary_basis,
+        }
+    metas = _DRT_META_RE.findall(ht)
+    top: list[dict[str, Any]] = []
+    matched = 0
+    for i, (pid, name) in enumerate(metas[:8], start=1):
+        ntxt = normalize_text(name)
+        is_match = any(t in ntxt for t in match_tokens)
+        top.append({"rank": i, "name": name, "id": pid, "match": is_match})
+        if matched == 0 and is_match:
+            matched = i
+    return matched, {
+        "matched_rank": matched,
+        "basis": "integrated_search_drt_fallback",
+        "drtTop": top,
+        "drtCount": len(metas),
+        "primaryBasis": primary_basis,
+    }
 
 
 def fetch_powerlink_more_page(query: str) -> str | None:
@@ -1289,6 +1339,49 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                         processedKeywords=idx,
                         stage="scoring",
                     )
+
+    # Playwright 보조 채점 — 전 채널 0점인 keyword만 재검증.
+    # cafe는 전역 비활성화로 trivially 0이므로 의미 있는 7개 채널 기준으로 판정.
+    verify_enabled = (os.getenv("PLAYWRIGHT_VERIFY_ENABLED") or "1").strip().lower() in {"1", "true", "yes"}
+    if verify_enabled:
+        meaningful_channels = ("powerlink", "bizsite", "map", "blog", "news", "video", "web")
+        zero_keywords = [
+            kw for kw, ch_ranks in out.items()
+            if all((ch_ranks.get(c) or 0) == 0 for c in meaningful_channels)
+        ]
+        if zero_keywords:
+            print(f"\n[playwright_verify] 전 채널 0점 키워드 {len(zero_keywords)}개 재검증 시작", flush=True)
+            if report_progress:
+                post_progress_webhook(
+                    status="running",
+                    message=f"Playwright 재검증 {len(zero_keywords)}개 키워드",
+                    stage="playwright_verify",
+                )
+            try:
+                from playwright_verify import verify_zero_keywords
+                verify_results = verify_zero_keywords(zero_keywords, match_tokens, official_blog_ids)
+                patched = 0
+                for kw, ch_ranks in verify_results.items():
+                    if not ch_ranks:
+                        continue
+                    kw_out = out.get(kw)
+                    if not kw_out:
+                        continue
+                    for ch, rank in ch_ranks.items():
+                        if (kw_out.get(ch) or 0) == 0 and rank > 0:
+                            kw_out[ch] = rank
+                            patched += 1
+                            ev_kw = ev_all.setdefault(kw, {})
+                            ev_ch = ev_kw.get(ch) or {}
+                            if not isinstance(ev_ch, dict):
+                                ev_ch = {"original": ev_ch}
+                            ev_ch["playwrightVerify"] = {"rank": rank, "via": "integrated_search_dom"}
+                            ev_kw[ch] = ev_ch
+                print(f"[playwright_verify] 보강된 점수 {patched}개", flush=True)
+            except ImportError as e:
+                print(f"[playwright_verify] playwright 미설치 (스킵): {e!r}", flush=True)
+            except Exception as e:
+                print(f"[playwright_verify] 실행 실패 (스킵): {e!r}", flush=True)
 
     return out, ev_all
 

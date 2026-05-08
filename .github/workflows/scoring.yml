@@ -52,6 +52,8 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          # Playwright 브라우저 설치 — 전 채널 0점 키워드 보조 채점에 사용 (PLAYWRIGHT_VERIFY_ENABLED 제어)
+          python -m playwright install --with-deps chromium
 
       - name: 4. 시작 webhook 통지
         run: |
@@ -69,6 +71,7 @@ jobs:
           SCORING_WEBHOOK_URL: ${{ inputs.webhook_url }}
           SCORING_WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           SCORING_VERIFY_SAMPLE: ${{ vars.SCORING_VERIFY_SAMPLE || '1' }}
+          PLAYWRIGHT_VERIFY_ENABLED: ${{ vars.PLAYWRIGHT_VERIFY_ENABLED || '1' }}
           NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
           NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
           NAVER_AD_API_KEY: ${{ secrets.NAVER_AD_API_KEY }}
