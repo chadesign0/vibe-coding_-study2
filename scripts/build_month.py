@@ -517,6 +517,12 @@ def find_rank_by_api_tab(
         return None, {"reason": "unsupported endpoint"}
     items = api_search(client_id, client_secret, endpoint, query)
     if items is None:
+        # map: 공식 지역 API 호출 자체 실패해도 통합검색 plat 카드(drt 메타)에서 fallback 매칭 시도
+        if tab == "map":
+            fb_rank, fb_ev = _try_map_drt_fallback(query, match_tokens, primary_basis="api_error")
+            if fb_rank > 0:
+                return fb_rank, fb_ev
+            return 0, {"reason": "api_error", **fb_ev}
         return None, {"reason": "api_error"}
     if tab == "blog":
         return analyze_blog_search_items(items, match_tokens, blog_period, official_blog_ids)
@@ -573,6 +579,12 @@ def find_rank_by_api_tab(
             extra["matched_text"] = txt[:220]
             if has_date_filter:
                 extra["matched_date"] = date_val
+    # map: 공식 지역 API top10에 매칭 없을 때 통합검색 plat 카드(drt 메타) fallback
+    if tab == "map" and matched == 0:
+        fb_rank, fb_ev = _try_map_drt_fallback(query, match_tokens, primary_basis="api_top10_no_match")
+        if fb_rank > 0:
+            return fb_rank, {**fb_ev, "primaryApiTop": top}
+        extra["drtFallback"] = fb_ev
     return (matched if matched else 0), {"top": top, "matched_rank": matched, **extra}
 
 
@@ -596,7 +608,23 @@ def fetch_search_page(query: str, where: str | None = None) -> str | None:
     return None
 
 
+_INTEGRATED_HTML_CACHE: dict[str, str] = {}
+_INTEGRATED_HTML_CACHE_LOCK = threading.Lock()
+_INTEGRATED_HTML_CACHE_MAX = 64
+
+
 def fetch_integrated_search_page(query: str) -> str | None:
+    """통합검색 페이지 fetch. 같은 query는 thread-safe 캐시(maxsize=64)로 재사용.
+
+    map(drt fallback) / web / video fallback / powerlink·bizsite fallback이
+    같은 query의 통합검색 HTML을 공유. 추가 fetch를 0회로 줄여 throttle 영향 최소화.
+    fetch 실패(None)는 캐시하지 않아 다음 호출에서 재시도 가능.
+    """
+    with _INTEGRATED_HTML_CACHE_LOCK:
+        cached = _INTEGRATED_HTML_CACHE.get(query)
+    if cached is not None:
+        return cached
+
     urls = [
         "https://search.naver.com/search.naver?where=nexearch&sm=tab_jum&ssc=tab.nx.all&query=" + quote_plus(query),
         "https://search.naver.com/search.naver?query=" + quote_plus(query),
@@ -609,11 +637,56 @@ def fetch_integrated_search_page(query: str) -> str | None:
                 if r.status_code >= 400:
                     continue
                 time.sleep(random.uniform(1.5, 3.5))
-                return decode_response_text(r)
+                html_text = decode_response_text(r)
+                if html_text:
+                    with _INTEGRATED_HTML_CACHE_LOCK:
+                        if len(_INTEGRATED_HTML_CACHE) >= _INTEGRATED_HTML_CACHE_MAX:
+                            # 단순 LRU: 가장 오래된 항목 1개 제거
+                            _INTEGRATED_HTML_CACHE.pop(next(iter(_INTEGRATED_HTML_CACHE)))
+                        _INTEGRATED_HTML_CACHE[query] = html_text
+                return html_text
             except Exception:
                 continue
         time.sleep(random.uniform(1.5, 3.5))
     return None
+
+
+_DRT_META_RE = re.compile(r'"id":"(\d+)","dbType":"drt","name":"([^"]+)"')
+
+
+def _try_map_drt_fallback(query: str, match_tokens: list[str], *, primary_basis: str) -> tuple[int, dict[str, Any]]:
+    """
+    NAVER 공식 지역검색 API top10 매칭 실패 시 통합검색 페이지의 플레이스 카드(drt 메타) fallback.
+
+    NAVER 공식 지역검색 API(local.json)는 통상 5건만 반환하며 거리·텍스트 매칭 기반.
+    통합검색 페이지의 플레이스 카드는 위치/카테고리/리뷰 종합 추천 결과로 다른 hospital list가 노출될 수 있다.
+    사용자가 브라우저에서 보는 화면 = 통합검색 카드라 0점 미스매치를 보강한다.
+
+    drt 메타는 통상 8건. 그 안에 매칭되면 해당 순위(1~8) 부여, 없으면 0점.
+    """
+    ht = fetch_integrated_search_page(query)
+    if not ht:
+        return 0, {
+            "matched_rank": 0,
+            "basis": "drt_fallback_fetch_failed",
+            "primaryBasis": primary_basis,
+        }
+    metas = _DRT_META_RE.findall(ht)
+    top: list[dict[str, Any]] = []
+    matched = 0
+    for i, (pid, name) in enumerate(metas[:8], start=1):
+        ntxt = normalize_text(name)
+        is_match = any(t in ntxt for t in match_tokens)
+        top.append({"rank": i, "name": name, "id": pid, "match": is_match})
+        if matched == 0 and is_match:
+            matched = i
+    return matched, {
+        "matched_rank": matched,
+        "basis": "integrated_search_drt_fallback",
+        "drtTop": top,
+        "drtCount": len(metas),
+        "primaryBasis": primary_basis,
+    }
 
 
 def fetch_powerlink_more_page(query: str) -> str | None:
@@ -1106,8 +1179,8 @@ def find_rank_by_web_tab(
             rank = find_rank_in_candidates(cands, match_tokens)
             top = [{"rank": i + 1, "text": t[:220]} for i, t in enumerate(cands[:10])]
             return rank, {"top": top, "matched_rank": rank, "basis": "powerlink_more"}
-        # 더보기 페이지 실패 시 기존 통합검색 블록 파서로 폴백
-        ht = fetch_search_page(query)
+        # 더보기 페이지 실패 시 통합검색 페이지로 폴백 (캐시 활용)
+        ht = fetch_integrated_search_page(query)
         if not ht:
             return None, {"reason": "http_error"}
         cands = extract_candidates_powerlink(ht)
@@ -1129,38 +1202,61 @@ def find_rank_by_web_tab(
             return rank, ev
         return 0, {"matched_rank": 0, "reason": "fetch_failed"}
 
-    ht = fetch_search_page(query, where=("video" if tab == "video" else None))
-    if not ht:
-        return None, {"reason": "http_error"}
     if tab == "bizsite":
+        # 통합검색 페이지 사용 — 캐시로 web 채점과 공유
+        ht = fetch_integrated_search_page(query)
+        if not ht:
+            return None, {"reason": "http_error"}
         cands = extract_candidates_bizsite(ht)
         rank = find_rank_in_candidates(cands, match_tokens)
         top = [{"rank": i + 1, "text": t[:220]} for i, t in enumerate(cands[:10])]
         return rank, {"top": top, "matched_rank": rank}
-    elif tab == "video":
-        items = extract_video_items_with_dates(ht)
+
+    if tab == "video":
+        # video 별도 검색 페이지 — fetch 실패해도 0 반환 안 하고 통합검색 fallback로 이동
+        ht_v = fetch_search_page(query, where="video")
         has_date_filter = blog_period is not None
         score_year, score_month = blog_period if blog_period else (0, 0)
         top_ev: list[dict[str, Any]] = []
         matched = 0
-        for i, (txt, date_raw) in enumerate(items[:10], start=1):
-            row: dict[str, Any] = {"rank": i, "text": txt[:220]}
-            if has_date_filter:
-                pd = parse_cafe_date(date_raw)
-                in_m = pd is not None and pd.year == score_year and pd.month == score_month
-                row["date"] = date_raw
-                row["inScoringMonth"] = in_m
-            else:
-                in_m = True
-            top_ev.append(row)
-            if matched == 0 and in_m and any(n in normalize_text(txt) for n in match_tokens):
-                matched = i
+        if ht_v:
+            items = extract_video_items_with_dates(ht_v)
+            for i, (txt, date_raw) in enumerate(items[:10], start=1):
+                row: dict[str, Any] = {"rank": i, "text": txt[:220]}
+                if has_date_filter:
+                    pd = parse_cafe_date(date_raw)
+                    in_m = pd is not None and pd.year == score_year and pd.month == score_month
+                    row["date"] = date_raw
+                    row["inScoringMonth"] = in_m
+                else:
+                    in_m = True
+                top_ev.append(row)
+                if matched == 0 and in_m and any(n in normalize_text(txt) for n in match_tokens):
+                    matched = i
+        # video 페이지에서 매칭 실패 또는 fetch 실패 시 통합검색 페이지의 동영상 캐러셀 fallback
+        if matched == 0:
+            ht_int = fetch_integrated_search_page(query)
+            if ht_int:
+                items_int = extract_video_items_with_dates(ht_int)
+                fb_top = [{"rank": i + 1, "text": t[:220]} for i, (t, _d) in enumerate(items_int[:10])]
+                for i, (txt, _date) in enumerate(items_int[:10], start=1):
+                    if any(n in normalize_text(txt) for n in match_tokens):
+                        return i, {
+                            "top": top_ev,
+                            "matched_rank": i,
+                            "basis": "integrated_search_video_fallback",
+                            "primaryBasis": "video_page_fetch_failed" if not ht_v else "video_page_no_match",
+                            "fallbackTop": fb_top,
+                            "matched_text": txt[:220],
+                        }
         ev: dict[str, Any] = {"top": top_ev, "matched_rank": matched}
         if has_date_filter:
             ev["scoringPeriod"] = {"year": score_year, "month": score_month}
+        if not ht_v and matched == 0:
+            ev["videoPageFetchFailed"] = True
         return matched, ev
-    else:
-        return None, {"reason": "unsupported_web_tab"}
+
+    return None, {"reason": "unsupported_web_tab"}
 
 
 def build_row(row_no: int, region: str, keyword: str, points: dict[str, int | None], pc: int | None, mobile: int | None, related: str | None) -> list[Any]:
@@ -1289,6 +1385,58 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                         processedKeywords=idx,
                         stage="scoring",
                     )
+
+    # Playwright 보조 채점 — 0점 채널이 있으면서 통합검색 HTML에 hospital 토큰 등장 시.
+    # 1차 채점 + HTTP fallback 후에도 의심되는 케이스만 재검증해 비용 통제.
+    verify_enabled = (os.getenv("PLAYWRIGHT_VERIFY_ENABLED") or "1").strip().lower() in {"1", "true", "yes"}
+    if verify_enabled:
+        meaningful_channels = ("powerlink", "bizsite", "map", "blog", "news", "video", "web")
+        zero_keywords: list[str] = []
+        for kw, ch_ranks in out.items():
+            if not any((ch_ranks.get(c) or 0) == 0 for c in meaningful_channels):
+                continue
+            # 통합검색 HTML 캐시에서 hospital 토큰 등장 확인. cache miss 시 새로 fetch.
+            with _INTEGRATED_HTML_CACHE_LOCK:
+                ht_cached = _INTEGRATED_HTML_CACHE.get(kw)
+            ht = ht_cached if ht_cached is not None else fetch_integrated_search_page(kw)
+            if ht is None:
+                continue
+            ht_lower = ht.lower()
+            if any(t in ht_lower for t in match_tokens):
+                zero_keywords.append(kw)
+        if zero_keywords:
+            print(f"\n[playwright_verify] 의심 키워드(0점 + hospital 등장) {len(zero_keywords)}개 재검증 시작", flush=True)
+            if report_progress:
+                post_progress_webhook(
+                    status="running",
+                    message=f"Playwright 재검증 {len(zero_keywords)}개 키워드",
+                    stage="playwright_verify",
+                )
+            try:
+                from playwright_verify import verify_zero_keywords
+                verify_results = verify_zero_keywords(zero_keywords, match_tokens, official_blog_ids)
+                patched = 0
+                for kw, ch_ranks in verify_results.items():
+                    if not ch_ranks:
+                        continue
+                    kw_out = out.get(kw)
+                    if not kw_out:
+                        continue
+                    for ch, rank in ch_ranks.items():
+                        if (kw_out.get(ch) or 0) == 0 and rank > 0:
+                            kw_out[ch] = rank
+                            patched += 1
+                            ev_kw = ev_all.setdefault(kw, {})
+                            ev_ch = ev_kw.get(ch) or {}
+                            if not isinstance(ev_ch, dict):
+                                ev_ch = {"original": ev_ch}
+                            ev_ch["playwrightVerify"] = {"rank": rank, "via": "integrated_search_dom"}
+                            ev_kw[ch] = ev_ch
+                print(f"[playwright_verify] 보강된 점수 {patched}개", flush=True)
+            except ImportError as e:
+                print(f"[playwright_verify] playwright 미설치 (스킵): {e!r}", flush=True)
+            except Exception as e:
+                print(f"[playwright_verify] 실행 실패 (스킵): {e!r}", flush=True)
 
     return out, ev_all
 
