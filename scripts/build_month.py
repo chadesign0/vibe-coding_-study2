@@ -1392,8 +1392,17 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
     if verify_enabled:
         meaningful_channels = ("powerlink", "bizsite", "map", "blog", "news", "video", "web")
         zero_keywords: list[str] = []
+        fetch_failed_count = 0
         for kw, ch_ranks in out.items():
             if not any((ch_ranks.get(c) or 0) == 0 for c in meaningful_channels):
+                continue
+            # web fetch가 1차 채점에서 3회 모두 실패한 keyword는 hospital 토큰 검사 없이
+            # 무조건 Playwright 재검증 대상. throttle로 인한 측정 실패와 실제 0점을 분리.
+            ev_kw = ev_all.get(kw) or {}
+            web_ev = ev_kw.get("web") or {}
+            if isinstance(web_ev, dict) and web_ev.get("reason") == "fetch_failed":
+                zero_keywords.append(kw)
+                fetch_failed_count += 1
                 continue
             # 통합검색 HTML 캐시에서 hospital 토큰 등장 확인. cache miss 시 새로 fetch.
             with _INTEGRATED_HTML_CACHE_LOCK:
@@ -1404,6 +1413,8 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
             ht_lower = ht.lower()
             if any(t in ht_lower for t in match_tokens):
                 zero_keywords.append(kw)
+        if fetch_failed_count:
+            print(f"[playwright_verify] web fetch_failed bypass: {fetch_failed_count}개", flush=True)
         if zero_keywords:
             print(f"\n[playwright_verify] 의심 키워드(0점 + hospital 등장) {len(zero_keywords)}개 재검증 시작", flush=True)
             if report_progress:
