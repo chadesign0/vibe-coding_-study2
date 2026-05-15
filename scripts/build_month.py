@@ -427,11 +427,16 @@ def analyze_blog_search_items(
     blog_period: tuple[int, int] | None,
     official_blog_ids: frozenset[str] = frozenset(),
 ) -> tuple[int, dict[str, Any]]:
-    """블로그 API items 상위 10개: 공식 네이버 블로그 ID 일치 또는 작성자·링크에 병원 토큰이 있을 때만 인정."""
+    """블로그 API items: 1~10위는 점수용, 11~100위는 evidence(debug)용.
+
+    점수 규칙: 1~10위 중 공식 네이버 블로그 ID 일치 또는 작성자·링크에 병원 토큰 일치인 첫 글의 rank로 채점.
+    글 본문/제목의 키워드 관련성은 점수에 사용하지 않음 (matchTitleOrBodyOnly evidence로만 표시).
+    """
     top: list[dict[str, Any]] = []
     matched = 0
     extra: dict[str, Any] = {
         "blogMatchRule": "official_blog_url_or_author_identity",
+        "verifySources": {"openapi_top10": {"checked": True}},
     }
     if official_blog_ids:
         extra["officialNaverBlogIds"] = sorted(official_blog_ids)
@@ -466,10 +471,32 @@ def analyze_blog_search_items(
             matched = i
             extra["matched_text"] = auth_txt[:280]
             extra["matched_postdate"] = it.get("postdate")
+            extra["verifySources"]["openapi_top10"]["matched_rank"] = i
             if official_ok:
                 extra["matchedVia"] = "official_hospital_blog_url"
             else:
                 extra["matchedVia"] = "bloggername_or_bloglink_tokens"
+    # 11~100위는 evidence(debug)용 — 점수 부여 X, 매칭 후보만 기록
+    extended_matches: list[dict[str, Any]] = []
+    for i, it in enumerate(items[10:100], start=11):
+        auth_txt = blog_author_blog_text_for_match(it)
+        official_ok = blog_item_matches_official_naver_blog(it, official_blog_ids)
+        token_ok = tokens_match_in_normalized(auth_txt, match_tokens)
+        if official_ok or token_ok:
+            extended_matches.append({
+                "rank": i,
+                "postdate": it.get("postdate"),
+                "link": it.get("link"),
+                "bloggername": strip_html(it.get("bloggername", "")),
+                "matchOfficialNaverBlog": official_ok,
+                "matchAuthorOrBlogTokens": token_ok,
+            })
+    if extended_matches:
+        extra["verifySources"]["openapi_top11to100_debug"] = {
+            "scoring": False,  # 점수에 사용 X, 디버깅 참고용
+            "matches": extended_matches[:20],
+            "matchCount": len(extended_matches),
+        }
     out: dict[str, Any] = {"top": top, "matched_rank": matched, **extra}
     if matched == 0:
         body_only_in_month = False
@@ -500,6 +527,44 @@ def analyze_blog_search_items(
                 f"배점 월({blog_period[0]}년 {blog_period[1]}월) 내 작성이면서 공식 블로그·작성자/블로그 기준에 맞는 글이 없음."
             )
     return (matched if matched else 0), out
+
+
+def find_official_blog_post_for_keyword(
+    keyword: str,
+    hospital_names: list[str],
+    official_blog_ids: frozenset[str],
+    client_id: str,
+    client_secret: str,
+) -> dict[str, Any] | None:
+    """공식 블로그가 특정 키워드 관련 글을 보유하는지 빠르게 확인.
+
+    원리: 단순 `query=keyword`로는 openapi blog가 공식 블로그 글을 안 잡는 경우가 흔하지만
+    (예: 글 제목·본문에 키워드가 정확히 안 들어간 경우),
+    `query=keyword + 병원명`으로 결합하면 같은 글이 색인에서 잡힌다.
+
+    반환: 공식 블로그 글 발견 시 {"link", "postdate", "title", "matched_via_query"}, 못 찾으면 None.
+    Playwright verify trigger 및 evidence 용도 — 점수 부여 X.
+    """
+    if not official_blog_ids or not hospital_names:
+        return None
+    for name in hospital_names:
+        name_clean = (name or "").strip()
+        if not name_clean:
+            continue
+        q = f"{keyword} {name_clean}"
+        items = api_search(client_id, client_secret, "blog", q) or []
+        for it in items:
+            link = (it.get("link") or "").strip()
+            bid = naver_blog_id_from_url(link) or naver_blog_id_from_url(it.get("bloggerlink") or "")
+            if bid and bid in official_blog_ids:
+                return {
+                    "link": link,
+                    "postdate": it.get("postdate"),
+                    "title": strip_html(it.get("title") or ""),
+                    "matched_via_query": q,
+                    "matched_blog_id": bid,
+                }
+    return None
 
 
 def find_rank_by_api_tab(
@@ -1392,19 +1457,36 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
     if verify_enabled:
         meaningful_channels = ("powerlink", "bizsite", "map", "blog", "news", "video", "web")
         zero_keywords: list[str] = []
+        blog_tab_keywords: set[str] = set()  # 블로그 전용탭 풀 렌더링 추가 검증 대상
+        # 사전 필터 결과 캐시 — verify 후 manual_check_needed 표시용
+        blog_official_post_found: dict[str, dict[str, Any]] = {}
         fetch_failed_count = 0
         for kw, ch_ranks in out.items():
             if not any((ch_ranks.get(c) or 0) == 0 for c in meaningful_channels):
                 continue
-            # web fetch가 1차 채점에서 3회 모두 실패한 keyword는 hospital 토큰 검사 없이
-            # 무조건 Playwright 재검증 대상. throttle로 인한 측정 실패와 실제 0점을 분리.
+            # 1) blog 0점 + 공식 블로그 ID 존재 → openapi 결합쿼리(키워드+병원명)로 공식 블로그 글 보유 확인.
+            #    매칭 시 zero_keywords + blog_tab_keywords에 추가 (블로그탭 풀 렌더링까지).
+            blog_zero = (ch_ranks.get("blog") or 0) == 0
+            if blog_zero and official_blog_ids and names:
+                found = find_official_blog_post_for_keyword(
+                    kw, names, official_blog_ids, cid, csec
+                )
+                if found:
+                    blog_official_post_found[kw] = found
+                    if kw not in zero_keywords:
+                        zero_keywords.append(kw)
+                    blog_tab_keywords.add(kw)
+                    continue
+            # 2) web fetch가 1차 채점에서 3회 모두 실패한 keyword는 hospital 토큰 검사 없이
+            #    무조건 Playwright 재검증 대상. throttle로 인한 측정 실패와 실제 0점을 분리.
             ev_kw = ev_all.get(kw) or {}
             web_ev = ev_kw.get("web") or {}
             if isinstance(web_ev, dict) and web_ev.get("reason") == "fetch_failed":
-                zero_keywords.append(kw)
+                if kw not in zero_keywords:
+                    zero_keywords.append(kw)
                 fetch_failed_count += 1
                 continue
-            # 통합검색 HTML 캐시에서 hospital 토큰 등장 확인. cache miss 시 새로 fetch.
+            # 3) 통합검색 HTML 캐시에서 hospital 토큰 등장 확인. cache miss 시 새로 fetch.
             with _INTEGRATED_HTML_CACHE_LOCK:
                 ht_cached = _INTEGRATED_HTML_CACHE.get(kw)
             ht = ht_cached if ht_cached is not None else fetch_integrated_search_page(kw)
@@ -1412,11 +1494,17 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                 continue
             ht_lower = ht.lower()
             if any(t in ht_lower for t in match_tokens):
-                zero_keywords.append(kw)
+                if kw not in zero_keywords:
+                    zero_keywords.append(kw)
         if fetch_failed_count:
             print(f"[playwright_verify] web fetch_failed bypass: {fetch_failed_count}개", flush=True)
+        if blog_official_post_found:
+            print(
+                f"[playwright_verify] 공식블로그 보유 키워드(openapi 결합쿼리 매칭) {len(blog_official_post_found)}개 → 블로그탭 verify 추가",
+                flush=True,
+            )
         if zero_keywords:
-            print(f"\n[playwright_verify] 의심 키워드(0점 + hospital 등장) {len(zero_keywords)}개 재검증 시작", flush=True)
+            print(f"\n[playwright_verify] 의심 키워드 {len(zero_keywords)}개 재검증 시작 (그중 블로그탭 추가 {len(blog_tab_keywords)}개)", flush=True)
             if report_progress:
                 post_progress_webhook(
                     status="running",
@@ -1425,15 +1513,21 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                 )
             try:
                 from playwright_verify import verify_zero_keywords
-                verify_results = verify_zero_keywords(zero_keywords, match_tokens, official_blog_ids)
+                verify_results = verify_zero_keywords(
+                    zero_keywords, match_tokens, official_blog_ids,
+                    blog_tab_keywords=frozenset(blog_tab_keywords),
+                )
                 patched = 0
-                for kw, ch_ranks in verify_results.items():
-                    if not ch_ranks:
+                for kw, ch_results in verify_results.items():
+                    if not ch_results:
                         continue
                     kw_out = out.get(kw)
                     if not kw_out:
                         continue
-                    for ch, rank in ch_ranks.items():
+                    for ch, info in ch_results.items():
+                        rank = info.get("rank") if isinstance(info, dict) else None
+                        if not rank:
+                            continue
                         if (kw_out.get(ch) or 0) == 0 and rank > 0:
                             kw_out[ch] = rank
                             patched += 1
@@ -1441,9 +1535,42 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                             ev_ch = ev_kw.get(ch) or {}
                             if not isinstance(ev_ch, dict):
                                 ev_ch = {"original": ev_ch}
-                            ev_ch["playwrightVerify"] = {"rank": rank, "via": "integrated_search_dom"}
+                            verify_payload = {
+                                "rank": rank,
+                                "source": info.get("source", "integrated_search_dom"),
+                            }
+                            if info.get("evidence"):
+                                verify_payload["details"] = info["evidence"]
+                            ev_ch["playwrightVerify"] = verify_payload
+                            # verifySources에도 통합 기록 (blog는 특히 source 다양해 디버깅 중요)
+                            vs = ev_ch.setdefault("verifySources", {})
+                            vs[verify_payload["source"]] = {
+                                "rank": rank,
+                                **({"details": info["evidence"]} if info.get("evidence") else {}),
+                            }
                             ev_kw[ch] = ev_ch
                 print(f"[playwright_verify] 보강된 점수 {patched}개", flush=True)
+                # 사전 필터 통과했지만 verify에서 못 잡힌 키워드: manual_check_needed 플래그
+                manual_check_count = 0
+                for kw, found in blog_official_post_found.items():
+                    blog_rank = (out.get(kw) or {}).get("blog") or 0
+                    if blog_rank == 0:
+                        ev_kw = ev_all.setdefault(kw, {})
+                        ev_blog = ev_kw.get("blog") or {}
+                        if not isinstance(ev_blog, dict):
+                            ev_blog = {"original": ev_blog}
+                        ev_blog["manual_check_needed"] = True
+                        ev_blog["user_view_mismatch_possible"] = True
+                        ev_blog["officialBlogPostFound"] = found
+                        ev_blog["manual_check_note"] = (
+                            "공식 블로그가 이 키워드 관련 글을 보유하고 있으나(openapi 결합쿼리 매칭) "
+                            "통합검색·블로그탭 자동검증에서 1~10위 안에 노출 확인 못 함. "
+                            "사용자가 실제 화면 기준으로 manualRanksByTab 보정 권장."
+                        )
+                        ev_kw["blog"] = ev_blog
+                        manual_check_count += 1
+                if manual_check_count:
+                    print(f"[playwright_verify] manual_check_needed 표시 {manual_check_count}개", flush=True)
             except ImportError as e:
                 print(f"[playwright_verify] playwright 미설치 (스킵): {e!r}", flush=True)
             except Exception as e:
