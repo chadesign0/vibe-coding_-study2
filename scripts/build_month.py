@@ -13,7 +13,7 @@ import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote_plus, urlparse
@@ -791,22 +791,27 @@ def extract_candidates_powerlink(ht: str) -> list[str]:
     return vals[:20]
 
 
+_POWERLINK_AD_SELECTOR = "li[data-index], li.lst, ul.lst_type > li, div.ad_list li"
+
+
 def extract_candidates_powerlink_more(ht: str) -> list[str]:
     """
-    ad.search.naver.com(where=ad) 페이지의 광고 목록 순서 그대로 후보를 추출한다.
+    ad.search.naver.com(where=ad) 페이지의 광고 목록을 DOM document order로 추출한다.
+
+    여러 selector를 CSS ',' 결합으로 한 번에 매칭하면 BeautifulSoup이 document order로
+    유니크 매칭을 반환하므로, 단일 selector가 일부만 잡는 경우에도 누락 없이 보강된다.
+    `ol > li`는 광고 외 항목 섞일 위험으로 제외.
     """
     soup = BeautifulSoup(ht, "html.parser")
     vals: list[str] = []
-    for sel in ("li.lst", "ul.lst_type > li", "div.ad_list li", "ol > li"):
-        nodes = soup.select(sel)
-        if not nodes:
+    seen_ids: set[int] = set()
+    for n in soup.select(_POWERLINK_AD_SELECTOR):
+        if id(n) in seen_ids:
             continue
-        for n in nodes:
-            t = strip_html(n.get_text(" ", strip=True))
-            if t and len(t) > 3:
-                vals.append(t)
-        if vals:
-            break
+        seen_ids.add(id(n))
+        t = strip_html(n.get_text(" ", strip=True))
+        if t and len(t) > 3:
+            vals.append(t)
     return vals[:30]
 
 
@@ -1104,6 +1109,14 @@ def find_rank_in_candidates(cands: list[str], match_tokens: list[str]) -> int:
     return 0
 
 
+def find_extended_rank_in_candidates(cands: list[str], match_tokens: list[str]) -> int:
+    """11~20위 매칭. evidence/debug 전용 — 점수 부여 금지."""
+    for i, t in enumerate(cands[10:20], start=11):
+        if any(n in normalize_text(t) for n in match_tokens):
+            return i
+    return 0
+
+
 def _find_web_rank_by_url(
     ht: str,
     match_tokens: list[str],
@@ -1238,20 +1251,43 @@ def find_rank_by_web_tab(
     official_blog_ids: frozenset[str] = frozenset(),
 ) -> tuple[int | None, dict[str, Any]]:
     if tab == "powerlink":
+        fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         ht_more = fetch_powerlink_more_page(query)
         if ht_more:
             cands = extract_candidates_powerlink_more(ht_more)
             rank = find_rank_in_candidates(cands, match_tokens)
             top = [{"rank": i + 1, "text": t[:220]} for i, t in enumerate(cands[:10])]
-            return rank, {"top": top, "matched_rank": rank, "basis": "powerlink_more"}
+            ev: dict[str, Any] = {
+                "top": top,
+                "matched_rank": rank,
+                "basis": "powerlink_more",
+                "extractedAdCount": len(cands),
+                "extractionSelector": "union_dedupe",
+                "fetchedAt": fetched_at,
+            }
+            ext_rank = find_extended_rank_in_candidates(cands, match_tokens)
+            if ext_rank > 0:
+                ev["extendedRank11to20"] = {
+                    "rank": ext_rank,
+                    "scoring": False,
+                    "note": "11~20위 evidence-only. 점수 부여 대상 아님.",
+                }
+            return rank, ev
         # 더보기 페이지 실패 시 통합검색 페이지로 폴백 (캐시 활용)
         ht = fetch_integrated_search_page(query)
         if not ht:
-            return None, {"reason": "http_error"}
+            return None, {"reason": "http_error", "fetchedAt": fetched_at}
         cands = extract_candidates_powerlink(ht)
         rank = find_rank_in_candidates(cands, match_tokens)
         top = [{"rank": i + 1, "text": t[:220]} for i, t in enumerate(cands[:10])]
-        return rank, {"top": top, "matched_rank": rank, "basis": "powerlink_main_fallback"}
+        return rank, {
+            "top": top,
+            "matched_rank": rank,
+            "basis": "powerlink_main_fallback",
+            "extractedAdCount": len(cands),
+            "extractionSelector": "integrated_pcPowerLink",
+            "fetchedAt": fetched_at,
+        }
     if tab == "web":
         # URL 기반 매칭: 결과 링크(href)에 병원 도메인/공식 블로그 ID가 직접 포함될 때만 점수 부여.
         # 텍스트에 병원명이 '언급'되는 경우는 제외 — 타 병원 비교 포스트 오매칭 방지.
