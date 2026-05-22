@@ -429,13 +429,13 @@ def analyze_blog_search_items(
 ) -> tuple[int, dict[str, Any]]:
     """블로그 API items: 1~10위는 점수용, 11~100위는 evidence(debug)용.
 
-    점수 규칙: 1~10위 중 공식 네이버 블로그 ID 일치 또는 작성자·링크에 병원 토큰 일치인 첫 글의 rank로 채점.
+    점수 규칙: 1~10위 중 hospitalBlogBases에 등록된 공식 네이버 블로그 ID와 일치하는 첫 글의 rank로 채점.
     글 본문/제목의 키워드 관련성은 점수에 사용하지 않음 (matchTitleOrBodyOnly evidence로만 표시).
     """
     top: list[dict[str, Any]] = []
     matched = 0
     extra: dict[str, Any] = {
-        "blogMatchRule": "official_blog_url_or_author_identity",
+        "blogMatchRule": "official_blog_url_whitelist_only",
         "verifySources": {"openapi_top10": {"checked": True}},
     }
     if official_blog_ids:
@@ -447,7 +447,6 @@ def analyze_blog_search_items(
         auth_txt = blog_author_blog_text_for_match(it)
         official_ok = blog_item_matches_official_naver_blog(it, official_blog_ids)
         token_ok = tokens_match_in_normalized(auth_txt, match_tokens)
-        auth_ok = official_ok or token_ok
         body_ok = tokens_match_in_normalized(full_txt, match_tokens)
         if blog_period:
             in_m = blog_item_in_scoring_month(it, blog_period[0], blog_period[1])
@@ -461,28 +460,25 @@ def analyze_blog_search_items(
             "blogInScoringMonth": in_m,
             "matchOfficialNaverBlog": official_ok,
             "matchAuthorOrBlogTokens": token_ok,
-            "matchAuthorOrBlog": auth_ok,
-            "matchTitleOrBodyOnly": bool(body_ok and not auth_ok),
+            "matchAuthorOrBlog": official_ok,
+            "matchTitleOrBodyOnly": bool(body_ok and not official_ok),
             "bloggername": strip_html(it.get("bloggername", "")),
             "bloggerlink": strip_html(it.get("bloggerlink", "")),
         }
         top.append(row)
-        if matched == 0 and in_m and auth_ok:
+        if matched == 0 and in_m and official_ok:
             matched = i
             extra["matched_text"] = auth_txt[:280]
             extra["matched_postdate"] = it.get("postdate")
             extra["verifySources"]["openapi_top10"]["matched_rank"] = i
-            if official_ok:
-                extra["matchedVia"] = "official_hospital_blog_url"
-            else:
-                extra["matchedVia"] = "bloggername_or_bloglink_tokens"
+            extra["matchedVia"] = "official_hospital_blog_url"
     # 11~100위는 evidence(debug)용 — 점수 부여 X, 매칭 후보만 기록
     extended_matches: list[dict[str, Any]] = []
     for i, it in enumerate(items[10:100], start=11):
         auth_txt = blog_author_blog_text_for_match(it)
         official_ok = blog_item_matches_official_naver_blog(it, official_blog_ids)
         token_ok = tokens_match_in_normalized(auth_txt, match_tokens)
-        if official_ok or token_ok:
+        if official_ok:
             extended_matches.append({
                 "rank": i,
                 "postdate": it.get("postdate"),
@@ -500,31 +496,30 @@ def analyze_blog_search_items(
     out: dict[str, Any] = {"top": top, "matched_rank": matched, **extra}
     if matched == 0:
         body_only_in_month = False
-        author_out_month = False
+        official_out_month = False
         for it in items[:10]:
-            auth_txt = blog_author_blog_text_for_match(it)
             full_txt = item_text_for_tab("blog", it)
             official_ok = blog_item_matches_official_naver_blog(it, official_blog_ids)
-            token_ok = tokens_match_in_normalized(auth_txt, match_tokens)
-            auth_ok = official_ok or token_ok
             body_ok = tokens_match_in_normalized(full_txt, match_tokens)
             in_m = blog_item_in_scoring_month(it, blog_period[0], blog_period[1]) if blog_period else True
-            if in_m and body_ok and not auth_ok:
+            if in_m and body_ok and not official_ok:
                 body_only_in_month = True
-            if blog_period and not in_m and auth_ok:
-                author_out_month = True
-        if body_only_in_month:
+            if blog_period and not in_m and official_ok:
+                official_out_month = True
+        if not official_blog_ids:
+            out["blogNote"] = "hospitalBlogBases에 공식 네이버 블로그 ID가 등록되지 않아 블로그 0점 처리."
+        elif body_only_in_month:
             out["blogNote"] = (
-                "상위 노출 중 제목·본문에만 병원명이 있고, 공식 블로그(hospitalBlogBases) 및 작성자·블로그 링크 기준과 맞지 않아 블로그 0점 처리."
+                "상위 노출 중 제목·본문에만 병원명이 있고, hospitalBlogBases에 등록된 공식 블로그 ID와 맞지 않아 블로그 0점 처리."
             )
-        elif author_out_month:
+        elif official_out_month:
             out["blogNote"] = (
-                "공식 블로그 또는 작성자/블로그 정보 기준은 맞으나 네이버 표기 작성일(postdate)이 "
+                "공식 블로그 ID 기준은 맞으나 네이버 표기 작성일(postdate)이 "
                 f"{blog_period[0]}년 {blog_period[1]}월이 아님."
             )
         elif blog_period:
             out["blogNote"] = (
-                f"배점 월({blog_period[0]}년 {blog_period[1]}월) 내 작성이면서 공식 블로그·작성자/블로그 기준에 맞는 글이 없음."
+                f"배점 월({blog_period[0]}년 {blog_period[1]}월) 내 작성이면서 공식 블로그 ID 기준에 맞는 글이 없음."
             )
     return (matched if matched else 0), out
 
