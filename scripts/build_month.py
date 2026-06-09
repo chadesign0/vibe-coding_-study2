@@ -1464,7 +1464,19 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(_score_one_keyword, kw): kw for kw in keywords_list}
         for future in as_completed(futures):
-            kw, kw_out, kw_ev = future.result()
+            kw = futures[future]
+            try:
+                kw, kw_out, kw_ev = future.result()
+            except Exception as e:
+                # 키워드 1개의 예외가 전체 채점을 중단시키지 않도록 격리한다.
+                # 측정 실패는 0점이 아니라 "미측정"으로 남겨야 정확도 지표가 오염되지 않는다.
+                # (kw_out 을 비우면 build_month_payload 에서 해당 키워드 점수가 None → 표에 '—' 로 표시)
+                kw_out = {}
+                kw_ev = {
+                    tab: {"source": "error", "reason": "scoring_exception", "error": repr(e)}
+                    for tab in COL_BY_TAB.keys()
+                }
+                print(f"  [경고] 키워드 채점 실패 — 건너뜀: {kw} ({e!r})", flush=True)
             out[kw] = kw_out
             ev_all[kw] = kw_ev
             if report_progress:
@@ -1492,6 +1504,7 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
         # 사전 필터 결과 캐시 — verify 후 manual_check_needed 표시용
         blog_official_post_found: dict[str, dict[str, Any]] = {}
         fetch_failed_count = 0
+        blog_api_error_count = 0
         for kw, ch_ranks in out.items():
             if not any((ch_ranks.get(c) or 0) == 0 for c in meaningful_channels):
                 continue
@@ -1517,6 +1530,16 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                     zero_keywords.append(kw)
                 fetch_failed_count += 1
                 continue
+            # 2b) blog API 호출 자체가 실패(api_error: 429/네트워크/일시차단)한 keyword도
+            #     측정 실패로 간주. web fetch_failed 와 동일하게 진짜 0점과 분리하여
+            #     블로그탭 풀 렌더링까지 Playwright 재검증 대상에 넣는다.
+            blog_ev = ev_kw.get("blog") or {}
+            if isinstance(blog_ev, dict) and blog_ev.get("reason") == "api_error":
+                if kw not in zero_keywords:
+                    zero_keywords.append(kw)
+                blog_tab_keywords.add(kw)
+                blog_api_error_count += 1
+                continue
             # 3) 통합검색 HTML 캐시에서 hospital 토큰 등장 확인. cache miss 시 새로 fetch.
             with _INTEGRATED_HTML_CACHE_LOCK:
                 ht_cached = _INTEGRATED_HTML_CACHE.get(kw)
@@ -1529,6 +1552,8 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                     zero_keywords.append(kw)
         if fetch_failed_count:
             print(f"[playwright_verify] web fetch_failed bypass: {fetch_failed_count}개", flush=True)
+        if blog_api_error_count:
+            print(f"[playwright_verify] blog api_error bypass: {blog_api_error_count}개", flush=True)
         if blog_official_post_found:
             print(
                 f"[playwright_verify] 공식블로그 보유 키워드(openapi 결합쿼리 매칭) {len(blog_official_post_found)}개 → 블로그탭 verify 추가",

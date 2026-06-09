@@ -7,6 +7,7 @@ import hashlib
 import os
 import re
 import subprocess
+import sys
 import threading
 import urllib.error
 import urllib.parse
@@ -283,9 +284,6 @@ def available_hospitals_from_scoring() -> list[str]:
 # Live Server(5500)와 동일하게 index.html이 ./styles.css, ./app.js 를 루트에서 찾을 수 있게 함
 app = Flask(__name__, static_folder=str(WEB_DIR), static_url_path="/web")
 Compress(app)
-
-# 서버 시작 시 GitHub에서 최신 채점 데이터를 가져온다 (재시작 후 데이터 즉시 복원).
-threading.Thread(target=lambda: _pull_scoring_data_from_github(), daemon=True).start()
 
 
 @app.get("/ping")
@@ -1005,7 +1003,7 @@ def run_scoring(
     env["EVIDENCE_TEMP_OUTPUT"] = str(temp_evidence)
 
     proc = subprocess.run(
-        ["python", str(SCRIPT_PATH)],
+        [sys.executable, str(SCRIPT_PATH)],
         cwd=str(ROOT),
         env=env,
         capture_output=True,
@@ -1901,8 +1899,15 @@ def cancel_rescore():
                 data = json.loads(resp.read())
             runs = [r for r in data.get("workflow_runs", [])
                     if GITHUB_WORKFLOW_FILE in r.get("path", "")]
-            if runs:
+            # in_progress run이 정확히 1개일 때만 안전하게 취소. 2개 이상이면
+            # 어느 것이 사용자의 작업인지 특정할 수 없어 잘못된 run 취소를 막는다.
+            if len(runs) == 1:
                 run_id = str(runs[0]["id"])
+            elif len(runs) > 1:
+                return jsonify({
+                    "ok": False,
+                    "message": "여러 채점이 동시에 진행 중이라 취소 대상을 특정할 수 없습니다. 잠시 후 다시 시도해주세요.",
+                }), 409
         except Exception as e:
             return jsonify({"ok": False, "message": f"진행 중인 채점 조회 실패: {e}"}), 500
 
@@ -2027,6 +2032,12 @@ def data_files(filename: str):
     resp = send_from_directory(str(ROOT / "data"), filename)
     resp.headers["Cache-Control"] = "no-store"
     return resp
+
+
+# 서버 시작 시 GitHub에서 최신 채점 데이터를 가져온다 (재시작 후 데이터 즉시 복원).
+# 모든 함수 정의가 끝난 뒤 시작해야 _pull_scoring_data_from_github 미정의 상태에서
+# 스레드가 먼저 실행되는 NameError 레이스를 피한다.
+threading.Thread(target=_pull_scoring_data_from_github, daemon=True).start()
 
 
 if __name__ == "__main__":
