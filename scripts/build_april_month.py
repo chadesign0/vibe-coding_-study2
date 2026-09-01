@@ -345,22 +345,31 @@ def fetch_keyword_volumes_searchad(keywords: list[str], api_key: str, secret_key
     endpoint = "/keywordstool"
     result: dict[str, dict[str, Any]] = {}
     for kw in keywords:
+        # 검색광고 API 의 hintKeywords 는 띄어쓰기를 받지 않는다.
+        # "발바닥 통증" 을 그대로 보내면 4xx 로 거절당해 조회수가 통째로 빈칸이 된다.
+        # 엑셀에서 넘어온 BOM(U+FEFF)도 같은 이유로 제거한다. 표시용 키워드(kw)는 그대로 둔다.
+        hint = kw.replace("\ufeff", "").replace(" ", "").replace("\u3000", "").strip()
+        if not hint:
+            result[kw] = {"pc": None, "mobile": None, "related": None}
+            continue
         ts = str(int(time.time() * 1000))
         sig = build_searchad_signature(ts, "GET", endpoint, secret_key)
         headers = {"X-Timestamp": ts, "X-API-KEY": api_key, "X-Customer": customer_id, "X-Signature": sig}
-        params = {"hintKeywords": kw, "showDetail": 1}
+        params = {"hintKeywords": hint, "showDetail": 1}
         try:
             r = requests.get("https://api.searchad.naver.com" + endpoint, headers=headers, params=params, timeout=30)
             if r.status_code >= 400:
+                print(f"[조회수] 실패 {r.status_code}: {kw} (보낸 값: {hint})")
                 result[kw] = {"pc": None, "mobile": None, "related": None}
                 continue
             items = r.json().get("keywordList") or []
-            picked = next((x for x in items if (x.get("relKeyword") or "") == kw), None) or (items[0] if items else None)
+            picked = next((x for x in items if (x.get("relKeyword") or "") == hint), None) or (items[0] if items else None)
             if not picked:
                 result[kw] = {"pc": 0, "mobile": 0, "related": kw}
                 continue
             result[kw] = {"pc": parse_count(picked.get("monthlyPcQcCnt")), "mobile": parse_count(picked.get("monthlyMobileQcCnt")), "related": picked.get("relKeyword") or kw}
-        except Exception:
+        except Exception as e:
+            print(f"[조회수] 예외: {kw} ({type(e).__name__}: {e})")
             result[kw] = {"pc": None, "mobile": None, "related": None}
     return result
 
