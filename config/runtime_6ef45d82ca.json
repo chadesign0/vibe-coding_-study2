@@ -242,78 +242,598 @@
     "손목 혹": "national",
     "손목 결절종": "national"
   },
-  "forceRescoreKeywords": [
-    "발바닥 통증",
-    "발뒤꿈치 통증",
-    "발뒤꿈치 안쪽 통증",
-    "아침에 발바닥 통증",
-    "아침 첫발 뒤꿈치 통증",
-    "발바닥 가운데 통증",
-    "발바닥 앞쪽 통증",
-    "발바닥 걸을때 통증",
-    "걸을 때 발바닥 가운데 찌릿",
-    "발바닥 찌릿",
-    "발바닥 화끈거림",
-    "발뒤꿈치 찌릿",
-    "발바닥 지방패드",
-    "뒤꿈치 지방패드",
-    "뒤꿈치 쿠션 통증",
-    "지방패드증후군",
-    "지방패드위축증",
-    "발가락에 만져지는 물혹",
-    "발가락 혹",
-    "발가락 물혹",
-    "발가락 결절종",
-    "발가락 관절 혹",
-    "발가락 점액낭종",
-    "발가락 점액낭종 수술",
-    "발가락 결절종 수술",
-    "발등 혹",
-    "발등 물혹",
-    "발등 결절종",
-    "엄지발가락 혹",
-    "엄지발가락 마디 통증",
-    "새끼발가락 통증",
-    "발가락 관절 통증",
-    "발목 뼈 자람",
-    "발목 뼈 튀어나옴",
-    "발목 자주 접질림",
-    "발목 접질린 후 계속 아픔",
-    "발목 앞쪽 통증",
-    "발목 뒤쪽 통증",
-    "발목 안쪽 통증",
-    "발목 바깥쪽 통증",
-    "발목 돌릴때 통증",
-    "발목 돌릴때 소리",
-    "오금 통증",
-    "오금 당김",
-    "오금이 당기는 이유",
-    "무릎 뒤쪽 혹",
-    "무릎 뒤쪽 물혹",
-    "계단 내려갈때 무릎 통증",
-    "앉았다 일어날때 무릎 통증",
-    "무릎에서 뚝 소리",
-    "무릎 잠김",
-    "무릎에 물찼을때 증상",
-    "무릎에 물찼을때",
-    "무릎 물 빼기",
-    "팔 올릴때 어깨 통증",
-    "잘때 어깨 통증",
-    "밤에 어깨 통증",
-    "어깨 뼈 자람",
-    "어깨 석회",
-    "팔꿈치 물혹",
-    "팔꿈치 뼈 튀어나옴",
-    "토미존 수술 재활",
-    "토미존 수술 회복기간",
-    "토미존 수술 복귀",
-    "토미존 수술 복귀 기준",
-    "손가락 마디 혹",
-    "손가락 마디 물혹",
-    "손가락 안펴짐",
-    "손가락 걸림",
-    "방아쇠수지 손가락 안펴짐",
-    "손목 혹",
-    "손목 결절종"
-  ]
+  "rowsBySheetKey": {
+    "regional-pc": [],
+    "regional-mob": [],
+    "national-pc": [
+      {
+        "region": "",
+        "keyword": "발바닥 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발뒤꿈치 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발뒤꿈치 안쪽 통증"
+      },
+      {
+        "region": "",
+        "keyword": "아침에 발바닥 통증"
+      },
+      {
+        "region": "",
+        "keyword": "아침 첫발 뒤꿈치 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발바닥 가운데 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발바닥 앞쪽 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발바닥 걸을때 통증"
+      },
+      {
+        "region": "",
+        "keyword": "걸을 때 발바닥 가운데 찌릿"
+      },
+      {
+        "region": "",
+        "keyword": "발바닥 찌릿"
+      },
+      {
+        "region": "",
+        "keyword": "발바닥 화끈거림"
+      },
+      {
+        "region": "",
+        "keyword": "발뒤꿈치 찌릿"
+      },
+      {
+        "region": "",
+        "keyword": "발바닥 지방패드"
+      },
+      {
+        "region": "",
+        "keyword": "뒤꿈치 지방패드"
+      },
+      {
+        "region": "",
+        "keyword": "뒤꿈치 쿠션 통증"
+      },
+      {
+        "region": "",
+        "keyword": "지방패드증후군"
+      },
+      {
+        "region": "",
+        "keyword": "지방패드위축증"
+      },
+      {
+        "region": "",
+        "keyword": "발가락에 만져지는 물혹"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 혹"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 물혹"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 결절종"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 관절 혹"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 점액낭종"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 점액낭종 수술"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 결절종 수술"
+      },
+      {
+        "region": "",
+        "keyword": "발등 혹"
+      },
+      {
+        "region": "",
+        "keyword": "발등 물혹"
+      },
+      {
+        "region": "",
+        "keyword": "발등 결절종"
+      },
+      {
+        "region": "",
+        "keyword": "엄지발가락 혹"
+      },
+      {
+        "region": "",
+        "keyword": "엄지발가락 마디 통증"
+      },
+      {
+        "region": "",
+        "keyword": "새끼발가락 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 관절 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발목 뼈 자람"
+      },
+      {
+        "region": "",
+        "keyword": "발목 뼈 튀어나옴"
+      },
+      {
+        "region": "",
+        "keyword": "발목 자주 접질림"
+      },
+      {
+        "region": "",
+        "keyword": "발목 접질린 후 계속 아픔"
+      },
+      {
+        "region": "",
+        "keyword": "발목 앞쪽 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발목 뒤쪽 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발목 안쪽 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발목 바깥쪽 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발목 돌릴때 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발목 돌릴때 소리"
+      },
+      {
+        "region": "",
+        "keyword": "오금 통증"
+      },
+      {
+        "region": "",
+        "keyword": "오금 당김"
+      },
+      {
+        "region": "",
+        "keyword": "오금이 당기는 이유"
+      },
+      {
+        "region": "",
+        "keyword": "무릎 뒤쪽 혹"
+      },
+      {
+        "region": "",
+        "keyword": "무릎 뒤쪽 물혹"
+      },
+      {
+        "region": "",
+        "keyword": "계단 내려갈때 무릎 통증"
+      },
+      {
+        "region": "",
+        "keyword": "앉았다 일어날때 무릎 통증"
+      },
+      {
+        "region": "",
+        "keyword": "무릎에서 뚝 소리"
+      },
+      {
+        "region": "",
+        "keyword": "무릎 잠김"
+      },
+      {
+        "region": "",
+        "keyword": "무릎에 물찼을때 증상"
+      },
+      {
+        "region": "",
+        "keyword": "무릎에 물찼을때"
+      },
+      {
+        "region": "",
+        "keyword": "무릎 물 빼기"
+      },
+      {
+        "region": "",
+        "keyword": "팔 올릴때 어깨 통증"
+      },
+      {
+        "region": "",
+        "keyword": "잘때 어깨 통증"
+      },
+      {
+        "region": "",
+        "keyword": "밤에 어깨 통증"
+      },
+      {
+        "region": "",
+        "keyword": "어깨 뼈 자람"
+      },
+      {
+        "region": "",
+        "keyword": "어깨 석회"
+      },
+      {
+        "region": "",
+        "keyword": "팔꿈치 물혹"
+      },
+      {
+        "region": "",
+        "keyword": "팔꿈치 뼈 튀어나옴"
+      },
+      {
+        "region": "",
+        "keyword": "토미존 수술 재활"
+      },
+      {
+        "region": "",
+        "keyword": "토미존 수술 회복기간"
+      },
+      {
+        "region": "",
+        "keyword": "토미존 수술 복귀"
+      },
+      {
+        "region": "",
+        "keyword": "토미존 수술 복귀 기준"
+      },
+      {
+        "region": "",
+        "keyword": "손가락 마디 혹"
+      },
+      {
+        "region": "",
+        "keyword": "손가락 마디 물혹"
+      },
+      {
+        "region": "",
+        "keyword": "손가락 안펴짐"
+      },
+      {
+        "region": "",
+        "keyword": "손가락 걸림"
+      },
+      {
+        "region": "",
+        "keyword": "방아쇠수지 손가락 안펴짐"
+      },
+      {
+        "region": "",
+        "keyword": "손목 혹"
+      },
+      {
+        "region": "",
+        "keyword": "손목 결절종"
+      }
+    ],
+    "national-mob": [
+      {
+        "region": "",
+        "keyword": "발바닥 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발뒤꿈치 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발뒤꿈치 안쪽 통증"
+      },
+      {
+        "region": "",
+        "keyword": "아침에 발바닥 통증"
+      },
+      {
+        "region": "",
+        "keyword": "아침 첫발 뒤꿈치 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발바닥 가운데 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발바닥 앞쪽 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발바닥 걸을때 통증"
+      },
+      {
+        "region": "",
+        "keyword": "걸을 때 발바닥 가운데 찌릿"
+      },
+      {
+        "region": "",
+        "keyword": "발바닥 찌릿"
+      },
+      {
+        "region": "",
+        "keyword": "발바닥 화끈거림"
+      },
+      {
+        "region": "",
+        "keyword": "발뒤꿈치 찌릿"
+      },
+      {
+        "region": "",
+        "keyword": "발바닥 지방패드"
+      },
+      {
+        "region": "",
+        "keyword": "뒤꿈치 지방패드"
+      },
+      {
+        "region": "",
+        "keyword": "뒤꿈치 쿠션 통증"
+      },
+      {
+        "region": "",
+        "keyword": "지방패드증후군"
+      },
+      {
+        "region": "",
+        "keyword": "지방패드위축증"
+      },
+      {
+        "region": "",
+        "keyword": "발가락에 만져지는 물혹"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 혹"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 물혹"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 결절종"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 관절 혹"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 점액낭종"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 점액낭종 수술"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 결절종 수술"
+      },
+      {
+        "region": "",
+        "keyword": "발등 혹"
+      },
+      {
+        "region": "",
+        "keyword": "발등 물혹"
+      },
+      {
+        "region": "",
+        "keyword": "발등 결절종"
+      },
+      {
+        "region": "",
+        "keyword": "엄지발가락 혹"
+      },
+      {
+        "region": "",
+        "keyword": "엄지발가락 마디 통증"
+      },
+      {
+        "region": "",
+        "keyword": "새끼발가락 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발가락 관절 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발목 뼈 자람"
+      },
+      {
+        "region": "",
+        "keyword": "발목 뼈 튀어나옴"
+      },
+      {
+        "region": "",
+        "keyword": "발목 자주 접질림"
+      },
+      {
+        "region": "",
+        "keyword": "발목 접질린 후 계속 아픔"
+      },
+      {
+        "region": "",
+        "keyword": "발목 앞쪽 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발목 뒤쪽 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발목 안쪽 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발목 바깥쪽 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발목 돌릴때 통증"
+      },
+      {
+        "region": "",
+        "keyword": "발목 돌릴때 소리"
+      },
+      {
+        "region": "",
+        "keyword": "오금 통증"
+      },
+      {
+        "region": "",
+        "keyword": "오금 당김"
+      },
+      {
+        "region": "",
+        "keyword": "오금이 당기는 이유"
+      },
+      {
+        "region": "",
+        "keyword": "무릎 뒤쪽 혹"
+      },
+      {
+        "region": "",
+        "keyword": "무릎 뒤쪽 물혹"
+      },
+      {
+        "region": "",
+        "keyword": "계단 내려갈때 무릎 통증"
+      },
+      {
+        "region": "",
+        "keyword": "앉았다 일어날때 무릎 통증"
+      },
+      {
+        "region": "",
+        "keyword": "무릎에서 뚝 소리"
+      },
+      {
+        "region": "",
+        "keyword": "무릎 잠김"
+      },
+      {
+        "region": "",
+        "keyword": "무릎에 물찼을때 증상"
+      },
+      {
+        "region": "",
+        "keyword": "무릎에 물찼을때"
+      },
+      {
+        "region": "",
+        "keyword": "무릎 물 빼기"
+      },
+      {
+        "region": "",
+        "keyword": "팔 올릴때 어깨 통증"
+      },
+      {
+        "region": "",
+        "keyword": "잘때 어깨 통증"
+      },
+      {
+        "region": "",
+        "keyword": "밤에 어깨 통증"
+      },
+      {
+        "region": "",
+        "keyword": "어깨 뼈 자람"
+      },
+      {
+        "region": "",
+        "keyword": "어깨 석회"
+      },
+      {
+        "region": "",
+        "keyword": "팔꿈치 물혹"
+      },
+      {
+        "region": "",
+        "keyword": "팔꿈치 뼈 튀어나옴"
+      },
+      {
+        "region": "",
+        "keyword": "토미존 수술 재활"
+      },
+      {
+        "region": "",
+        "keyword": "토미존 수술 회복기간"
+      },
+      {
+        "region": "",
+        "keyword": "토미존 수술 복귀"
+      },
+      {
+        "region": "",
+        "keyword": "토미존 수술 복귀 기준"
+      },
+      {
+        "region": "",
+        "keyword": "손가락 마디 혹"
+      },
+      {
+        "region": "",
+        "keyword": "손가락 마디 물혹"
+      },
+      {
+        "region": "",
+        "keyword": "손가락 안펴짐"
+      },
+      {
+        "region": "",
+        "keyword": "손가락 걸림"
+      },
+      {
+        "region": "",
+        "keyword": "방아쇠수지 손가락 안펴짐"
+      },
+      {
+        "region": "",
+        "keyword": "손목 혹"
+      },
+      {
+        "region": "",
+        "keyword": "손목 결절종"
+      }
+    ],
+    "other-pc": [],
+    "other-mob": []
+  },
+  "sheetTitles": {
+    "regional-pc": "2026 지역 PC",
+    "regional-mob": "2026 지역 MOB",
+    "national-pc": "2026 전국 PC",
+    "national-mob": "2026 전국 MOB",
+    "other-pc": "2026 기타 PC",
+    "other-mob": "2026 기타 MOB"
+  }
 }
