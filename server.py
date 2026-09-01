@@ -193,6 +193,14 @@ HOSPITAL_PROFILE_OVERRIDES: dict[str, dict[str, object]] = {
             "https://blog.naver.com/bangrenine",
         ],
     },
+    "서울본원병원": {
+        "hospitalDomains": ["https://seoulboneone.com/"],
+        "hospitalBlogBases": [
+            "https://blog.naver.com/seoulboneone",
+            "https://blog.naver.com/3wpp5evbzbq9kt",
+            "https://blog.naver.com/pattern_14596",
+        ],
+    },
     "서울본정형외과": {
         "hospitalDomains": ["https://yonginseoulbone.com/"],
         "hospitalBlogBases": [
