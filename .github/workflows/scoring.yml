@@ -77,48 +77,83 @@ jobs:
           NAVER_AD_API_KEY: ${{ secrets.NAVER_AD_API_KEY }}
           NAVER_AD_SECRET_KEY: ${{ secrets.NAVER_AD_SECRET_KEY }}
           NAVER_AD_CUSTOMER_ID: ${{ secrets.NAVER_AD_CUSTOMER_ID }}
+          # 결과는 임시 파일로만 남기고, 병합은 6단계에서 최신 데이터 기준으로 수행
+          SCORING_TEMP_OUTPUT: ${{ runner.temp }}/month.json
+          EVIDENCE_TEMP_OUTPUT: ${{ runner.temp }}/evidence.json
+        # shell: bash 는 pipefail 포함 — 채점 스크립트가 실패하면 tee 와 무관하게 이 단계도 실패
+        shell: bash
         run: |
           python scripts/build_month.py | tee /tmp/scoring.log
           echo "QUALITY_LINE=$(grep -oE 'QUALITY_GATE:[A-Z]+:[0-9.]+' /tmp/scoring.log | tail -n1)" >> $GITHUB_ENV
 
-      - name: 6. 채점 결과 커밋·푸시
+      - name: 6. 채점 결과 커밋·푸시 (main)
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          MONTH_JSON="${{ runner.temp }}/month.json"
 
-          git add data/scoring-data.json
-          git add -f data/last-run-evidence.json
-
-          if git diff --staged --quiet; then
-            echo "변경된 채점 결과가 없습니다."
-            exit 0
-          fi
-
-          git commit -m "auto: GitHub Actions 채점 결과 업데이트 ($(date -u +'%Y-%m-%d %H:%M UTC')) [skip render]"
-
+          # push 가 거절되면 최신 main 을 다시 받아 병합부터 새로 한다.
+          # (rebase -X ours 는 충돌 시 이번 채점 결과를 버리므로 쓰지 않는다)
           for i in 1 2 3 4 5; do
-            echo "::group::Push attempt $i/5"
+            echo "::group::main push 시도 $i/5"
             git fetch origin main
-            if ! git pull --rebase -X ours origin main; then
-              echo "Rebase 충돌 발생 - 정리 후 재시도"
-              git rebase --abort || true
-              sleep $((i * 5))
+            git reset -q --hard origin/main
+            python scripts/merge_results.py scoring "$MONTH_JSON"
+            git add data/scoring-data.json
+            if git diff --staged --quiet; then
+              echo "변경된 채점 결과가 없습니다."
               echo "::endgroup::"
-              continue
+              exit 0
             fi
-            if git push origin main; then
+            git commit -q -m "auto: GitHub Actions 채점 결과 업데이트 ($(date -u +'%Y-%m-%d %H:%M UTC')) [skip render]"
+            if git push origin HEAD:main; then
               echo "Push 성공 (시도 $i회)"
               echo "::endgroup::"
               exit 0
             fi
-            echo "Push 실패 - $((i * 5))초 대기 후 재시도"
-            sleep $((i * 5))
+            echo "Push 거절 - $((i * 5))초 후 최신 main 기준으로 다시 병합"
             echo "::endgroup::"
+            sleep $((i * 5))
           done
 
           echo "5회 시도 후에도 push 실패. 수동 확인 필요."
           exit 1
+
+      - name: 6-1. 채점 근거 푸시 (scoring-evidence 브랜치)
+        shell: bash
+        run: |
+          set -euo pipefail
+          EV_BRANCH=scoring-evidence
+          EV_TMP="${{ runner.temp }}/evidence.json"
+          TARGET="${{ runner.temp }}/last-run-evidence.json"
+
+          # 근거 파일(수십 MB)이 main 이력에 쌓이지 않도록, 커밋 1개짜리 브랜치를 매번 새로 덮어쓴다.
+          # 동시에 다른 실행이 덮어썼다면 --force-with-lease 가 거절 → 최신본을 다시 받아 병합.
+          for i in 1 2 3 4 5; do
+            echo "::group::evidence push 시도 $i/5"
+            rm -f "$TARGET"
+            BASE=""
+            if git fetch -q origin "$EV_BRANCH" 2>/dev/null; then
+              BASE=$(git rev-parse FETCH_HEAD)
+              git show "FETCH_HEAD:last-run-evidence.json" > "$TARGET"
+            fi
+            python scripts/merge_results.py evidence "$EV_TMP" "$TARGET"
+            BLOB=$(git hash-object -w "$TARGET")
+            TREE=$(printf '100644 blob %s\tlast-run-evidence.json\n' "$BLOB" | git mktree)
+            COMMIT=$(git commit-tree "$TREE" -m "auto: 채점 근거 업데이트 ($(date -u +'%Y-%m-%d %H:%M UTC')) [skip render]")
+            if git push --force-with-lease="refs/heads/$EV_BRANCH:$BASE" origin "$COMMIT:refs/heads/$EV_BRANCH"; then
+              echo "Push 성공 (시도 $i회)"
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            sleep $((i * 5))
+          done
+
+          # 점수는 이미 main 에 저장됐으므로 실행 전체를 실패로 만들지는 않는다 (툴팁 근거만 이전 상태).
+          echo "::warning::채점 근거 push 5회 실패 - 점수 데이터는 저장됨"
 
       - name: 7. Render 데이터 새로고침 요청 (task_id 무관)
         if: success()
@@ -137,8 +172,14 @@ jobs:
 
       - name: 9. 실패 webhook 통지
         if: failure()
+        shell: bash
         run: |
+          QUALITY=$(grep -oE 'QUALITY_GATE:[A-Z]+:[0-9.]+' /tmp/scoring.log 2>/dev/null | tail -n1 || true)
+          MSG="GitHub Actions 채점 실패 (run #${{ github.run_id }})"
+          if [[ "$QUALITY" == QUALITY_GATE:LOW:* ]]; then
+            MSG="품질 검사(LOW) 미달로 채점 결과를 저장하지 않았습니다 (run #${{ github.run_id }})"
+          fi
           curl -sS -X POST "${{ inputs.webhook_url }}" \
             -H "Content-Type: application/json" \
             -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_SECRET }}" \
-            -d "{\"taskId\":\"${{ inputs.task_id }}\",\"status\":\"failed\",\"message\":\"GitHub Actions 채점 실패 (run #${{ github.run_id }})\",\"runId\":\"${{ github.run_id }}\"}" || true
+            -d "{\"taskId\":\"${{ inputs.task_id }}\",\"status\":\"failed\",\"message\":\"${MSG}\",\"quality\":\"${QUALITY}\",\"runId\":\"${{ github.run_id }}\"}" || true

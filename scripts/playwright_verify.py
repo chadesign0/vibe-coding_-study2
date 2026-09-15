@@ -30,6 +30,7 @@ from build_month import (
     extract_candidates_powerlink,
     extract_video_items_with_dates,
     normalize_text,
+    text_has_naver_blog_id,
 )
 
 _UA = (
@@ -218,7 +219,7 @@ async def _verify_one(
     # 6. BLOG — 통합검색 페이지에서 공식 블로그 ID 등장 (보수적 1위 부여)
     if official_blog_ids:
         for bid in official_blog_ids:
-            if f"blog.naver.com/{bid}" in html:
+            if text_has_naver_blog_id(html, bid):
                 out["blog"] = {"rank": 1, "source": "integrated_search_dom"}
                 break
 

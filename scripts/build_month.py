@@ -243,6 +243,18 @@ def naver_blog_id_from_url(url: str) -> str | None:
     return first
 
 
+def text_has_naver_blog_id(text: str, bid: str) -> bool:
+    """text 안에 blog.naver.com/{bid} 가 아이디 경계까지 정확히 등장하는지.
+
+    단순 부분 문자열 비교는 'suca' 가 'sucaXXX' 블로그에도 매칭되므로,
+    아이디 뒤에 아이디 문자(영문·숫자·_·-)가 이어지면 다른 블로그로 본다.
+    """
+    if not bid:
+        return False
+    pattern = r"blog\.naver\.com/" + re.escape(bid) + r"(?![A-Za-z0-9_-])"
+    return re.search(pattern, text or "", re.IGNORECASE) is not None
+
+
 def official_naver_blog_ids_from_config(cfg: dict[str, Any]) -> frozenset[str]:
     out: set[str] = set()
     for u in cfg.get("hospitalBlogBases") or []:
@@ -591,7 +603,7 @@ def find_rank_by_api_tab(
             fb_rank, fb_ev = _try_map_drt_fallback(query, match_tokens, primary_basis="api_error")
             if fb_rank > 0:
                 return fb_rank, fb_ev
-            return 0, {"reason": "api_error", **fb_ev}
+            return None, {"reason": "api_error", **fb_ev}
         return None, {"reason": "api_error"}
     if tab == "blog":
         return analyze_blog_search_items(items, match_tokens, blog_period, official_blog_ids)
@@ -1170,10 +1182,7 @@ def _find_web_rank_by_url(
             if t in url_l:
                 return rank, {"matched_url": url[:200], "matched_rank": rank, "basis": "web_url_domain", "top": top}
         for bid in official_blog_ids:
-            if bid and (
-                f"blog.naver.com/{bid}" in url_l
-                or f"m.blog.naver.com/{bid}" in url_l
-            ):
+            if text_has_naver_blog_id(url_l, bid):
                 return rank, {"matched_url": url[:200], "matched_rank": rank, "basis": "web_url_blog", "top": top}
 
     return 0, {"matched_rank": 0, "basis": "no_url_match", "top": top}
@@ -1235,10 +1244,7 @@ def _find_web_rank_from_render_json(
                     "basis": "web_render_json_domain", "top": top,
                 }
         for bid in official_blog_ids:
-            if bid and (
-                f"blog.naver.com/{bid}" in url_l
-                or f"m.blog.naver.com/{bid}" in url_l
-            ):
+            if text_has_naver_blog_id(url_l, bid):
                 return rank, {
                     "matched_url": url[:200], "matched_rank": rank,
                     "basis": "web_render_json_blog", "top": top,
@@ -1305,7 +1311,7 @@ def find_rank_by_web_tab(
                 return rank, ev
             rank, ev = _find_web_rank_from_render_json(ht, match_tokens, official_blog_ids)
             return rank, ev
-        return 0, {"matched_rank": 0, "reason": "fetch_failed"}
+        return None, {"matched_rank": 0, "reason": "fetch_failed"}
 
     if tab == "bizsite":
         # 통합검색 페이지 사용 — 캐시로 web 채점과 공유
@@ -1449,7 +1455,7 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                 r = int(legacy_blog_manual[kw]); kw_out[tab] = r; kw_ev[tab] = {"source": "manual_legacy_blog", "rank": r}; continue
             if tab in ("powerlink", "bizsite", "video", "web"):
                 r, ev = find_rank_by_web_tab(tab, kw, match_tokens, blog_period, official_blog_ids)
-                kw_out[tab] = 0 if r is None else r
+                kw_out[tab] = r  # None = 측정 실패 → 표에 '—' (진짜 0점과 구분)
                 kw_ev[tab] = {"source": "web", **ev}
             else:
                 r, ev = find_rank_by_api_tab(
@@ -1462,7 +1468,7 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                     official_blog_ids if tab == "blog" else frozenset(),
                     official_cafe_ids if tab == "cafe" else frozenset(),
                 )
-                kw_out[tab] = 0 if r is None else r
+                kw_out[tab] = r  # None = 측정 실패 → 표에 '—' (진짜 0점과 구분)
                 kw_ev[tab] = {"source": "api", **ev}
         return kw, kw_out, kw_ev
 
@@ -1794,17 +1800,34 @@ def _month_identity(m: dict[str, Any]) -> tuple[str, str]:
     return lab, h
 
 
-def merge_into_scoring_data(month: dict[str, Any]) -> None:
-    """동일 (monthLabel, hospitalName) 항목만 교체·추가. 타 병원·타 슬롯은 유지."""
+def _write_json_atomic(path: Path, payload: Any, *, compact: bool = False) -> None:
+    """임시 파일에 다 쓴 뒤 교체 — 쓰는 도중 프로세스가 죽어도 기존 파일이 잘리지 않는다."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        if compact:
+            json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
+        else:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, path)
+
+
+def merge_into_scoring_data(month: dict[str, Any], path: Path | None = None) -> None:
+    """동일 (monthLabel, hospitalName) 항목만 교체·추가. 타 병원·타 슬롯은 유지.
+
+    path 를 주면 SCORING_TEMP_OUTPUT 을 무시하고 그 파일에 바로 병합한다 (merge_results.py 용).
+    """
     temp_out = os.getenv("SCORING_TEMP_OUTPUT", "").strip()
-    if temp_out:
-        with open(temp_out, "w", encoding="utf-8") as f:
-            json.dump(month, f, ensure_ascii=False, indent=2)
+    if temp_out and path is None:
+        _write_json_atomic(Path(temp_out), month)
         print("임시 채점 결과 저장:", temp_out)
         return
-    path = ROOT / "data" / "scoring-data.json"
-    with open(path, encoding="utf-8") as f:
-        root = json.load(f)
+    path = path or ROOT / "data" / "scoring-data.json"
+    if path.exists():
+        with open(path, encoding="utf-8") as f:
+            root = json.load(f)
+    else:
+        root = {"months": []}
     new_id = _month_identity(month)
     new_lab = str(month.get("monthLabel") or "").strip()
     new_hn = str(month.get("hospitalName") or "").strip()
@@ -1824,34 +1847,32 @@ def merge_into_scoring_data(month: dict[str, Any]) -> None:
     months.append(month)
     months.sort(key=lambda m: _month_order_label(str(m.get("monthLabel") or "")))
     root["months"] = months
-    root["generatedBy"] = "build_april_month.py(api+web-evidence)"
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(root, f, ensure_ascii=False, indent=2)
+    root["generatedBy"] = "build_month.py(api+web-evidence)"
+    _write_json_atomic(path, root)
     print("병합 완료:", path)
 
 
-def save_evidence(evidence: dict[str, Any], hospital_name: str | None = None) -> None:
+def save_evidence(evidence: dict[str, Any], hospital_name: str | None = None, path: Path | None = None) -> None:
     """
     hospital_name 이 있으면 evidence 를 byHospital[hospital_name] 에만 갱신(포인트 공용 evidence 유지).
     없으면 기존처럼 최상위 evidence 전체 교체, byHospital 은 유지.
+    path 를 주면 EVIDENCE_TEMP_OUTPUT 을 무시하고 그 파일에 바로 병합한다 (merge_results.py 용).
+    파일이 수십 MB 라 들여쓰기 없이 저장한다.
     """
     temp_out = os.getenv("EVIDENCE_TEMP_OUTPUT", "").strip()
-    if temp_out:
-        with open(temp_out, "w", encoding="utf-8") as f:
-            json.dump({"evidence": evidence, "hospitalName": hospital_name}, f, ensure_ascii=False, indent=2)
+    if temp_out and path is None:
+        _write_json_atomic(Path(temp_out), {"evidence": evidence, "hospitalName": hospital_name}, compact=True)
         print("임시 근거 저장:", temp_out)
         return
-    path = ROOT / "data" / "last-run-evidence.json"
+    path = path or ROOT / "data" / "last-run-evidence.json"
     flat: dict[str, Any] = {}
     by_h: dict[str, Any] = {}
-    if path.exists():
-        try:
-            with open(path, encoding="utf-8") as f:
-                old = json.load(f)
-            flat = dict(old.get("evidence") or {})
-            by_h = dict(old.get("byHospital") or {})
-        except Exception:
-            pass
+    if path.exists() and path.stat().st_size > 0:
+        # 기존 파일을 못 읽으면 중단 — 무시하고 저장하면 다른 병원 근거가 전부 지워진다.
+        with open(path, encoding="utf-8") as f:
+            old = json.load(f)
+        flat = dict(old.get("evidence") or {})
+        by_h = dict(old.get("byHospital") or {})
     if hospital_name:
         key = str(hospital_name).strip()
         old_h = by_h.get(key)
@@ -1861,8 +1882,7 @@ def save_evidence(evidence: dict[str, Any], hospital_name: str | None = None) ->
     else:
         flat = evidence
     payload = {"generatedAt": time.strftime("%Y-%m-%d %H:%M:%S"), "evidence": flat, "byHospital": by_h}
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
+    _write_json_atomic(path, payload, compact=True)
     print("근거 저장:", path)
 
 
@@ -1921,27 +1941,56 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
 
     month = build_month_payload(cfg, ranks, volumes, (None if full_rescore else reused_rows))
 
-    # 배포 안전장치: 라이브 재조회 샘플과의 일치율이 임계치 미만이면 실패 처리
+    # 배포 안전장치
+    # ① 측정 실패 비율: 조회 실패는 0점이 아니라 None('—')으로 남기므로, 실패가 많으면
+    #    일치율과 별개로 LOW 처리한다 ("전부 실패했는데 품질 OK" 방지).
+    # ② 라이브 재조회 샘플과의 일치율.
+    # LOW 면 결과를 저장하지 않고 종료한다 (SCORING_BLOCK_ON_LOW_QUALITY=0 으로 끌 수 있음).
     verify_enabled = (os.getenv("SCORING_VERIFY_SAMPLE") or "1").strip().lower() in {"1", "true", "yes"}
     verify_warn_threshold = float((os.getenv("SCORING_VERIFY_WARN_THRESHOLD") or "0.90").strip() or "0.90")
     verify_low_threshold = float((os.getenv("SCORING_VERIFY_LOW_THRESHOLD") or "0.80").strip() or "0.80")
     verify_size = int((os.getenv("SCORING_VERIFY_SIZE") or "24").strip() or "24")
+    max_fail_ratio = float((os.getenv("SCORING_MAX_FAIL_RATIO") or "0.20").strip() or "0.20")
+    block_on_low = (os.getenv("SCORING_BLOCK_ON_LOW_QUALITY") or "1").strip().lower() in {"1", "true", "yes"}
     quality_meta: dict[str, Any] | None = None
+
+    measured_cells = 0
+    failed_cells = 0
+    for kw in fresh_keywords:
+        kw_ranks = ranks.get(kw) or {}
+        for tab in COL_BY_TAB.keys():
+            if tab == "cafe":  # 전역 비활성화 채널
+                continue
+            measured_cells += 1
+            if kw_ranks.get(tab) is None:
+                failed_cells += 1
+    fail_ratio = (failed_cells / measured_cells) if measured_cells else 0.0
+    too_many_failures = fail_ratio > max_fail_ratio
+    if measured_cells:
+        print(
+            f"측정 실패 비율: {fail_ratio*100:.1f}% "
+            f"({failed_cells}/{measured_cells}칸, 허용 {max_fail_ratio*100:.1f}%)"
+        )
+
+    replay_acc: float | None = None
+    sample_size = 0
+    total = 0
     verify_pool = all_keywords if full_rescore else fresh_keywords
     if verify_enabled and verify_pool:
         sample = verify_pool[:]
         random.shuffle(sample)
         sample = sample[: max(1, min(len(sample), verify_size))]
+        sample_size = len(sample)
         cfg_verify = dict(cfg)
         cfg_verify["keywords"] = sample
         replay_ranks, _ = fetch_keyword_ranks(cfg_verify, cid, csec)
         matched = 0
-        total = 0
         for kw in sample:
             for tab in COL_BY_TAB.keys():
                 v1 = table_cell_for_tab(tab, ranks.get(kw, {}).get(tab))
                 v2 = table_cell_for_tab(tab, replay_ranks.get(kw, {}).get(tab))
-                if v1 is None and v2 is None:
+                # 한쪽이라도 측정 실패면 비교 불가 — 실패는 위의 실패 비율로 따로 판정한다.
+                if v1 is None or v2 is None:
                     continue
                 total += 1
                 if v1 == v2:
@@ -1949,38 +1998,31 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
         replay_acc = (matched / total) if total else 1.0
         print(
             f"샘플 재조회 일치율: {replay_acc*100:.1f}% "
-            f"(경고 {verify_warn_threshold*100:.1f}% / 낮음 {verify_low_threshold*100:.1f}%, 샘플 {len(sample)}개)"
+            f"(경고 {verify_warn_threshold*100:.1f}% / 낮음 {verify_low_threshold*100:.1f}%, 샘플 {sample_size}개)"
         )
-        if replay_acc < verify_low_threshold:
-            quality_meta = {
-                "level": "low",
-                "accuracyPct": round(replay_acc * 100, 1),
-                "warnThresholdPct": round(verify_warn_threshold * 100, 1),
-                "lowThresholdPct": round(verify_low_threshold * 100, 1),
-                "sampleSize": len(sample),
-                "checkedItems": total,
-            }
-            print(f"QUALITY_GATE:LOW:{replay_acc*100:.1f}")
-        elif replay_acc < verify_warn_threshold:
-            quality_meta = {
-                "level": "warn",
-                "accuracyPct": round(replay_acc * 100, 1),
-                "warnThresholdPct": round(verify_warn_threshold * 100, 1),
-                "lowThresholdPct": round(verify_low_threshold * 100, 1),
-                "sampleSize": len(sample),
-                "checkedItems": total,
-            }
-            print(f"QUALITY_GATE:WARN:{replay_acc*100:.1f}")
+
+    if replay_acc is not None or too_many_failures:
+        acc = replay_acc if replay_acc is not None else 1.0
+        if too_many_failures or acc < verify_low_threshold:
+            level = "low"
+        elif acc < verify_warn_threshold:
+            level = "warn"
         else:
-            quality_meta = {
-                "level": "ok",
-                "accuracyPct": round(replay_acc * 100, 1),
-                "warnThresholdPct": round(verify_warn_threshold * 100, 1),
-                "lowThresholdPct": round(verify_low_threshold * 100, 1),
-                "sampleSize": len(sample),
-                "checkedItems": total,
-            }
-            print(f"QUALITY_GATE:OK:{replay_acc*100:.1f}")
+            level = "ok"
+        quality_meta = {
+            "level": level,
+            "accuracyPct": round(acc * 100, 1),
+            "warnThresholdPct": round(verify_warn_threshold * 100, 1),
+            "lowThresholdPct": round(verify_low_threshold * 100, 1),
+            "sampleSize": sample_size,
+            "checkedItems": total,
+            "failedCellPct": round(fail_ratio * 100, 1),
+        }
+        print(f"QUALITY_GATE:{level.upper()}:{acc*100:.1f}")
+        if level == "low" and block_on_low:
+            reason = "측정 실패 과다" if too_many_failures else "샘플 재조회 일치율 미달"
+            print(f"품질 게이트 LOW ({reason}) → 채점 결과를 저장하지 않고 종료합니다.", flush=True)
+            raise SystemExit(3)
 
     hn = (cfg.get("hospitalName") or "").strip()
     if hn:

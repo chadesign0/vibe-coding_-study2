@@ -871,8 +871,12 @@ def _github_commit_files(file_paths: list[Path], message: str) -> None:
 
 
 def _github_push_scoring_files() -> None:
-    """채점 완료 후 scoring-data.json + last-run-evidence.json 을 GitHub에 자동 커밋."""
-    files = [p for p in [DATA_PATH, ROOT / "data" / "last-run-evidence.json"] if p.exists()]
+    """채점·삭제 후 scoring-data.json 을 GitHub main 에 자동 커밋.
+
+    last-run-evidence.json(수십 MB)은 main 이력 비대화를 막기 위해 올리지 않는다.
+    근거 파일은 GitHub Actions 가 scoring-evidence 브랜치에서 관리한다.
+    """
+    files = [p for p in [DATA_PATH] if p.exists()]
     if not files:
         return
     from datetime import datetime as _dt
@@ -956,7 +960,7 @@ def _merge_scoring_temp(temp_path: Path) -> None:
     months.append(month)
     months.sort(key=_month_order)
     root["months"] = months
-    root["generatedBy"] = "build_april_month.py(api+web-evidence)"
+    root["generatedBy"] = "build_month.py(api+web-evidence)"
     DATA_PATH.write_text(json.dumps(root, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
@@ -1161,35 +1165,54 @@ def enqueue_score_task(
 
 
 def _pull_scoring_data_from_github() -> None:
-    """GitHub main 브랜치의 scoring-data.json / last-run-evidence.json 을 로컬 디스크에 동기화.
+    """GitHub 의 scoring-data.json(main) / last-run-evidence.json(scoring-evidence 브랜치) 을 로컬 디스크에 동기화.
     GitHub Actions에서 자동 push된 결과를 Render가 즉시 보여줄 수 있게 한다."""
+    import time as _time
     owner = os.getenv("GITHUB_REPO_OWNER", "chadesign0").strip()
     repo  = os.getenv("GITHUB_REPO_NAME",  "vibe-coding_-study2").strip()
+    ev_branch = os.getenv("GITHUB_EVIDENCE_BRANCH", "scoring-evidence").strip() or "scoring-evidence"
+    raw = f"https://raw.githubusercontent.com/{owner}/{repo}"
+    # 근거 파일은 main 이력 비대화를 막기 위해 별도 브랜치에 둔다.
+    # 브랜치가 아직 없으면(404) 예전 위치인 main/data 를 이어서 시도한다.
     targets = [
-        ("data/scoring-data.json", DATA_PATH),
-        ("data/last-run-evidence.json", ROOT / "data" / "last-run-evidence.json"),
+        ("scoring-data.json", [f"{raw}/main/data/scoring-data.json"], DATA_PATH),
+        (
+            "last-run-evidence.json",
+            [f"{raw}/{ev_branch}/last-run-evidence.json", f"{raw}/main/data/last-run-evidence.json"],
+            ROOT / "data" / "last-run-evidence.json",
+        ),
     ]
-    for remote_path, local_path in targets:
+    for label, urls, local_path in targets:
         last_err: Exception | None = None
+        done = False
         for attempt in range(3):
-            try:
-                import time as _time
-                bust = int(_time.time())
-                url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/{remote_path}?_t={bust}"
-                req = urllib.request.Request(url, headers={"Cache-Control": "no-cache", "Pragma": "no-cache"})
-                with urllib.request.urlopen(req, timeout=60) as resp:
-                    content = resp.read()
-                local_path.parent.mkdir(parents=True, exist_ok=True)
-                local_path.write_bytes(content)
-                print(f"[github] {remote_path} 동기화 완료 ({len(content)} bytes, attempt {attempt+1})")
-                last_err = None
+            for base_url in urls:
+                try:
+                    url = f"{base_url}?_t={int(_time.time())}"
+                    req = urllib.request.Request(url, headers={"Cache-Control": "no-cache", "Pragma": "no-cache"})
+                    with urllib.request.urlopen(req, timeout=60) as resp:
+                        content = resp.read()
+                    local_path.parent.mkdir(parents=True, exist_ok=True)
+                    tmp_path = local_path.with_name(local_path.name + ".tmp")
+                    tmp_path.write_bytes(content)
+                    os.replace(tmp_path, local_path)
+                    print(f"[github] {label} 동기화 완료 ({len(content)} bytes, attempt {attempt+1}, {base_url})")
+                    done = True
+                    break
+                except urllib.error.HTTPError as e:
+                    last_err = e
+                    if e.code == 404:
+                        continue  # 다음 후보 위치
+                    break
+                except Exception as e:
+                    last_err = e
+                    break
+            if done:
                 break
-            except Exception as e:
-                last_err = e
-                if attempt < 2:
-                    import time as _time2; _time2.sleep(5)
-        if last_err:
-            print(f"[github] {remote_path} 동기화 실패 (3회 시도): {last_err}")
+            if attempt < 2:
+                _time.sleep(5)
+        if not done:
+            print(f"[github] {label} 동기화 실패 (3회 시도): {last_err}")
 
 
 def _trigger_github_actions_workflow(
