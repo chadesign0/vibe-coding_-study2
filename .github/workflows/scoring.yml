@@ -56,11 +56,19 @@ jobs:
           python -m playwright install --with-deps chromium
 
       - name: 4. 시작 webhook 통지
+        env:
+          WEBHOOK_URL: ${{ inputs.webhook_url }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          TASK_ID: ${{ inputs.task_id }}
+          RUN_ID: ${{ github.run_id }}
         run: |
-          curl -sS -X POST "${{ inputs.webhook_url }}" \
+          PAYLOAD=$(jq -cn \
+            --arg taskId "$TASK_ID" --arg runId "$RUN_ID" \
+            '{taskId:$taskId,status:"running",message:"GitHub Actions 채점 시작",runId:$runId}')
+          curl -sS -X POST "$WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_SECRET }}" \
-            -d "{\"taskId\":\"${{ inputs.task_id }}\",\"status\":\"running\",\"message\":\"GitHub Actions 채점 시작\",\"runId\":\"${{ github.run_id }}\"}" || true
+            -H "X-Webhook-Secret: $WEBHOOK_SECRET" \
+            --data-binary "$PAYLOAD" || true
 
       - name: 5. 채점 실행 (build_month.py)
         env:
@@ -157,29 +165,53 @@ jobs:
 
       - name: 7. Render 데이터 새로고침 요청 (task_id 무관)
         if: success()
+        env:
+          WEBHOOK_URL: ${{ inputs.webhook_url }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
         run: |
-          RENDER_BASE=$(echo "${{ inputs.webhook_url }}" | grep -oP '^https://[^/]+')
+          RENDER_BASE=$(python -c 'import os, urllib.parse; u=urllib.parse.urlsplit(os.environ["WEBHOOK_URL"]); print(f"{u.scheme}://{u.netloc}" if u.scheme == "https" and u.netloc else "")')
+          test -n "$RENDER_BASE" || exit 1
           curl -sS -X POST "${RENDER_BASE}/api/pull-scoring-data" \
-            -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_SECRET }}" || true
+            -H "X-Webhook-Secret: $WEBHOOK_SECRET" || true
 
       - name: 8. 완료 webhook 통지
         if: success()
+        env:
+          WEBHOOK_URL: ${{ inputs.webhook_url }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          TASK_ID: ${{ inputs.task_id }}
+          HOSPITAL_NAME: ${{ inputs.hospital_name }}
+          MONTH_LABEL: ${{ inputs.month_label }}
+          RUN_ID: ${{ github.run_id }}
         run: |
-          curl -sS -X POST "${{ inputs.webhook_url }}" \
+          PAYLOAD=$(jq -cn \
+            --arg taskId "$TASK_ID" --arg message "$HOSPITAL_NAME · $MONTH_LABEL 채점 완료" \
+            --arg quality "$QUALITY_LINE" --arg runId "$RUN_ID" \
+            '{taskId:$taskId,status:"succeeded",message:$message,quality:$quality,runId:$runId}')
+          curl -sS -X POST "$WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_SECRET }}" \
-            -d "{\"taskId\":\"${{ inputs.task_id }}\",\"status\":\"succeeded\",\"message\":\"${{ inputs.hospital_name }} · ${{ inputs.month_label }} 채점 완료\",\"quality\":\"${QUALITY_LINE}\",\"runId\":\"${{ github.run_id }}\"}" || true
+            -H "X-Webhook-Secret: $WEBHOOK_SECRET" \
+            --data-binary "$PAYLOAD" || true
 
       - name: 9. 실패 webhook 통지
         if: failure()
         shell: bash
+        env:
+          WEBHOOK_URL: ${{ inputs.webhook_url }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          TASK_ID: ${{ inputs.task_id }}
+          RUN_ID: ${{ github.run_id }}
         run: |
           QUALITY=$(grep -oE 'QUALITY_GATE:[A-Z]+:[0-9.]+' /tmp/scoring.log 2>/dev/null | tail -n1 || true)
-          MSG="GitHub Actions 채점 실패 (run #${{ github.run_id }})"
+          MSG="GitHub Actions 채점 실패 (run #$RUN_ID)"
           if [[ "$QUALITY" == QUALITY_GATE:LOW:* ]]; then
-            MSG="품질 검사(LOW) 미달로 채점 결과를 저장하지 않았습니다 (run #${{ github.run_id }})"
+            MSG="품질 검사(LOW) 미달로 채점 결과를 저장하지 않았습니다 (run #$RUN_ID)"
           fi
-          curl -sS -X POST "${{ inputs.webhook_url }}" \
+          PAYLOAD=$(jq -cn \
+            --arg taskId "$TASK_ID" --arg message "$MSG" \
+            --arg quality "$QUALITY" --arg runId "$RUN_ID" \
+            '{taskId:$taskId,status:"failed",message:$message,quality:$quality,runId:$runId}')
+          curl -sS -X POST "$WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -H "X-Webhook-Secret: ${{ secrets.WEBHOOK_SECRET }}" \
-            -d "{\"taskId\":\"${{ inputs.task_id }}\",\"status\":\"failed\",\"message\":\"${MSG}\",\"quality\":\"${QUALITY}\",\"runId\":\"${{ github.run_id }}\"}" || true
+            -H "X-Webhook-Secret: $WEBHOOK_SECRET" \
+            --data-binary "$PAYLOAD" || true

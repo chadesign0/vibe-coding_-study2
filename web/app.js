@@ -964,6 +964,8 @@ async function deleteKeywordFromTable(keyword) {
 
   const form = new FormData();
   form.append("keyword", kw);
+  form.append("hospital_name", currentHospitalKey());
+  form.append("month_label", currentMonthLabel());
   uploadInFlight = true;
   try {
     showToast("키워드 삭제 중...");

@@ -55,6 +55,7 @@ HOSPITAL_CANONICAL: dict[str, str] = {
 SCORE_TASKS: dict[str, dict[str, object]] = {}
 ACTIVE_SCORE_TASK_BY_KEY: dict[str, str] = {}
 SCORE_TASKS_LOCK = threading.Lock()
+SCORE_REQUEST_LOCK = threading.Lock()  # 같은 병원/월의 변경·채점 요청 직렬화
 MERGE_LOCK = threading.Lock()  # scoring-data.json / last-run-evidence.json 동시 쓰기 방지
 GITHUB_PUSH_LOCK = threading.Lock()  # GitHub push 동시 실행 방지 (422 race 방지)
 
@@ -73,6 +74,15 @@ RENDER_PUBLIC_URL = (os.getenv("RENDER_PUBLIC_URL") or "https://baejeompyojadong
 def canonical_hospital_name(name: str | None) -> str:
     n = (name or "").strip() or "포인트병원"
     return HOSPITAL_CANONICAL.get(n, n)
+
+
+def supported_hospital_name(name: str | None) -> str | None:
+    """등록된 병원만 반환한다. 외부 입력이 Actions까지 전달되지 않도록 허용 목록으로 제한."""
+    raw = (name or "").strip()
+    if not raw:
+        return None
+    hn = canonical_hospital_name(raw)
+    return hn if hn in HOSPITAL_PROFILE_OVERRIDES else None
 
 
 def template_config_path(hospital_name: str) -> Path:
@@ -385,6 +395,15 @@ def normalize_month_label(raw: str | None) -> str:
     return current_month_label()
 
 
+def required_month_label(raw: str | None) -> str | None:
+    s = (raw or "").strip()
+    m = re.fullmatch(r"(\d{1,2})월", s)
+    if not m:
+        return None
+    n = int(m.group(1))
+    return f"{n}월" if 1 <= n <= 12 else None
+
+
 def merge_keywords_keep_order(existing: list[str], incoming: list[str]) -> list[str]:
     seen = set()
     out = []
@@ -552,8 +571,10 @@ def build_rows_by_sheet_key_for_month(
     return rows_by_sheet_key, sheet_titles
 
 
-def runtime_config_path_for_hospital(hospital_name: str) -> Path:
-    digest = hashlib.sha1(canonical_hospital_name(hospital_name).encode("utf-8")).hexdigest()[:10]
+def runtime_config_path_for_config(cfg: dict) -> Path:
+    """설정 내용이 다르면 파일도 달라지게 하여 동시 채점 간 덮어쓰기를 방지."""
+    canonical = json.dumps(cfg, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
     return ROOT / "config" / f"runtime_{digest}.json"
 
 
@@ -635,7 +656,7 @@ def update_keywords(
         cfg.pop("rowsBySheetKey", None)
         cfg.pop("sheetTitles", None)
     cfg["forceRescoreKeywords"] = force_rescore_keywords
-    out_path = runtime_config_path_for_hospital(hn)
+    out_path = runtime_config_path_for_config(cfg)
     out_path.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
     return merged, out_path.name, added_count
 
@@ -708,13 +729,24 @@ def build_runtime_config_for_rerun(
             k.strip() for k in chunk_keywords if k and k.strip()
         ]
 
-    out_path = runtime_config_path_for_hospital(hn)
+    out_path = runtime_config_path_for_config(cfg)
     out_path.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
     return out_path.name, ""
 
 
-def delete_keyword(keyword: str) -> tuple[bool, int]:
-    """모든 설정(config/runtime)에서 키워드 1개 삭제."""
+def _config_matches_scope(cfg: dict, hospital_name: str, month_label: str) -> bool:
+    cfg_hn = str(cfg.get("hospitalName") or "").strip()
+    if not cfg_hn:
+        names = cfg.get("hospitalNames") or []
+        cfg_hn = str(names[0] if names else "").strip()
+    return (
+        canonical_hospital_name(cfg_hn) == canonical_hospital_name(hospital_name)
+        and str(cfg.get("monthLabel") or "").strip() == month_label
+    )
+
+
+def delete_keyword(keyword: str, month_label: str, hospital_name: str) -> tuple[bool, int]:
+    """선택한 병원·월과 일치하는 기본 설정에서만 키워드 1개 삭제."""
     k = (keyword or "").strip()
     if not k:
         return False, 0
@@ -727,7 +759,6 @@ def delete_keyword(keyword: str) -> tuple[bool, int]:
         JL_CONFIG_PATH,
         SNU_CONFIG_PATH,
     ]
-    candidate_paths.extend(sorted((ROOT / "config").glob("runtime_*.json")))
     seen_paths: set[str] = set()
     for path in candidate_paths:
         key = str(path.resolve()) if path.exists() else str(path)
@@ -739,6 +770,8 @@ def delete_keyword(keyword: str) -> tuple[bool, int]:
         try:
             cfg = json.loads(path.read_text(encoding="utf-8"))
         except Exception:
+            continue
+        if not _config_matches_scope(cfg, hospital_name, month_label):
             continue
         current = [str(x).strip() for x in (cfg.get("keywords") or []) if str(x).strip()]
         if not current:
@@ -760,8 +793,22 @@ def delete_keyword(keyword: str) -> tuple[bool, int]:
     return changed, remain_any
 
 
-def delete_keyword_from_scoring_data(keyword: str) -> tuple[bool, int]:
-    """scoring-data.json 모든 월/시트에서 키워드 행 제거."""
+def _month_matches_scope(month: dict, month_label: str, hospital_name: str) -> bool:
+    if str(month.get("monthLabel") or "").strip() != month_label:
+        return False
+    raw_hn = str(month.get("hospitalName") or "").strip()
+    target = canonical_hospital_name(hospital_name)
+    if target == "포인트병원" and not raw_hn:
+        return True
+    return canonical_hospital_name(raw_hn) == target
+
+
+def delete_keyword_from_scoring_data(
+    keyword: str,
+    month_label: str,
+    hospital_name: str,
+) -> tuple[bool, int]:
+    """선택한 병원·월의 시트에서만 키워드 행 제거."""
     k = (keyword or "").strip()
     if not k or not DATA_PATH.exists():
         return False, 0
@@ -769,6 +816,8 @@ def delete_keyword_from_scoring_data(keyword: str) -> tuple[bool, int]:
     changed = False
     removed = 0
     for month in root.get("months") or []:
+        if not _month_matches_scope(month, month_label, hospital_name):
+            continue
         kc = month.get("keywordChannels")
         if isinstance(kc, dict) and k in kc:
             kc.pop(k, None)
@@ -796,23 +845,47 @@ def delete_keyword_from_scoring_data(keyword: str) -> tuple[bool, int]:
     return changed, removed
 
 
-def delete_keyword_from_evidence(keyword: str) -> bool:
-    """last-run-evidence.json 에서 키워드 근거 제거."""
+def _keyword_exists_for_hospital(keyword: str, hospital_name: str) -> bool:
+    if not DATA_PATH.exists():
+        return False
+    root = json.loads(DATA_PATH.read_text(encoding="utf-8"))
+    target = canonical_hospital_name(hospital_name)
+    for month in root.get("months") or []:
+        raw_hn = str(month.get("hospitalName") or "").strip()
+        belongs = (
+            (target == "포인트병원" and not raw_hn)
+            or canonical_hospital_name(raw_hn) == target
+        )
+        if not belongs:
+            continue
+        for sheet in month.get("sheets") or []:
+            for row in sheet.get("rows") or []:
+                if str((row[2] if len(row) > 2 else "") or "").strip() == keyword:
+                    return True
+    return False
+
+
+def delete_keyword_from_evidence(keyword: str, hospital_name: str) -> bool:
+    """해당 병원의 다른 월에도 키워드가 없을 때만 병원별 근거를 제거."""
     k = (keyword or "").strip()
     ev_path = ROOT / "data" / "last-run-evidence.json"
     if not k or not ev_path.exists():
         return False
+    if _keyword_exists_for_hospital(k, hospital_name):
+        return False
     root = json.loads(ev_path.read_text(encoding="utf-8"))
     changed = False
-    ev = root.get("evidence")
-    if isinstance(ev, dict) and k in ev:
-        ev.pop(k, None)
-        root["evidence"] = ev
-        changed = True
+    target = canonical_hospital_name(hospital_name)
+    if target == "포인트병원":
+        ev = root.get("evidence")
+        if isinstance(ev, dict) and k in ev:
+            ev.pop(k, None)
+            root["evidence"] = ev
+            changed = True
     by_h = root.get("byHospital")
     if isinstance(by_h, dict):
         for name, obj in by_h.items():
-            if isinstance(obj, dict) and k in obj:
+            if canonical_hospital_name(name) == target and isinstance(obj, dict) and k in obj:
                 obj.pop(k, None)
                 by_h[name] = obj
                 changed = True
@@ -1065,6 +1138,21 @@ def get_score_task(task_id: str) -> dict[str, object] | None:
         return out
 
 
+def active_score_task_for_scope(hospital_name: str, month_label: str) -> dict[str, object] | None:
+    """같은 병원·월에서 진행 중인 종류 불문 채점 작업을 찾는다."""
+    hn = canonical_hospital_name(hospital_name)
+    with SCORE_TASKS_LOCK:
+        for task in SCORE_TASKS.values():
+            if not isinstance(task, dict) or task.get("status") not in {"queued", "running"}:
+                continue
+            if (
+                canonical_hospital_name(str(task.get("hospitalName") or "")) == hn
+                and str(task.get("monthLabel") or "").strip() == month_label
+            ):
+                return dict(task)
+    return None
+
+
 def _set_task_status(task_id: str, **patch: object) -> None:
     with SCORE_TASKS_LOCK:
         cur = SCORE_TASKS.get(task_id)
@@ -1193,9 +1281,13 @@ def _pull_scoring_data_from_github() -> None:
                     with urllib.request.urlopen(req, timeout=60) as resp:
                         content = resp.read()
                     local_path.parent.mkdir(parents=True, exist_ok=True)
-                    tmp_path = local_path.with_name(local_path.name + ".tmp")
-                    tmp_path.write_bytes(content)
-                    os.replace(tmp_path, local_path)
+                    tmp_path = local_path.with_name(f"{local_path.name}.{uuid.uuid4().hex}.tmp")
+                    try:
+                        tmp_path.write_bytes(content)
+                        with MERGE_LOCK:
+                            os.replace(tmp_path, local_path)
+                    finally:
+                        tmp_path.unlink(missing_ok=True)
                     print(f"[github] {label} 동기화 완료 ({len(content)} bytes, attempt {attempt+1}, {base_url})")
                     done = True
                     break
@@ -1320,9 +1412,23 @@ def enqueue_actions_rescore_task(
 
     def _dispatch() -> None:
         webhook_url = f"{RENDER_PUBLIC_URL}/api/webhook/score-progress"
-        # config push보다 dispatch를 먼저 실행: config push → main 브랜치 커밋 → Render 자동재배포 →
-        # 프로세스 kill이 dispatch 전에 발생하는 race condition 방지.
-        # Actions runner 시작까지 30~60초 소요되므로 dispatch 직후 config를 push해도 충분히 안전.
+        try:
+            _github_push_runtime_config(config_name)
+        except Exception as e:
+            push_err = f"runtime config push 실패: {e}"
+            _set_task_status(
+                task_id,
+                status="failed",
+                endedAt=now_iso(),
+                error=push_err,
+                message=f"채점 준비 실패: {push_err}",
+            )
+            with SCORE_TASKS_LOCK:
+                if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
+                    ACTIVE_SCORE_TASK_BY_KEY.pop(key, None)
+            return
+
+        # Runner가 존재하지 않거나 이전 내용인 config를 읽지 않도록 push 완료 후 dispatch한다.
         ok, dispatch_err = _trigger_github_actions_workflow(
             task_id=task_id,
             hospital_name=hn,
@@ -1349,10 +1455,6 @@ def enqueue_actions_rescore_task(
             message=f"{hn} · {month_label} 채점 가상머신 부팅중... (10~30초 소요)",
             stage="dispatched",
         )
-        try:
-            _github_push_runtime_config(config_name)
-        except Exception as e:
-            print(f"[github] runtime config push 실패: {e}")
 
     threading.Thread(target=_dispatch, daemon=True).start()
     return task_id, True, ""
@@ -1360,14 +1462,18 @@ def enqueue_actions_rescore_task(
 
 def _github_push_runtime_config(config_name: str) -> None:
     """runtime config 파일을 GitHub main에 push (Actions가 읽을 수 있도록)."""
-    cfg_path = ROOT / "config" / config_name
+    if not re.fullmatch(r"runtime_[0-9a-f]{16}\.json", config_name):
+        raise ValueError("허용되지 않은 runtime config 파일명")
+    if not os.getenv("GITHUB_TOKEN", "").strip():
+        raise RuntimeError("GITHUB_TOKEN 환경변수가 설정되지 않았습니다.")
+    cfg_path = (ROOT / "config" / config_name).resolve()
+    config_dir = (ROOT / "config").resolve()
+    if cfg_path.parent != config_dir:
+        raise ValueError("runtime config 경로가 config 폴더 밖입니다.")
     if not cfg_path.exists():
-        return
+        raise FileNotFoundError(config_name)
     with GITHUB_PUSH_LOCK:
-        try:
-            _github_commit_files([cfg_path], f"chore: runtime config 동기화 ({config_name}) [skip render]")
-        except Exception as e:
-            print(f"[github] runtime config push 실패: {e}")
+        _github_commit_files([cfg_path], f"chore: runtime config 동기화 ({config_name}) [skip render]")
 
 
 def enqueue_chunked_rescore_task(
@@ -1449,7 +1555,10 @@ def enqueue_chunked_rescore_task(
             is_last = chunk_idx == total_chunks - 1
             _set_task_status(task_id, currentChunkIndex=chunk_idx)
 
-            config_name, err = build_runtime_config_for_rerun(month_label, hn, chunk_keywords=chunk)
+            with MERGE_LOCK:
+                config_name, err = build_runtime_config_for_rerun(
+                    month_label, hn, chunk_keywords=chunk
+                )
             if not config_name:
                 _set_task_status(
                     task_id,
@@ -1684,45 +1793,81 @@ def upload_keywords():
     if not keywords:
         return jsonify({"ok": False, "message": "유효한 키워드를 찾지 못했습니다."}), 400
 
-    month_label = normalize_month_label(request.form.get("month_label"))
-    hospital_name = canonical_hospital_name(
-        (request.form.get("hospital_name") or "포인트병원").strip() or "포인트병원"
-    )
+    month_label = required_month_label(request.form.get("month_label"))
+    if not month_label:
+        return jsonify({"ok": False, "message": "올바른 월을 선택해주세요."}), 400
+    hospital_name = supported_hospital_name(request.form.get("hospital_name"))
+    if not hospital_name:
+        return jsonify({"ok": False, "message": "등록되지 않은 병원입니다."}), 400
     channel = normalize_keyword_channel(request.form.get("keyword_channel"))
     scope = normalize_keyword_scope(request.form.get("keyword_scope"))
-    merged, config_name, added_count = update_keywords(keywords, month_label, hospital_name, channel, scope)
-    force_sync = (request.form.get("sync") or "").strip().lower() in {"1", "true", "yes"}
-    if force_sync:
-        ok, log = run_scoring(config_name, full_rescore=False)
-        if not ok:
-            return jsonify({"ok": False, "message": "채점 실행 실패"}), 500
-        return jsonify(
-            {
-                "ok": True,
-                "accepted": False,
-                "message": f"{hospital_name} · {month_label} 키워드 업로드 및 자동 채점 완료",
-                "count": len(merged),
-                "addedCount": added_count,
-                "monthLabel": month_label,
-                "hospitalName": hospital_name,
-            }
-        )
-    if USE_GITHUB_ACTIONS_FOR_RESCORE:
-        task_id, created_new, err = enqueue_actions_rescore_task(
+    with SCORE_REQUEST_LOCK:
+        active = active_score_task_for_scope(hospital_name, month_label)
+        if active:
+            return jsonify({
+                "ok": False,
+                "message": f"{hospital_name} · {month_label} 채점이 이미 진행 중입니다.",
+                "taskId": active.get("taskId"),
+            }), 409
+
+        with MERGE_LOCK:
+            merged, config_name, added_count = update_keywords(
+                keywords, month_label, hospital_name, channel, scope
+            )
+        force_sync = (request.form.get("sync") or "").strip().lower() in {"1", "true", "yes"}
+        if force_sync:
+            ok, log = run_scoring(config_name, full_rescore=False)
+            if not ok:
+                return jsonify({"ok": False, "message": "채점 실행 실패"}), 500
+            return jsonify(
+                {
+                    "ok": True,
+                    "accepted": False,
+                    "message": f"{hospital_name} · {month_label} 키워드 업로드 및 자동 채점 완료",
+                    "count": len(merged),
+                    "addedCount": added_count,
+                    "monthLabel": month_label,
+                    "hospitalName": hospital_name,
+                }
+            )
+        if USE_GITHUB_ACTIONS_FOR_RESCORE:
+            task_id, created_new, err = enqueue_actions_rescore_task(
+                hospital_name=hospital_name,
+                month_label=month_label,
+                config_name=config_name,
+                full_rescore=False,
+            )
+            if not task_id:
+                return jsonify({"ok": False, "message": err or "채점 트리거 실패"}), 500
+            return jsonify(
+                {
+                    "ok": True,
+                    "accepted": True,
+                    "taskId": task_id,
+                    "createdNewTask": created_new,
+                    "runner": "github-actions",
+                    "message": f"{hospital_name} · {month_label} 키워드 채점 작업을 시작했습니다.",
+                    "count": len(merged),
+                    "addedCount": added_count,
+                    "monthLabel": month_label,
+                    "hospitalName": hospital_name,
+                }
+            ), 202
+        task_id, created_new = enqueue_score_task(
+            kind="upload_keywords",
             hospital_name=hospital_name,
             month_label=month_label,
             config_name=config_name,
+            message=f"{hospital_name} · {month_label} 키워드 채점 대기중",
+            meta={"count": len(merged)},
             full_rescore=False,
         )
-        if not task_id:
-            return jsonify({"ok": False, "message": err or "채점 트리거 실패"}), 500
         return jsonify(
             {
                 "ok": True,
                 "accepted": True,
                 "taskId": task_id,
                 "createdNewTask": created_new,
-                "runner": "github-actions",
                 "message": f"{hospital_name} · {month_label} 키워드 채점 작업을 시작했습니다.",
                 "count": len(merged),
                 "addedCount": added_count,
@@ -1730,28 +1875,6 @@ def upload_keywords():
                 "hospitalName": hospital_name,
             }
         ), 202
-    task_id, created_new = enqueue_score_task(
-        kind="upload_keywords",
-        hospital_name=hospital_name,
-        month_label=month_label,
-        config_name=config_name,
-        message=f"{hospital_name} · {month_label} 키워드 채점 대기중",
-        meta={"count": len(merged)},
-        full_rescore=False,
-    )
-    return jsonify(
-        {
-            "ok": True,
-            "accepted": True,
-            "taskId": task_id,
-            "createdNewTask": created_new,
-            "message": f"{hospital_name} · {month_label} 키워드 채점 작업을 시작했습니다.",
-            "count": len(merged),
-            "addedCount": added_count,
-            "monthLabel": month_label,
-            "hospitalName": hospital_name,
-        }
-    ), 202
 
 
 @app.post("/api/delete-keyword")
@@ -1759,65 +1882,92 @@ def delete_keyword_api():
     keyword = (request.form.get("keyword") or "").strip()
     if not keyword:
         return jsonify({"ok": False, "message": "삭제할 키워드를 입력해주세요."}), 400
-    cfg_deleted, remain = delete_keyword(keyword)
-    data_deleted, removed_rows = delete_keyword_from_scoring_data(keyword)
-    ev_deleted = delete_keyword_from_evidence(keyword)
-    if not (cfg_deleted or data_deleted or ev_deleted):
-        return jsonify({"ok": False, "message": "해당 키워드를 찾지 못했습니다."}), 404
-    if data_deleted:
-        threading.Thread(target=_github_push_scoring_files, daemon=True).start()
-    return jsonify(
-        {
-            "ok": True,
-            "message": f"키워드 삭제 완료: {keyword}",
-            "remaining": remain,
-            "removedRows": removed_rows,
-        }
-    )
+    month_label = required_month_label(request.form.get("month_label"))
+    if not month_label:
+        return jsonify({"ok": False, "message": "삭제할 월을 선택해주세요."}), 400
+    hospital_name = supported_hospital_name(request.form.get("hospital_name"))
+    if not hospital_name:
+        return jsonify({"ok": False, "message": "등록되지 않은 병원입니다."}), 400
+
+    with SCORE_REQUEST_LOCK:
+        active = active_score_task_for_scope(hospital_name, month_label)
+        if active:
+            return jsonify({"ok": False, "message": "채점 진행 중에는 키워드를 삭제할 수 없습니다."}), 409
+        cfg_deleted, remain = delete_keyword(keyword, month_label, hospital_name)
+        with MERGE_LOCK:
+            data_deleted, removed_rows = delete_keyword_from_scoring_data(
+                keyword, month_label, hospital_name
+            )
+            ev_deleted = delete_keyword_from_evidence(keyword, hospital_name)
+        if not (cfg_deleted or data_deleted or ev_deleted):
+            return jsonify({"ok": False, "message": "선택한 병원·월에서 키워드를 찾지 못했습니다."}), 404
+        if data_deleted:
+            threading.Thread(target=_github_push_scoring_files, daemon=True).start()
+        return jsonify(
+            {
+                "ok": True,
+                "message": f"{hospital_name} · {month_label} 키워드 삭제 완료: {keyword}",
+                "remaining": remain,
+                "removedRows": removed_rows,
+            }
+        )
 
 
 @app.post("/api/run-score")
 def run_score():
-    hospital_name = canonical_hospital_name(
-        (request.form.get("hospital_name") or "포인트병원").strip() or "포인트병원"
-    )
-    month_label = normalize_month_label(request.form.get("month_label"))
-    # 조기 검증: 선택 월·병원 데이터 존재 확인
-    check_name, check_err = build_runtime_config_for_rerun(month_label, hospital_name)
-    if not check_name:
-        return jsonify({"ok": False, "message": check_err or "재채점 준비 실패"}), 400
-    force_sync = (request.form.get("sync") or "").strip().lower() in {"1", "true", "yes"}
-    if force_sync:
-        ok, log = run_scoring(check_name, full_rescore=True)
-        return jsonify({"ok": ok, "accepted": False}), (200 if ok else 500)
-    if USE_GITHUB_ACTIONS_FOR_RESCORE:
-        task_id, created_new, err = enqueue_actions_rescore_task(
-            hospital_name=hospital_name,
-            month_label=month_label,
-        )
-        if not task_id:
-            return jsonify({"ok": False, "message": err or "재채점 트리거 실패"}), 500
-        if err:
+    hospital_name = supported_hospital_name(request.form.get("hospital_name"))
+    if not hospital_name:
+        return jsonify({"ok": False, "message": "등록되지 않은 병원입니다."}), 400
+    month_label = required_month_label(request.form.get("month_label"))
+    if not month_label:
+        return jsonify({"ok": False, "message": "올바른 월을 선택해주세요."}), 400
+
+    with SCORE_REQUEST_LOCK:
+        active = active_score_task_for_scope(hospital_name, month_label)
+        if active:
             return jsonify({
                 "ok": False,
+                "message": f"{hospital_name} · {month_label} 채점이 이미 진행 중입니다.",
+                "taskId": active.get("taskId"),
+            }), 409
+        # 조기 검증: 선택 월·병원 데이터 존재 확인. 생성한 동일 config를 Actions에도 전달한다.
+        with MERGE_LOCK:
+            check_name, check_err = build_runtime_config_for_rerun(month_label, hospital_name)
+        if not check_name:
+            return jsonify({"ok": False, "message": check_err or "재채점 준비 실패"}), 400
+        force_sync = (request.form.get("sync") or "").strip().lower() in {"1", "true", "yes"}
+        if force_sync:
+            ok, log = run_scoring(check_name, full_rescore=True)
+            return jsonify({"ok": ok, "accepted": False}), (200 if ok else 500)
+        if USE_GITHUB_ACTIONS_FOR_RESCORE:
+            task_id, created_new, err = enqueue_actions_rescore_task(
+                hospital_name=hospital_name,
+                month_label=month_label,
+                config_name=check_name,
+            )
+            if not task_id:
+                return jsonify({"ok": False, "message": err or "재채점 트리거 실패"}), 500
+            if err:
+                return jsonify({
+                    "ok": False,
+                    "accepted": True,
+                    "taskId": task_id,
+                    "createdNewTask": created_new,
+                    "message": err,
+                }), 500
+            return jsonify({
+                "ok": True,
                 "accepted": True,
                 "taskId": task_id,
                 "createdNewTask": created_new,
-                "message": err,
-            }), 500
-        return jsonify({
-            "ok": True,
-            "accepted": True,
-            "taskId": task_id,
-            "createdNewTask": created_new,
-            "runner": "github-actions",
-            "message": "GitHub Actions 채점 작업을 시작했습니다. 가상머신 부팅 후 실행됩니다 (10~30초).",
-        }), 202
-    task_id, created_new = enqueue_chunked_rescore_task(
-        hospital_name=hospital_name,
-        month_label=month_label,
-    )
-    return jsonify({"ok": True, "accepted": True, "taskId": task_id, "createdNewTask": created_new}), 202
+                "runner": "github-actions",
+                "message": "GitHub Actions 채점 작업을 시작했습니다. 가상머신 부팅 후 실행됩니다 (10~30초).",
+            }), 202
+        task_id, created_new = enqueue_chunked_rescore_task(
+            hospital_name=hospital_name,
+            month_label=month_label,
+        )
+        return jsonify({"ok": True, "accepted": True, "taskId": task_id, "createdNewTask": created_new}), 202
 
 
 @app.post("/api/webhook/score-progress")
