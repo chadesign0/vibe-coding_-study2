@@ -387,7 +387,7 @@ code {
 }
 
 .toolbar__group--filter-split {
-  flex: 1 1 560px;
+  flex: 1 0 100%;
   min-width: min(100%, 280px);
 }
 
@@ -400,7 +400,7 @@ code {
 }
 
 .toolbar__filter-search {
-  flex: 0 1 220px;
+  flex: 0 1 260px;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -408,15 +408,15 @@ code {
 }
 
 .toolbar__channel-wrap {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 0 220px;
+  min-width: 220px;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
 .toolbar__sheet-quick-wrap {
-  flex: 2 1 0;
+  flex: 1 1 560px;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -438,9 +438,21 @@ code {
 #sheetQuickTabs .channel-tab {
   font-size: 0.78rem;
   padding: 0.6rem 0;
-  flex: 0 0 90.09px;
-  min-width: 90.09px;
+  flex: 1 0 82px;
+  min-width: 82px;
   text-align: center;
+}
+
+@media (max-width: 900px) {
+  .toolbar__filter-search,
+  .toolbar__channel-wrap {
+    flex: 1 1 220px;
+    min-width: 220px;
+  }
+
+  .toolbar__sheet-quick-wrap {
+    flex: 1 0 100%;
+  }
 }
 
 /* ── 업로드 패널 ── */
