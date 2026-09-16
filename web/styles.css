@@ -324,38 +324,6 @@ code {
   font-weight: 500;
 }
 
-/* ── 월 탭 ── */
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-.tab {
-  height: var(--ctrl-height);
-  padding: 0 0.9rem;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--muted);
-  font-family: var(--font-sans);
-  font-size: 0.85rem;
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.tab:hover {
-  color: var(--text);
-  border-color: var(--border);
-}
-
-.tab[aria-selected="true"] {
-  color: var(--text);
-  background: var(--surface-2);
-  border-color: var(--border-dark);
-}
-
 /* ── 채널·시트 탭 ── */
 .channel-tabs {
   display: flex;
@@ -453,23 +421,6 @@ code {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-}
-
-/* 월 탭 드래그 스크롤 */
-#monthTabs {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
-  cursor: grab;
-}
-
-#monthTabs::-webkit-scrollbar {
-  display: none;
-}
-
-#monthTabs .tab {
-  flex: 0 0 auto;
-  white-space: nowrap;
 }
 
 /* 시트 탭 드래그 스크롤 */
@@ -701,19 +652,6 @@ code {
 .channel-tab-indicator {
   position: absolute;
   bottom: 0;
-  height: 2px;
-  background: var(--accent);
-  transition: left 0.2s ease, width 0.2s ease;
-  pointer-events: none;
-}
-
-/* ── 월·시트탭 슬라이딩 인디케이터 ── */
-.tabs {
-  position: relative;
-}
-.tab-indicator {
-  position: absolute;
-  bottom: -1px;
   height: 2px;
   background: var(--accent);
   transition: left 0.2s ease, width 0.2s ease;

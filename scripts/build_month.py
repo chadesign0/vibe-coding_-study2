@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-"""4월 배점표 생성: 네이버 API + 웹 파싱 자동 채점(근거 저장)."""
+"""병원별 배점표 생성: 네이버 API + 웹 파싱 자동 채점(근거 저장)."""
 from __future__ import annotations
 
 import base64
@@ -51,17 +51,25 @@ SEARCH_HEADERS = {
     "Connection": "keep-alive",
     "Upgrade-Insecure-Requests": "1",
 }
+MOBILE_SEARCH_HEADERS = {
+    **SEARCH_HEADERS,
+    "User-Agent": (
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
+    ),
+}
 
 # 스레드별 Session 재사용 (TCP 커넥션 풀 유지, 쿠키 자동 관리)
 _thread_local = threading.local()
 
 
-def _get_web_session() -> requests.Session:
-    if not getattr(_thread_local, "session", None):
+def _get_web_session(device: str = "pc") -> requests.Session:
+    attr = "mobile_session" if device == "mobile" else "pc_session"
+    if not getattr(_thread_local, attr, None):
         s = requests.Session()
-        s.headers.update(SEARCH_HEADERS)
-        _thread_local.session = s
-    return _thread_local.session
+        s.headers.update(MOBILE_SEARCH_HEADERS if device == "mobile" else SEARCH_HEADERS)
+        setattr(_thread_local, attr, s)
+    return getattr(_thread_local, attr)
 
 
 TOTAL_COL = 15
@@ -323,7 +331,7 @@ def rank_to_score(rank: int | None) -> int | None:
         return None
     if rank < 1:
         return 0
-    if rank <= 3:   # 네이버 통합검색 메인 페이지 노출 (첫 화면)
+    if rank <= 3:
         return 3
     if rank <= 5:   # 블로그/전용탭 상단 5위
         return 2
@@ -404,7 +412,11 @@ def api_search(client_id: str, client_secret: str, endpoint: str, query: str) ->
     """
     url = f"https://openapi.naver.com/v1/search/{endpoint}.json"
     headers = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret}
-    params = {"query": query, "display": 100, "sort": "sim"}
+    params = (
+        {"query": query, "display": 5, "sort": "random"}
+        if endpoint == "local"
+        else {"query": query, "display": 100, "sort": "sim"}
+    )
     for attempt in range(3):
         try:
             r = requests.get(url, headers=headers, params=params, timeout=30)
@@ -592,6 +604,7 @@ def find_rank_by_api_tab(
     blog_period: tuple[int, int] | None = None,
     official_blog_ids: frozenset[str] = frozenset(),
     official_cafe_ids: frozenset[str] = frozenset(),
+    device: str = "pc",
 ) -> tuple[int | None, dict[str, Any]]:
     endpoint = TAB_ENDPOINT.get(tab)
     if not endpoint:
@@ -600,7 +613,7 @@ def find_rank_by_api_tab(
     if items is None:
         # map: 공식 지역 API 호출 자체 실패해도 통합검색 plat 카드(drt 메타)에서 fallback 매칭 시도
         if tab == "map":
-            fb_rank, fb_ev = _try_map_drt_fallback(query, match_tokens, primary_basis="api_error")
+            fb_rank, fb_ev = _try_map_drt_fallback(query, match_tokens, primary_basis="api_error", device=device)
             if fb_rank > 0:
                 return fb_rank, fb_ev
             return None, {"reason": "api_error", **fb_ev}
@@ -662,19 +675,20 @@ def find_rank_by_api_tab(
                 extra["matched_date"] = date_val
     # map: 공식 지역 API top10에 매칭 없을 때 통합검색 plat 카드(drt 메타) fallback
     if tab == "map" and matched == 0:
-        fb_rank, fb_ev = _try_map_drt_fallback(query, match_tokens, primary_basis="api_top10_no_match")
+        fb_rank, fb_ev = _try_map_drt_fallback(query, match_tokens, primary_basis="api_top10_no_match", device=device)
         if fb_rank > 0:
             return fb_rank, {**fb_ev, "primaryApiTop": top}
         extra["drtFallback"] = fb_ev
     return (matched if matched else 0), {"top": top, "matched_rank": matched, **extra}
 
 
-def fetch_search_page(query: str, where: str | None = None) -> str | None:
-    base = "https://search.naver.com/search.naver?query=" + quote_plus(query)
+def fetch_search_page(query: str, where: str | None = None, device: str = "pc") -> str | None:
+    host = "m.search.naver.com" if device == "mobile" else "search.naver.com"
+    base = f"https://{host}/search.naver?query=" + quote_plus(query)
     urls = [base]
     if where:
         urls.insert(0, base + "&where=" + quote_plus(where))
-    session = _get_web_session()
+    session = _get_web_session(device)
     for _ in range(3):
         for url in urls:
             try:
@@ -694,23 +708,25 @@ _INTEGRATED_HTML_CACHE_LOCK = threading.Lock()
 _INTEGRATED_HTML_CACHE_MAX = 64
 
 
-def fetch_integrated_search_page(query: str) -> str | None:
+def fetch_integrated_search_page(query: str, device: str = "pc") -> str | None:
     """통합검색 페이지 fetch. 같은 query는 thread-safe 캐시(maxsize=64)로 재사용.
 
     map(drt fallback) / web / video fallback / powerlink·bizsite fallback이
     같은 query의 통합검색 HTML을 공유. 추가 fetch를 0회로 줄여 throttle 영향 최소화.
     fetch 실패(None)는 캐시하지 않아 다음 호출에서 재시도 가능.
     """
+    cache_key = f"{device}:{query}"
     with _INTEGRATED_HTML_CACHE_LOCK:
-        cached = _INTEGRATED_HTML_CACHE.get(query)
+        cached = _INTEGRATED_HTML_CACHE.get(cache_key)
     if cached is not None:
         return cached
 
+    host = "m.search.naver.com" if device == "mobile" else "search.naver.com"
     urls = [
-        "https://search.naver.com/search.naver?where=nexearch&sm=tab_jum&ssc=tab.nx.all&query=" + quote_plus(query),
-        "https://search.naver.com/search.naver?query=" + quote_plus(query),
+        f"https://{host}/search.naver?where=nexearch&sm=tab_jum&ssc=tab.nx.all&query=" + quote_plus(query),
+        f"https://{host}/search.naver?query=" + quote_plus(query),
     ]
-    session = _get_web_session()
+    session = _get_web_session(device)
     for _ in range(3):
         for url in urls:
             try:
@@ -724,7 +740,7 @@ def fetch_integrated_search_page(query: str) -> str | None:
                         if len(_INTEGRATED_HTML_CACHE) >= _INTEGRATED_HTML_CACHE_MAX:
                             # 단순 LRU: 가장 오래된 항목 1개 제거
                             _INTEGRATED_HTML_CACHE.pop(next(iter(_INTEGRATED_HTML_CACHE)))
-                        _INTEGRATED_HTML_CACHE[query] = html_text
+                        _INTEGRATED_HTML_CACHE[cache_key] = html_text
                 return html_text
             except Exception:
                 continue
@@ -735,7 +751,13 @@ def fetch_integrated_search_page(query: str) -> str | None:
 _DRT_META_RE = re.compile(r'"id":"(\d+)","dbType":"drt","name":"([^"]+)"')
 
 
-def _try_map_drt_fallback(query: str, match_tokens: list[str], *, primary_basis: str) -> tuple[int, dict[str, Any]]:
+def _try_map_drt_fallback(
+    query: str,
+    match_tokens: list[str],
+    *,
+    primary_basis: str,
+    device: str = "pc",
+) -> tuple[int, dict[str, Any]]:
     """
     NAVER 공식 지역검색 API top10 매칭 실패 시 통합검색 페이지의 플레이스 카드(drt 메타) fallback.
 
@@ -745,7 +767,7 @@ def _try_map_drt_fallback(query: str, match_tokens: list[str], *, primary_basis:
 
     drt 메타는 통상 8건. 그 안에 매칭되면 해당 순위(1~8) 부여, 없으면 0점.
     """
-    ht = fetch_integrated_search_page(query)
+    ht = fetch_integrated_search_page(query, device)
     if not ht:
         return 0, {
             "matched_rank": 0,
@@ -767,15 +789,16 @@ def _try_map_drt_fallback(query: str, match_tokens: list[str], *, primary_basis:
         "drtTop": top,
         "drtCount": len(metas),
         "primaryBasis": primary_basis,
+        "device": device,
     }
 
 
-def fetch_powerlink_more_page(query: str) -> str | None:
+def fetch_powerlink_more_page(query: str, device: str = "pc") -> str | None:
     """
     파워링크는 통합검색 메인 블록이 아닌 '더보기(광고 전체)' 기준으로 순위를 산정한다.
     """
     url = "https://ad.search.naver.com/search.naver?where=ad&query=" + quote_plus(query)
-    session = _get_web_session()
+    session = _get_web_session(device)
     for _ in range(3):
         try:
             r = session.get(url, timeout=30)
@@ -796,7 +819,10 @@ def fetch_powerlink_more_page(query: str) -> str | None:
 
 def extract_candidates_powerlink(ht: str) -> list[str]:
     soup = BeautifulSoup(ht, "html.parser")
-    root = soup.select_one("div[id^='pcPowerLink_']")
+    root = soup.select_one(
+        "div[id^='pcPowerLink_'], div[id^='moPowerLink_'], "
+        "div[id*='PowerLink_'], section[class*='powerlink']"
+    )
     if not root:
         return []
     vals = []
@@ -1259,10 +1285,11 @@ def find_rank_by_web_tab(
     match_tokens: list[str],
     blog_period: tuple[int, int] | None = None,
     official_blog_ids: frozenset[str] = frozenset(),
+    device: str = "pc",
 ) -> tuple[int | None, dict[str, Any]]:
     if tab == "powerlink":
         fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        ht_more = fetch_powerlink_more_page(query)
+        ht_more = fetch_powerlink_more_page(query, device)
         if ht_more:
             cands = extract_candidates_powerlink_more(ht_more)
             rank = find_rank_in_candidates(cands, match_tokens)
@@ -1274,6 +1301,9 @@ def find_rank_by_web_tab(
                 "extractedAdCount": len(cands),
                 "extractionSelector": "union_dedupe",
                 "fetchedAt": fetched_at,
+                "surface": "dedicated_tab",
+                "dedicatedTabRank": rank,
+                "device": device,
             }
             ext_rank = find_extended_rank_in_candidates(cands, match_tokens)
             if ext_rank > 0:
@@ -1284,7 +1314,7 @@ def find_rank_by_web_tab(
                 }
             return rank, ev
         # 더보기 페이지 실패 시 통합검색 페이지로 폴백 (캐시 활용)
-        ht = fetch_integrated_search_page(query)
+        ht = fetch_integrated_search_page(query, device)
         if not ht:
             return None, {"reason": "http_error", "fetchedAt": fetched_at}
         cands = extract_candidates_powerlink(ht)
@@ -1295,37 +1325,39 @@ def find_rank_by_web_tab(
             "matched_rank": rank,
             "basis": "powerlink_main_fallback",
             "extractedAdCount": len(cands),
-            "extractionSelector": "integrated_pcPowerLink",
+            "extractionSelector": f"integrated_{device}_powerlink",
+            "surface": "integrated_search",
+            "integratedRank": rank,
             "fetchedAt": fetched_at,
         }
     if tab == "web":
         # URL 기반 매칭: 결과 링크(href)에 병원 도메인/공식 블로그 ID가 직접 포함될 때만 점수 부여.
         # 텍스트에 병원명이 '언급'되는 경우는 제외 — 타 병원 비교 포스트 오매칭 방지.
         for _ in range(3):
-            ht = fetch_integrated_search_page(query)
+            ht = fetch_integrated_search_page(query, device)
             if not ht:
                 time.sleep(0.4)
                 continue
             rank, ev = _find_web_rank_by_url(ht, match_tokens, official_blog_ids)
             if rank > 0:
-                return rank, ev
+                return rank, {**ev, "surface": "integrated_search", "integratedRank": rank, "device": device}
             rank, ev = _find_web_rank_from_render_json(ht, match_tokens, official_blog_ids)
-            return rank, ev
+            return rank, {**ev, "surface": "integrated_search", "integratedRank": rank, "device": device}
         return None, {"matched_rank": 0, "reason": "fetch_failed"}
 
     if tab == "bizsite":
         # 통합검색 페이지 사용 — 캐시로 web 채점과 공유
-        ht = fetch_integrated_search_page(query)
+        ht = fetch_integrated_search_page(query, device)
         if not ht:
             return None, {"reason": "http_error"}
         cands = extract_candidates_bizsite(ht)
         rank = find_rank_in_candidates(cands, match_tokens)
         top = [{"rank": i + 1, "text": t[:220]} for i, t in enumerate(cands[:10])]
-        return rank, {"top": top, "matched_rank": rank}
+        return rank, {"top": top, "matched_rank": rank, "surface": "integrated_search", "integratedRank": rank, "device": device}
 
     if tab == "video":
         # video 별도 검색 페이지 — fetch 실패해도 0 반환 안 하고 통합검색 fallback로 이동
-        ht_v = fetch_search_page(query, where="video")
+        ht_v = fetch_search_page(query, where="video", device=device)
         has_date_filter = blog_period is not None
         score_year, score_month = blog_period if blog_period else (0, 0)
         top_ev: list[dict[str, Any]] = []
@@ -1346,7 +1378,7 @@ def find_rank_by_web_tab(
                     matched = i
         # video 페이지에서 매칭 실패 또는 fetch 실패 시 통합검색 페이지의 동영상 캐러셀 fallback
         if matched == 0:
-            ht_int = fetch_integrated_search_page(query)
+            ht_int = fetch_integrated_search_page(query, device)
             if ht_int:
                 items_int = extract_video_items_with_dates(ht_int)
                 fb_top = [{"rank": i + 1, "text": t[:220]} for i, (t, _d) in enumerate(items_int[:10])]
@@ -1359,8 +1391,16 @@ def find_rank_by_web_tab(
                             "primaryBasis": "video_page_fetch_failed" if not ht_v else "video_page_no_match",
                             "fallbackTop": fb_top,
                             "matched_text": txt[:220],
+                            "surface": "integrated_search",
+                            "dedicatedTabRank": matched,
+                            "integratedRank": i,
                         }
-        ev: dict[str, Any] = {"top": top_ev, "matched_rank": matched}
+        ev: dict[str, Any] = {
+            "top": top_ev,
+            "matched_rank": matched,
+            "surface": "dedicated_tab",
+            "dedicatedTabRank": matched,
+        }
         if has_date_filter:
             ev["scoringPeriod"] = {"year": score_year, "month": score_month}
         if not ht_v and matched == 0:
@@ -1412,7 +1452,16 @@ def post_progress_webhook(**fields: Any) -> None:
         print(f"[webhook] 전송 실패 (무시): {e}")
 
 
-def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_progress: bool = False) -> tuple[dict[str, dict[str, int | None]], dict[str, Any]]:
+def fetch_keyword_ranks(
+    cfg: dict[str, Any],
+    cid: str,
+    csec: str,
+    *,
+    report_progress: bool = False,
+    device: str = "pc",
+    shared_api: tuple[dict[str, dict[str, int | None]], dict[str, Any]] | None = None,
+    browser_verify: bool = True,
+) -> tuple[dict[str, dict[str, int | None]], dict[str, Any]]:
     manual_by_tab = cfg.get("manualRanksByTab") or {}
     legacy_blog_manual = cfg.get("manualRanks") or {}
     names = cfg.get("hospitalNames") or []
@@ -1430,7 +1479,7 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
     if report_progress:
         post_progress_webhook(
             status="running",
-            message=f"채점 진행중 0/{total_keywords}",
+            message=f"{device.upper()} 채점 진행중 0/{total_keywords}",
             totalKeywords=total_keywords,
             processedKeywords=0,
             stage="scoring",
@@ -1443,20 +1492,60 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                 kw_out[tab] = 0
                 kw_ev[tab] = {
                     "source": "disabled",
+                    "device": device,
                     "reason": "cafe_removed",
                     "matched_rank": 0,
                     "top": [],
                     "note": "카페 채점 전역 비활성화",
                 }
                 continue
+            if shared_api and tab in ("blog", "news"):
+                shared_ranks, shared_evidence = shared_api
+                kw_out[tab] = (shared_ranks.get(kw) or {}).get(tab)
+                shared_ev = dict((shared_evidence.get(kw) or {}).get(tab) or {})
+                shared_ev["deviceScope"] = "shared_api"
+                shared_ev["device"] = device
+                shared_ev["surface"] = "dedicated_tab"
+                shared_ev["dedicatedTabRank"] = shared_ev.get(
+                    "matched_rank", kw_out[tab]
+                )
+                kw_ev[tab] = shared_ev
+                continue
             if tab in manual_by_tab.get(kw, {}):
-                r = int(manual_by_tab[kw][tab]); kw_out[tab] = r; kw_ev[tab] = {"source": "manual", "rank": r}; continue
+                r = int(manual_by_tab[kw][tab]); kw_out[tab] = r; kw_ev[tab] = {"source": "manual", "rank": r, "device": device}; continue
             if tab == "blog" and kw in legacy_blog_manual:
-                r = int(legacy_blog_manual[kw]); kw_out[tab] = r; kw_ev[tab] = {"source": "manual_legacy_blog", "rank": r}; continue
+                r = int(legacy_blog_manual[kw]); kw_out[tab] = r; kw_ev[tab] = {"source": "manual_legacy_blog", "rank": r, "device": device}; continue
             if tab in ("powerlink", "bizsite", "video", "web"):
-                r, ev = find_rank_by_web_tab(tab, kw, match_tokens, blog_period, official_blog_ids)
+                r, ev = find_rank_by_web_tab(
+                    tab, kw, match_tokens, blog_period, official_blog_ids, device=device
+                )
                 kw_out[tab] = r  # None = 측정 실패 → 표에 '—' (진짜 0점과 구분)
-                kw_ev[tab] = {"source": "web", **ev}
+                kw_ev[tab] = {"source": "web", "device": device, **ev}
+            elif tab == "map":
+                # 지도는 지역 API 결과(최대 5건)보다 실제 통합검색 플레이스 화면을 우선한다.
+                r, ev = _try_map_drt_fallback(
+                    kw, match_tokens, primary_basis="integrated_first", device=device
+                )
+                if ev.get("basis") == "drt_fallback_fetch_failed":
+                    r, ev = find_rank_by_api_tab(
+                        tab, kw, match_tokens, cid, csec, device=device
+                    )
+                    kw_ev[tab] = {
+                        "source": "api",
+                        "device": device,
+                        "surface": "dedicated_tab",
+                        "dedicatedTabRank": r,
+                        **ev,
+                    }
+                else:
+                    kw_ev[tab] = {
+                        "source": "web",
+                        "device": device,
+                        "surface": "integrated_search",
+                        "integratedRank": r,
+                        **ev,
+                    }
+                kw_out[tab] = r
             else:
                 r, ev = find_rank_by_api_tab(
                     tab,
@@ -1467,9 +1556,16 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                     blog_period if tab in ("blog", "cafe", "news", "video") else None,
                     official_blog_ids if tab == "blog" else frozenset(),
                     official_cafe_ids if tab == "cafe" else frozenset(),
+                    device,
                 )
                 kw_out[tab] = r  # None = 측정 실패 → 표에 '—' (진짜 0점과 구분)
-                kw_ev[tab] = {"source": "api", **ev}
+                kw_ev[tab] = {
+                    "source": "api",
+                    "device": device,
+                    "surface": "dedicated_tab",
+                    "dedicatedTabRank": r,
+                    **ev,
+                }
         return kw, kw_out, kw_ev
 
     max_workers = max(1, int(os.getenv("SCORING_PARALLEL_WORKERS", "3")))
@@ -1503,28 +1599,21 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                     print(f"  진행 {idx}/{total_keywords} ({pct}%) - {kw}", flush=True)
                     post_progress_webhook(
                         status="running",
-                        message=f"채점 진행중 {idx}/{total_keywords}",
+                        message=f"{device.upper()} 채점 진행중 {idx}/{total_keywords}",
                         totalKeywords=total_keywords,
                         processedKeywords=idx,
                         stage="scoring",
                     )
 
-    # Playwright 보조 채점 — 0점 채널이 있으면서 통합검색 HTML에 hospital 토큰 등장 시.
-    # 1차 채점 + HTTP fallback 후에도 의심되는 케이스만 재검증해 비용 통제.
+    # Playwright 자동 교차검증 — 0점 의심 사례와 양수 표본을 모두 검사한다.
+    # HTTP/API와 브라우저 결과가 다르면 브라우저를 한 번 더 실행해 다수결로 확정한다.
     verify_enabled = (os.getenv("PLAYWRIGHT_VERIFY_ENABLED") or "1").strip().lower() in {"1", "true", "yes"}
-    if verify_enabled:
-        meaningful_channels = ("powerlink", "bizsite", "map", "blog", "news", "video", "web")
-        zero_keywords: list[str] = []
-        blog_tab_keywords: set[str] = set()  # 블로그 전용탭 풀 렌더링 추가 검증 대상
-        # 사전 필터 결과 캐시 — verify 후 manual_check_needed 표시용
+    if verify_enabled and browser_verify:
+        integrated_channels = ("powerlink", "bizsite", "map", "video", "web")
+        verify_keywords: list[str] = []
+        blog_tab_keywords: set[str] = set()
         blog_official_post_found: dict[str, dict[str, Any]] = {}
-        fetch_failed_count = 0
-        blog_api_error_count = 0
         for kw, ch_ranks in out.items():
-            if not any((ch_ranks.get(c) or 0) == 0 for c in meaningful_channels):
-                continue
-            # 1) blog 0점 + 공식 블로그 ID 존재 → openapi 결합쿼리(키워드+병원명)로 공식 블로그 글 보유 확인.
-            #    매칭 시 zero_keywords + blog_tab_keywords에 추가 (블로그탭 풀 렌더링까지).
             blog_zero = (ch_ranks.get("blog") or 0) == 0
             if blog_zero and official_blog_ids and names:
                 found = find_official_blog_post_for_keyword(
@@ -1532,97 +1621,160 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                 )
                 if found:
                     blog_official_post_found[kw] = found
-                    if kw not in zero_keywords:
-                        zero_keywords.append(kw)
+                    if kw not in verify_keywords:
+                        verify_keywords.append(kw)
                     blog_tab_keywords.add(kw)
-                    continue
-            # 2) web fetch가 1차 채점에서 3회 모두 실패한 keyword는 hospital 토큰 검사 없이
-            #    무조건 Playwright 재검증 대상. throttle로 인한 측정 실패와 실제 0점을 분리.
+
             ev_kw = ev_all.get(kw) or {}
-            web_ev = ev_kw.get("web") or {}
-            if isinstance(web_ev, dict) and web_ev.get("reason") == "fetch_failed":
-                if kw not in zero_keywords:
-                    zero_keywords.append(kw)
-                fetch_failed_count += 1
-                continue
-            # 2b) blog API 호출 자체가 실패(api_error: 429/네트워크/일시차단)한 keyword도
-            #     측정 실패로 간주. web fetch_failed 와 동일하게 진짜 0점과 분리하여
-            #     블로그탭 풀 렌더링까지 Playwright 재검증 대상에 넣는다.
-            blog_ev = ev_kw.get("blog") or {}
-            if isinstance(blog_ev, dict) and blog_ev.get("reason") == "api_error":
-                if kw not in zero_keywords:
-                    zero_keywords.append(kw)
+            if any((ch_ranks.get(c) or 0) == 0 for c in integrated_channels):
+                cache_key = f"{device}:{kw}"
+                with _INTEGRATED_HTML_CACHE_LOCK:
+                    ht_cached = _INTEGRATED_HTML_CACHE.get(cache_key)
+                ht = ht_cached if ht_cached is not None else fetch_integrated_search_page(kw, device)
+                if ht is not None and any(t in ht.lower() for t in match_tokens):
+                    if kw not in verify_keywords:
+                        verify_keywords.append(kw)
+            if isinstance(ev_kw.get("web"), dict) and ev_kw["web"].get("reason") == "fetch_failed":
+                if kw not in verify_keywords:
+                    verify_keywords.append(kw)
+            if isinstance(ev_kw.get("blog"), dict) and ev_kw["blog"].get("reason") == "api_error":
+                if kw not in verify_keywords:
+                    verify_keywords.append(kw)
                 blog_tab_keywords.add(kw)
-                blog_api_error_count += 1
-                continue
-            # 3) 통합검색 HTML 캐시에서 hospital 토큰 등장 확인. cache miss 시 새로 fetch.
-            with _INTEGRATED_HTML_CACHE_LOCK:
-                ht_cached = _INTEGRATED_HTML_CACHE.get(kw)
-            ht = ht_cached if ht_cached is not None else fetch_integrated_search_page(kw)
-            if ht is None:
-                continue
-            ht_lower = ht.lower()
-            if any(t in ht_lower for t in match_tokens):
-                if kw not in zero_keywords:
-                    zero_keywords.append(kw)
-        if fetch_failed_count:
-            print(f"[playwright_verify] web fetch_failed bypass: {fetch_failed_count}개", flush=True)
-        if blog_api_error_count:
-            print(f"[playwright_verify] blog api_error bypass: {blog_api_error_count}개", flush=True)
-        if blog_official_post_found:
+
+        # 양수 점수도 고정 표본으로 감사해 잘못 받은 점수를 탐지한다.
+        audit_size = max(0, int(os.getenv("PLAYWRIGHT_AUDIT_SIZE", "12")))
+        positive_pool = [
+            kw for kw, ranks in out.items()
+            if any((ranks.get(ch) or 0) > 0 for ch in integrated_channels)
+        ]
+        zero_pool = [
+            kw for kw, ranks in out.items()
+            if any((ranks.get(ch) or 0) == 0 for ch in integrated_channels)
+        ]
+        positive_pool.sort(
+            key=lambda kw: hashlib.sha256(f"{device}:{kw}".encode("utf-8")).hexdigest()
+        )
+        zero_pool.sort(
+            key=lambda kw: hashlib.sha256(f"zero:{device}:{kw}".encode("utf-8")).hexdigest()
+        )
+        for kw in positive_pool[:audit_size] + zero_pool[:audit_size]:
+            if kw not in verify_keywords:
+                verify_keywords.append(kw)
+
+        if verify_keywords:
             print(
-                f"[playwright_verify] 공식블로그 보유 키워드(openapi 결합쿼리 매칭) {len(blog_official_post_found)}개 → 블로그탭 verify 추가",
+                f"\n[playwright_verify] {device.upper()} 자동 교차검증 {len(verify_keywords)}개 시작",
                 flush=True,
             )
-        if zero_keywords:
-            print(f"\n[playwright_verify] 의심 키워드 {len(zero_keywords)}개 재검증 시작 (그중 블로그탭 추가 {len(blog_tab_keywords)}개)", flush=True)
             if report_progress:
                 post_progress_webhook(
                     status="running",
-                    message=f"Playwright 재검증 {len(zero_keywords)}개 키워드",
+                    message=f"{device.upper()} 브라우저 교차검증 {len(verify_keywords)}개",
                     stage="playwright_verify",
                 )
             try:
-                from playwright_verify import verify_zero_keywords
-                verify_results = verify_zero_keywords(
-                    zero_keywords, match_tokens, official_blog_ids,
+                from playwright_verify import verify_keywords as verify_with_browser
+                first_results = verify_with_browser(
+                    verify_keywords, match_tokens, official_blog_ids,
                     blog_tab_keywords=frozenset(blog_tab_keywords),
+                    device=device,
                 )
-                patched = 0
-                for kw, ch_results in verify_results.items():
-                    if not ch_results:
-                        continue
-                    kw_out = out.get(kw)
-                    if not kw_out:
-                        continue
-                    for ch, info in ch_results.items():
-                        rank = info.get("rank") if isinstance(info, dict) else None
-                        if not rank:
+
+                def browser_rank(result: dict[str, Any], channel: str) -> int | None:
+                    if not isinstance(result.get("__meta__"), dict) or not result["__meta__"].get("loaded"):
+                        return None
+                    info = result.get(channel)
+                    return int(info.get("rank") or 0) if isinstance(info, dict) else 0
+
+                disagreement_channels: dict[str, set[str]] = {}
+                for kw in verify_keywords:
+                    result = first_results.get(kw) or {}
+                    for ch in integrated_channels:
+                        br = browser_rank(result, ch)
+                        if br is None:
                             continue
-                        if (kw_out.get(ch) or 0) == 0 and rank > 0:
-                            kw_out[ch] = rank
-                            patched += 1
-                            ev_kw = ev_all.setdefault(kw, {})
-                            ev_ch = ev_kw.get(ch) or {}
-                            if not isinstance(ev_ch, dict):
-                                ev_ch = {"original": ev_ch}
-                            verify_payload = {
-                                "rank": rank,
-                                "source": info.get("source", "integrated_search_dom"),
-                            }
-                            if info.get("evidence"):
-                                verify_payload["details"] = info["evidence"]
-                            ev_ch["playwrightVerify"] = verify_payload
-                            # verifySources에도 통합 기록 (blog는 특히 source 다양해 디버깅 중요)
-                            vs = ev_ch.setdefault("verifySources", {})
-                            vs[verify_payload["source"]] = {
-                                "rank": rank,
-                                **({"details": info["evidence"]} if info.get("evidence") else {}),
-                            }
-                            ev_kw[ch] = ev_ch
-                print(f"[playwright_verify] 보강된 점수 {patched}개", flush=True)
-                # 사전 필터 통과했지만 verify에서 못 잡힌 키워드: manual_check_needed 플래그
-                manual_check_count = 0
+                        if table_cell_for_tab(ch, (out.get(kw) or {}).get(ch)) != table_cell_for_tab(ch, br):
+                            disagreement_channels.setdefault(kw, set()).add(ch)
+                disagreements = list(disagreement_channels)
+                second_results = verify_with_browser(
+                    list(dict.fromkeys(disagreements)),
+                    match_tokens,
+                    official_blog_ids,
+                    device=device,
+                ) if disagreements else {}
+
+                corrected = 0
+                uncertain = 0
+                for kw in verify_keywords:
+                    first = first_results.get(kw) or {}
+                    second = second_results.get(kw) or {}
+                    kw_out = out.get(kw) or {}
+                    ev_kw = ev_all.setdefault(kw, {})
+                    for ch in integrated_channels:
+                        initial = kw_out.get(ch)
+                        first_rank = browser_rank(first, ch)
+                        if first_rank is None:
+                            continue
+                        second_rank = (
+                            browser_rank(second, ch)
+                            if ch in disagreement_channels.get(kw, set())
+                            else first_rank
+                        )
+                        agreed = (
+                            second_rank is not None
+                            and table_cell_for_tab(ch, first_rank) == table_cell_for_tab(ch, second_rank)
+                        )
+                        final_rank = first_rank if agreed else None
+                        ev_ch = ev_kw.get(ch) if isinstance(ev_kw.get(ch), dict) else {}
+                        ev_ch["automationAudit"] = {
+                            "device": device,
+                            "primaryRank": initial,
+                            "browserRank1": first_rank,
+                            "browserRank2": second_rank,
+                            "agreed": agreed,
+                            "primaryAgreed": (
+                                final_rank is not None
+                                and table_cell_for_tab(ch, initial)
+                                == table_cell_for_tab(ch, final_rank)
+                            ),
+                        }
+                        if final_rank is None:
+                            kw_out[ch] = None
+                            ev_ch["preAuditMatchedRank"] = ev_ch.get("matched_rank")
+                            ev_ch["matched_rank"] = None
+                            ev_ch["reason"] = "automated_collectors_disagreed"
+                            uncertain += 1
+                        elif table_cell_for_tab(ch, initial) != table_cell_for_tab(ch, final_rank):
+                            kw_out[ch] = final_rank
+                            ev_ch["preAuditMatchedRank"] = ev_ch.get("matched_rank")
+                            ev_ch["matched_rank"] = final_rank
+                            ev_ch["source"] = "automated_consensus"
+                            ev_ch["surface"] = "integrated_search"
+                            ev_ch["integratedRank"] = final_rank
+                            corrected += 1
+                        ev_kw[ch] = ev_ch
+
+                    # 블로그 통합검색 노출과 전용 탭 순위는 서로 덮어쓰지 않는다.
+                    blog_info = first.get("blog")
+                    if isinstance(blog_info, dict):
+                        ev_blog = ev_kw.get("blog") if isinstance(ev_kw.get("blog"), dict) else {}
+                        rank = int(blog_info.get("rank") or 0)
+                        if blog_info.get("source") == "blog_tab_dom":
+                            ev_blog["dedicatedTabVerifyRank"] = rank
+                            ev_blog["integratedExposureRank"] = int(
+                                blog_info.get("integratedExposureRank") or 0
+                            )
+                            if rank > 0:
+                                kw_out["blog"] = rank
+                                ev_blog["apiMatchedRank"] = ev_blog.get("matched_rank")
+                                ev_blog["matched_rank"] = rank
+                                ev_blog["source"] = "automated_consensus"
+                                ev_blog["surface"] = "dedicated_tab"
+                        else:
+                            ev_blog["integratedExposureRank"] = rank
+                        ev_kw["blog"] = ev_blog
+
                 for kw, found in blog_official_post_found.items():
                     blog_rank = (out.get(kw) or {}).get("blog") or 0
                     if blog_rank == 0:
@@ -1630,18 +1782,17 @@ def fetch_keyword_ranks(cfg: dict[str, Any], cid: str, csec: str, *, report_prog
                         ev_blog = ev_kw.get("blog") or {}
                         if not isinstance(ev_blog, dict):
                             ev_blog = {"original": ev_blog}
-                        ev_blog["manual_check_needed"] = True
-                        ev_blog["user_view_mismatch_possible"] = True
+                        ev_blog["automatic_retry_needed"] = True
                         ev_blog["officialBlogPostFound"] = found
-                        ev_blog["manual_check_note"] = (
+                        ev_blog["automatic_retry_note"] = (
                             "공식 블로그가 이 키워드 관련 글을 보유하고 있으나(openapi 결합쿼리 매칭) "
-                            "통합검색·블로그탭 자동검증에서 1~10위 안에 노출 확인 못 함. "
-                            "사용자가 실제 화면 기준으로 manualRanksByTab 보정 권장."
+                            "두 번의 자동 브라우저 검증에서 전용 탭 1~10위 노출을 확정하지 못함."
                         )
                         ev_kw["blog"] = ev_blog
-                        manual_check_count += 1
-                if manual_check_count:
-                    print(f"[playwright_verify] manual_check_needed 표시 {manual_check_count}개", flush=True)
+                print(
+                    f"[playwright_verify] 자동 보정 {corrected}개 · 미확정 {uncertain}개",
+                    flush=True,
+                )
             except ImportError as e:
                 print(f"[playwright_verify] playwright 미설치 (스킵): {e!r}", flush=True)
             except Exception as e:
@@ -1676,7 +1827,7 @@ def _keyword_scopes_for_payload(cfg: dict[str, Any]) -> dict[str, str] | None:
     return clean or None
 
 
-def _load_existing_month(month_label: str, hospital_name: str) -> dict[str, Any] | None:
+def _load_existing_hospital(hospital_name: str) -> dict[str, Any] | None:
     path = ROOT / "data" / "scoring-data.json"
     if not path.exists():
         return None
@@ -1685,38 +1836,83 @@ def _load_existing_month(month_label: str, hospital_name: str) -> dict[str, Any]
             root = json.load(f)
     except Exception:
         return None
-    target_lab = str(month_label or "").strip()
     target_hn = str(hospital_name or "").strip()
-    for m in root.get("months") or []:
-        if str(m.get("monthLabel") or "").strip() != target_lab:
-            continue
-        if str(m.get("hospitalName") or "").strip() != target_hn:
-            continue
-        return m
-    return None
+    matches: list[dict[str, Any]] = []
+    for record in root.get("months") or []:
+        raw_hn = str(record.get("hospitalName") or "").strip()
+        belongs = raw_hn == target_hn or (target_hn == "포인트병원" and not raw_hn)
+        if belongs:
+            matches.append(record)
+    if not matches:
+        return None
+
+    def _legacy_order(record: dict[str, Any]) -> int:
+        match = re.fullmatch(r"(\d{1,2})월", str(record.get("monthLabel") or "").strip())
+        return int(match.group(1)) if match else -1
+
+    # 최신 레거시 레코드의 점수를 우선하고, 이전 레코드에만 있던 키워드는 재사용한다.
+    sheets: list[dict[str, Any]] = []
+    sheets_by_key: dict[str, dict[str, Any]] = {}
+    seen_by_key: dict[str, set[str]] = {}
+    for record in reversed(sorted(matches, key=_legacy_order)):
+        for sheet in record.get("sheets") or []:
+            key = str(sheet.get("key") or "").strip()
+            if not key:
+                continue
+            target = sheets_by_key.get(key)
+            if target is None:
+                target = {
+                    "key": key,
+                    "title": sheet.get("title"),
+                    "header": sheet.get("header"),
+                    "rows": [],
+                }
+                sheets_by_key[key] = target
+                seen_by_key[key] = set()
+                sheets.append(target)
+            for row in sheet.get("rows") or []:
+                kw = str((row[2] if len(row) > 2 else "") or "").strip()
+                if not kw or kw in seen_by_key[key]:
+                    continue
+                seen_by_key[key].add(kw)
+                target["rows"].append(list(row))
+    return {"sheets": sheets}
 
 
-def _keyword_row_index_from_month(month: dict[str, Any]) -> dict[str, list[Any]]:
-    out: dict[str, list[Any]] = {}
+def _keyword_rows_by_sheet(month: dict[str, Any]) -> dict[str, dict[str, list[Any]]]:
+    out: dict[str, dict[str, list[Any]]] = {}
     for s in month.get("sheets") or []:
+        sheet_key = str(s.get("key") or "").strip()
+        if not sheet_key:
+            continue
+        rows = out.setdefault(sheet_key, {})
         for row in s.get("rows") or []:
             kw = str((row[2] if len(row) > 2 else "") or "").strip()
-            if kw and kw not in out:
-                out[kw] = list(row)
+            if kw and kw not in rows:
+                rows[kw] = list(row)
     return out
 
 
 def build_month_payload(
     cfg: dict[str, Any],
-    ranks: dict[str, dict[str, int | None]],
+    ranks_by_device: dict[str, Any],
     volumes: dict[str, dict[str, Any]],
-    reused_rows: dict[str, list[Any]] | None = None,
+    reused_rows: dict[str, dict[str, list[Any]]] | None = None,
 ) -> dict[str, Any]:
+    def ranks_for_sheet(sheet_key: str) -> dict[str, dict[str, int | None]]:
+        device = "mobile" if sheet_key.endswith("-mob") else "pc"
+        device_ranks = ranks_by_device.get(device)
+        if isinstance(device_ranks, dict):
+            return device_ranks
+        # 구형 호출 호환: {keyword: {tab: rank}}
+        return ranks_by_device  # type: ignore[return-value]
+
     rbk = cfg.get("rowsBySheetKey") or {}
     titles_override = cfg.get("sheetTitles") or {}
     if rbk and all(k in rbk for k, _ in SHEETS_META):
         sheets = []
         for key, default_title in SHEETS_META:
+            ranks = ranks_for_sheet(key)
             title = titles_override.get(key) or default_title
             pairs = rbk[key]
             rows = []
@@ -1727,8 +1923,9 @@ def build_month_payload(
                     reg = pair.get("region")
                     kw = pair.get("keyword") or ""
                 reg_s = (str(reg).strip() if reg is not None else "") or ""
-                if reused_rows and kw in reused_rows:
-                    row = list(reused_rows[kw])
+                reused_row = (reused_rows or {}).get(key, {}).get(kw)
+                if reused_row:
+                    row = list(reused_row)
                     if len(row) < 16:
                         row = (row + [None] * 16)[:16]
                     row[0] = i
@@ -1742,7 +1939,6 @@ def build_month_payload(
             sheets.append({"key": key, "title": title, "header": HEADER, "rows": rows})
         out = {
             "sourceFile": cfg.get("sourceFileNote", "배점표_자동(API+WEB).json"),
-            "monthLabel": cfg.get("monthLabel", "4월"),
             "sheets": sheets,
         }
         hn = (cfg.get("hospitalName") or "").strip()
@@ -1757,21 +1953,25 @@ def build_month_payload(
         return out
 
     region = cfg.get("regionDefault", "") or ""
-    rows = []
-    for i, kw in enumerate(cfg.get("keywords") or [], start=1):
-        if reused_rows and kw in reused_rows:
-            row = list(reused_rows[kw])
-            if len(row) < 16:
-                row = (row + [None] * 16)[:16]
-            row[0] = i
-            row[2] = kw
-            rows.append(row)
-            continue
-        pts = {tab: table_cell_for_tab(tab, ranks.get(kw, {}).get(tab)) for tab in COL_BY_TAB.keys()}
-        v = volumes.get(kw, {})
-        rows.append(build_row(i, region, kw, pts, v.get("pc"), v.get("mobile"), v.get("related")))
-    sheets = [{"key": key, "title": title, "header": HEADER, "rows": rows} for key, title in SHEETS_META]
-    out = {"sourceFile": cfg.get("sourceFileNote", "4월_배점표_자동(API+WEB).json"), "monthLabel": cfg.get("monthLabel", "4월"), "sheets": sheets}
+    sheets = []
+    for key, title in SHEETS_META:
+        ranks = ranks_for_sheet(key)
+        rows = []
+        for i, kw in enumerate(cfg.get("keywords") or [], start=1):
+            reused_row = (reused_rows or {}).get(key, {}).get(kw)
+            if reused_row:
+                row = list(reused_row)
+                if len(row) < 16:
+                    row = (row + [None] * 16)[:16]
+                row[0] = i
+                row[2] = kw
+                rows.append(row)
+                continue
+            pts = {tab: table_cell_for_tab(tab, ranks.get(kw, {}).get(tab)) for tab in COL_BY_TAB.keys()}
+            v = volumes.get(kw, {})
+            rows.append(build_row(i, region, kw, pts, v.get("pc"), v.get("mobile"), v.get("related")))
+        sheets.append({"key": key, "title": title, "header": HEADER, "rows": rows})
+    out = {"sourceFile": cfg.get("sourceFileNote", "배점표_자동(API+WEB).json"), "sheets": sheets}
     hn = (cfg.get("hospitalName") or "").strip()
     if hn:
         out["hospitalName"] = hn
@@ -1782,22 +1982,6 @@ def build_month_payload(
     if ks:
         out["keywordScopes"] = ks
     return out
-
-
-def _month_order_label(label: str) -> int:
-    m = re.match(r"^(\d{1,2})월\s*$", (label or "").strip())
-    return int(m.group(1)) if m else 99
-
-
-def _month_identity(m: dict[str, Any]) -> tuple[str, str]:
-    """병합 키: (monthLabel, hospitalName).
-
-    - 같은 달이라도 병원명이 다르면 서로 다른 슬롯 → 데이터가 겹치거나 덮어쓰이지 않음.
-    - hospitalName 이 비어 있으면 포인트병원 레거시 슬롯(다른 병원과 공존 가능).
-    """
-    lab = str(m.get("monthLabel") or "").strip()
-    h = str(m.get("hospitalName") or "").strip()
-    return lab, h
 
 
 def _write_json_atomic(path: Path, payload: Any, *, compact: bool = False) -> None:
@@ -1813,7 +1997,7 @@ def _write_json_atomic(path: Path, payload: Any, *, compact: bool = False) -> No
 
 
 def merge_into_scoring_data(month: dict[str, Any], path: Path | None = None) -> None:
-    """동일 (monthLabel, hospitalName) 항목만 교체·추가. 타 병원·타 슬롯은 유지.
+    """동일 병원 항목을 하나로 교체하고 다른 병원 데이터는 유지한다.
 
     path 를 주면 SCORING_TEMP_OUTPUT 을 무시하고 그 파일에 바로 병합한다 (merge_results.py 용).
     """
@@ -1828,24 +2012,16 @@ def merge_into_scoring_data(month: dict[str, Any], path: Path | None = None) -> 
             root = json.load(f)
     else:
         root = {"months": []}
-    new_id = _month_identity(month)
-    new_lab = str(month.get("monthLabel") or "").strip()
     new_hn = str(month.get("hospitalName") or "").strip()
+    month.pop("monthLabel", None)
 
     def _keep_existing(m: dict[str, Any]) -> bool:
-        if _month_identity(m) == new_id:
-            return False
-        # 명시 포인트병원 블록을 저장할 때, 같은 달·hospitalName 없는 레거시(포인트 전용)는 중복이라 제거
-        if new_hn == "포인트병원" and new_lab:
-            ml = str(m.get("monthLabel") or "").strip()
-            raw = m.get("hospitalName")
-            if ml == new_lab and (raw is None or str(raw).strip() == ""):
-                return False
-        return True
+        raw_hn = str(m.get("hospitalName") or "").strip()
+        belongs = raw_hn == new_hn or (new_hn == "포인트병원" and not raw_hn)
+        return not belongs
 
     months = [m for m in (root.get("months") or []) if _keep_existing(m)]
     months.append(month)
-    months.sort(key=lambda m: _month_order_label(str(m.get("monthLabel") or "")))
     root["months"] = months
     root["generatedBy"] = "build_month.py(api+web-evidence)"
     _write_json_atomic(path, root)
@@ -1899,9 +2075,8 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
     label = (cfg.get("hospitalName") or "배점").strip()
     print(f"네이버 자동 채점 시작 - {label}")
     full_rescore = (os.getenv("SCORING_FULL_RESCORE") or "").strip().lower() in {"1", "true", "yes"}
-    month_label = str(cfg.get("monthLabel") or "").strip()
-    existing_month = _load_existing_month(month_label, label) if month_label and label else None
-    reused_rows = {} if full_rescore else (_keyword_row_index_from_month(existing_month) if existing_month else {})
+    existing_month = _load_existing_hospital(label) if label else None
+    reused_rows = {} if full_rescore else (_keyword_rows_by_sheet(existing_month) if existing_month else {})
     all_keywords = [str(k).strip() for k in (cfg.get("keywords") or []) if str(k).strip()]
     force_rescore_keywords = {
         str(k).strip() for k in (cfg.get("forceRescoreKeywords") or []) if str(k).strip()
@@ -1910,12 +2085,18 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
     # (build_month_payload 는 reused_rows 에 있으면 무조건 기존 row 를 사용함)
     if force_rescore_keywords and reused_rows:
         reused_rows = {
-            kw: row for kw, row in reused_rows.items() if kw not in force_rescore_keywords
+            sheet_key: {
+                kw: row for kw, row in rows.items() if kw not in force_rescore_keywords
+            }
+            for sheet_key, rows in reused_rows.items()
         }
+    reused_keywords = {
+        kw for rows in reused_rows.values() for kw in rows
+    }
     fresh_keywords = (
         all_keywords
         if full_rescore
-        else [kw for kw in all_keywords if (kw not in reused_rows) or (kw in force_rescore_keywords)]
+        else [kw for kw in all_keywords if (kw not in reused_keywords) or (kw in force_rescore_keywords)]
     )
     if full_rescore:
         print(f"전체 재채점 모드: {len(all_keywords)}건")
@@ -1928,9 +2109,27 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
 
     cfg_for_fetch = dict(cfg)
     cfg_for_fetch["keywords"] = fresh_keywords
-    ranks, evidence = fetch_keyword_ranks(cfg_for_fetch, cid, csec, report_progress=True)
-    for kw, tabs in ranks.items():
-        print("-", kw, tabs)
+    pc_ranks, pc_evidence = fetch_keyword_ranks(
+        cfg_for_fetch, cid, csec, report_progress=True, device="pc"
+    )
+    mobile_ranks, mobile_evidence = fetch_keyword_ranks(
+        cfg_for_fetch,
+        cid,
+        csec,
+        report_progress=True,
+        device="mobile",
+        shared_api=(pc_ranks, pc_evidence),
+    )
+    ranks_by_device = {"pc": pc_ranks, "mobile": mobile_ranks}
+    evidence = {
+        kw: {
+            "pc": pc_evidence.get(kw) or {},
+            "mobile": mobile_evidence.get(kw) or {},
+        }
+        for kw in fresh_keywords
+    }
+    for kw in fresh_keywords:
+        print("-", kw, {"pc": pc_ranks.get(kw), "mobile": mobile_ranks.get(kw)})
 
     if ad_api_key and ad_secret and ad_customer:
         volumes = fetch_keyword_volumes_searchad(fresh_keywords, ad_api_key, ad_secret, ad_customer)
@@ -1939,12 +2138,15 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
         print("검색광고 API 키 없음 -> 월간조회수는 0")
         volumes = {kw: {"pc": 0, "mobile": 0, "related": kw} for kw in fresh_keywords}
 
-    month = build_month_payload(cfg, ranks, volumes, (None if full_rescore else reused_rows))
+    month = build_month_payload(
+        cfg, ranks_by_device, volumes, (None if full_rescore else reused_rows)
+    )
 
     # 배포 안전장치
     # ① 측정 실패 비율: 조회 실패는 0점이 아니라 None('—')으로 남기므로, 실패가 많으면
     #    일치율과 별개로 LOW 처리한다 ("전부 실패했는데 품질 OK" 방지).
-    # ② 라이브 재조회 샘플과의 일치율.
+    # ② 라이브 재조회 샘플의 시간 일치율.
+    # ③ HTTP/API와 브라우저 독립 수집기의 일치율.
     # LOW 면 결과를 저장하지 않고 종료한다 (SCORING_BLOCK_ON_LOW_QUALITY=0 으로 끌 수 있음).
     verify_enabled = (os.getenv("SCORING_VERIFY_SAMPLE") or "1").strip().lower() in {"1", "true", "yes"}
     verify_warn_threshold = float((os.getenv("SCORING_VERIFY_WARN_THRESHOLD") or "0.90").strip() or "0.90")
@@ -1956,14 +2158,15 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
 
     measured_cells = 0
     failed_cells = 0
-    for kw in fresh_keywords:
-        kw_ranks = ranks.get(kw) or {}
-        for tab in COL_BY_TAB.keys():
-            if tab == "cafe":  # 전역 비활성화 채널
-                continue
-            measured_cells += 1
-            if kw_ranks.get(tab) is None:
-                failed_cells += 1
+    for device_ranks in ranks_by_device.values():
+        for kw in fresh_keywords:
+            kw_ranks = device_ranks.get(kw) or {}
+            for tab in COL_BY_TAB.keys():
+                if tab == "cafe":  # 전역 비활성화 채널
+                    continue
+                measured_cells += 1
+                if kw_ranks.get(tab) is None:
+                    failed_cells += 1
     fail_ratio = (failed_cells / measured_cells) if measured_cells else 0.0
     too_many_failures = fail_ratio > max_fail_ratio
     if measured_cells:
@@ -1973,36 +2176,75 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
         )
 
     replay_acc: float | None = None
+    collector_acc: float | None = None
     sample_size = 0
     total = 0
     verify_pool = all_keywords if full_rescore else fresh_keywords
     if verify_enabled and verify_pool:
-        sample = verify_pool[:]
-        random.shuffle(sample)
+        sample = sorted(
+            verify_pool,
+            key=lambda kw: hashlib.sha256(f"{label}:{kw}".encode("utf-8")).hexdigest(),
+        )
         sample = sample[: max(1, min(len(sample), verify_size))]
         sample_size = len(sample)
         cfg_verify = dict(cfg)
         cfg_verify["keywords"] = sample
-        replay_ranks, _ = fetch_keyword_ranks(cfg_verify, cid, csec)
+        replay_pc, replay_pc_ev = fetch_keyword_ranks(
+            cfg_verify, cid, csec, device="pc", browser_verify=False
+        )
+        replay_mobile, _ = fetch_keyword_ranks(
+            cfg_verify,
+            cid,
+            csec,
+            device="mobile",
+            shared_api=(replay_pc, replay_pc_ev),
+            browser_verify=False,
+        )
+        replay_by_device = {"pc": replay_pc, "mobile": replay_mobile}
         matched = 0
-        for kw in sample:
-            for tab in COL_BY_TAB.keys():
-                v1 = table_cell_for_tab(tab, ranks.get(kw, {}).get(tab))
-                v2 = table_cell_for_tab(tab, replay_ranks.get(kw, {}).get(tab))
-                # 한쪽이라도 측정 실패면 비교 불가 — 실패는 위의 실패 비율로 따로 판정한다.
-                if v1 is None or v2 is None:
-                    continue
-                total += 1
-                if v1 == v2:
-                    matched += 1
+        for device in ("pc", "mobile"):
+            for kw in sample:
+                for tab in COL_BY_TAB.keys():
+                    v1 = table_cell_for_tab(tab, (ranks_by_device[device].get(kw) or {}).get(tab))
+                    v2 = table_cell_for_tab(tab, (replay_by_device[device].get(kw) or {}).get(tab))
+                    # 한쪽이라도 측정 실패면 비교 불가 — 실패는 위의 실패 비율로 따로 판정한다.
+                    if v1 is None or v2 is None:
+                        continue
+                    total += 1
+                    if v1 == v2:
+                        matched += 1
         replay_acc = (matched / total) if total else 1.0
         print(
             f"샘플 재조회 일치율: {replay_acc*100:.1f}% "
             f"(경고 {verify_warn_threshold*100:.1f}% / 낮음 {verify_low_threshold*100:.1f}%, 샘플 {sample_size}개)"
         )
 
-    if replay_acc is not None or too_many_failures:
-        acc = replay_acc if replay_acc is not None else 1.0
+    collector_total = 0
+    collector_matched = 0
+    for kw_devices in evidence.values():
+        for device_ev in kw_devices.values():
+            if not isinstance(device_ev, dict):
+                continue
+            for tab_ev in device_ev.values():
+                if not isinstance(tab_ev, dict):
+                    continue
+                audit = tab_ev.get("automationAudit")
+                if not isinstance(audit, dict) or not audit.get("agreed"):
+                    continue
+                collector_total += 1
+                if audit.get("primaryAgreed"):
+                    collector_matched += 1
+    if collector_total:
+        collector_acc = collector_matched / collector_total
+        print(
+            f"독립 수집기 일치율: {collector_acc*100:.1f}% "
+            f"({collector_matched}/{collector_total}칸)",
+            flush=True,
+        )
+
+    if replay_acc is not None or collector_acc is not None or too_many_failures:
+        accuracy_values = [x for x in (replay_acc, collector_acc) if x is not None]
+        acc = min(accuracy_values) if accuracy_values else 1.0
         if too_many_failures or acc < verify_low_threshold:
             level = "low"
         elif acc < verify_warn_threshold:
@@ -2017,10 +2259,14 @@ def run_scoring_pipeline(cfg: dict[str, Any]) -> None:
             "sampleSize": sample_size,
             "checkedItems": total,
             "failedCellPct": round(fail_ratio * 100, 1),
+            "temporalAgreementPct": round((replay_acc or 0) * 100, 1) if replay_acc is not None else None,
+            "collectorAgreementPct": round((collector_acc or 0) * 100, 1) if collector_acc is not None else None,
+            "collectorCheckedItems": collector_total,
+            "validationMode": "automated_multi_source",
         }
         print(f"QUALITY_GATE:{level.upper()}:{acc*100:.1f}")
         if level == "low" and block_on_low:
-            reason = "측정 실패 과다" if too_many_failures else "샘플 재조회 일치율 미달"
+            reason = "측정 실패 과다" if too_many_failures else "자동 교차검증 일치율 미달"
             print(f"품질 게이트 LOW ({reason}) → 채점 결과를 저장하지 않고 종료합니다.", flush=True)
             raise SystemExit(3)
 

@@ -1,8 +1,8 @@
 /**
  * 병원별 배점표 뷰어 — data/scoring-data.json
  *
- * 병원 간 데이터는 섞이지 않음: JSON 월 항목은 (monthLabel + hospitalName) 슬롯별로 병합되며,
- * hospitalName 이 없는 항목은 포인트병원(레거시) 전용으로만 표시된다.
+ * 병원 간 데이터는 섞이지 않으며, hospitalName 이 없는 레거시 항목은
+ * 포인트병원 전용 데이터로 합쳐서 표시한다.
  */
 
 const DEFAULT_API_BASE = "http://127.0.0.1:8080";
@@ -91,22 +91,6 @@ const TAB_LABEL = {
   web: "웹(통합검색)",
 };
 
-/** 모든 병원 공통 월 탭(항상 표시). 데이터는 JSON에 해당 monthLabel·병원이 있을 때만 채워짐. */
-const FIXED_MONTH_TABS = [
-  "1월",
-  "2월",
-  "3월",
-  "4월",
-  "5월",
-  "6월",
-  "7월",
-  "8월",
-  "9월",
-  "10월",
-  "11월",
-  "12월",
-];
-
 /** 새로고침 후에도 병원·탭·검색어 등 유지 */
 const VIEW_STATE_KEY = "scoringViewerUi";
 /** 최근 채점 소요시간(ms) 히스토리(예상 남은시간 계산용) */
@@ -122,9 +106,9 @@ const state = {
   hospitals: ["포인트병원"],
   availableHospitals: new Set(["포인트병원"]),
   aliases: {},
+  hospitalRecordCache: new Map(),
   hospitalIndex: 0,
   hospitalFilter: "",
-  monthIndex: 0,
   sheetIndex: 0,
   filter: "",
   /** 표에서 카페·블로그 열 보기: 전체 | 카페만 | 블로그만 (채점·JSON 동일) */
@@ -156,7 +140,6 @@ function persistViewState() {
       VIEW_STATE_KEY,
       JSON.stringify({
         hospitalName: currentHospitalName(),
-        monthIndex: state.monthIndex,
         sheetIndex: state.sheetIndex,
         filter: state.filter,
         channelView: state.channelView,
@@ -167,7 +150,7 @@ function persistViewState() {
   } catch (_) {}
 }
 
-/** 병원 목록이 준비된 뒤 호출: 저장된 병원·월·시트·필터 복원 */
+/** 병원 목록이 준비된 뒤 호출: 저장된 병원·시트·필터 복원 */
 function applySavedViewState() {
   const v = readViewState();
   if (!v) return;
@@ -175,13 +158,6 @@ function applySavedViewState() {
   if (name) {
     const idx = state.hospitals.indexOf(name);
     if (idx >= 0) state.hospitalIndex = idx;
-  }
-  if (
-    typeof v.monthIndex === "number" &&
-    v.monthIndex >= 0 &&
-    v.monthIndex < FIXED_MONTH_TABS.length
-  ) {
-    state.monthIndex = v.monthIndex;
   }
   if (typeof v.sheetIndex === "number" && v.sheetIndex >= -1) {
     state.sheetIndex = v.sheetIndex;
@@ -311,39 +287,75 @@ function isCurrentHospitalAvailable() {
   return state.availableHospitals.has(name) || state.availableHospitals.has(key);
 }
 
-/** JSON 월 항목이 현재 선택 병원에 속하는지 (hospitalName 없음 = 포인트병원 레거시 데이터). */
-function monthBelongsToHospital(m, hospitalName) {
+/** JSON 레코드가 선택 병원에 속하는지 (hospitalName 없음 = 포인트병원 레거시 데이터). */
+function recordBelongsToHospital(record, hospitalName) {
   const target = canonicalHospitalName(hospitalName);
-  const source = canonicalHospitalName(m?.hospitalName || "");
-  const h = m?.hospitalName;
+  const source = canonicalHospitalName(record?.hospitalName || "");
+  const h = record?.hospitalName;
   if (h == null || h === "") return target === "포인트병원";
   return source === target;
 }
 
-/** 현재 병원 + 월 라벨에 해당하는 JSON 월 블록 (없으면 null). */
-function monthRecordForHospitalMonth(monthLabel) {
+function legacyRecordOrder(record) {
+  const match = String(record?.monthLabel || "").trim().match(/^(\d{1,2})월$/);
+  return match ? Number(match[1]) : 0;
+}
+
+/** 레거시 월별 레코드를 병원별 단일 레코드로 합친다. 최신 점수와 모든 고유 키워드를 보존한다. */
+function hospitalRecordForName(hospitalName) {
   const all = state.data?.months ?? [];
-  const name = currentHospitalName();
-  const key = currentHospitalKey();
-  // 포인트병원은 레거시(hospitalName 없음)와 신규(hospitalName=포인트병원)가 공존할 수 있어
-  // 먼저 "명시 병원명" 항목을 우선 사용하고, 없을 때만 레거시를 사용한다.
-  if (key === "포인트병원") {
-    const explicit = all.find((m) => m.monthLabel === monthLabel && (m?.hospitalName || "") === "포인트병원");
-    if (explicit) return explicit;
+  const key = canonicalHospitalName(hospitalName);
+  if (state.hospitalRecordCache.has(key)) return state.hospitalRecordCache.get(key);
+  const matches = all
+    .map((record, index) => ({ record, index }))
+    .filter(({ record }) => recordBelongsToHospital(record, hospitalName))
+    .sort((a, b) => legacyRecordOrder(a.record) - legacyRecordOrder(b.record) || a.index - b.index);
+  if (!matches.length) {
+    state.hospitalRecordCache.set(key, null);
+    return null;
   }
-  // 병원 별칭(예: 삼성본정형외과/삼성본병원)도 같은 슬롯으로 조회
-  return all.find((m) => m.monthLabel === monthLabel && monthBelongsToHospital(m, key)) ?? null;
-}
 
-function currentMonthLabel() {
-  return FIXED_MONTH_TABS[state.monthIndex] ?? FIXED_MONTH_TABS[0];
-}
+  const base = JSON.parse(JSON.stringify(matches[matches.length - 1].record));
+  base.hospitalName = key;
+  delete base.monthLabel;
 
-/** 오늘 날짜가 속한 달 탭 인덱스(1~4월만 사용, 5월 이후는 4월 탭). */
-function monthTabIndexForToday() {
-  const cur = new Date().getMonth() + 1;
-  const clamped = Math.min(Math.max(cur, 1), FIXED_MONTH_TABS.length);
-  return clamped - 1;
+  const channels = {};
+  const scopes = {};
+  for (const { record } of matches) {
+    if (record?.keywordChannels && typeof record.keywordChannels === "object") {
+      Object.assign(channels, record.keywordChannels);
+    }
+    if (record?.keywordScopes && typeof record.keywordScopes === "object") {
+      Object.assign(scopes, record.keywordScopes);
+    }
+  }
+  if (Object.keys(channels).length) base.keywordChannels = channels;
+  if (Object.keys(scopes).length) base.keywordScopes = scopes;
+
+  const sheetsByKey = new Map((base.sheets || []).map((sheet) => [String(sheet?.key || ""), sheet]));
+  for (const { record } of matches.slice(0, -1).reverse()) {
+    for (const oldSheet of record?.sheets || []) {
+      const sheetKey = String(oldSheet?.key || "");
+      if (!sheetKey) continue;
+      let target = sheetsByKey.get(sheetKey);
+      if (!target) {
+        target = JSON.parse(JSON.stringify(oldSheet));
+        (base.sheets ||= []).push(target);
+        sheetsByKey.set(sheetKey, target);
+        continue;
+      }
+      const known = new Set((target.rows || []).map((row) => String(row?.[2] || "").trim()).filter(Boolean));
+      for (const oldRow of oldSheet?.rows || []) {
+        const keyword = String(oldRow?.[2] || "").trim();
+        if (keyword && !known.has(keyword)) {
+          (target.rows ||= []).push(JSON.parse(JSON.stringify(oldRow)));
+          known.add(keyword);
+        }
+      }
+    }
+  }
+  state.hospitalRecordCache.set(key, base);
+  return base;
 }
 
 /** fetch 실패(연결 거절 등)는 ok:false로 돌려서 다음 URL 후보를 시도 */
@@ -581,9 +593,18 @@ async function waitForScoreTask(taskId, labelText) {
 function resolveEvidenceBlock(keyword) {
   const root = state.evidenceRoot || {};
   const name = currentHospitalKey();
-  const fromH = root.byHospital?.[name]?.[keyword];
-  if (fromH) return fromH;
-  return root.evidence?.[keyword];
+  const block = root.byHospital?.[name]?.[keyword] || root.evidence?.[keyword];
+  if (!block || typeof block !== "object") return block;
+  const sheet = getCurrentSheet();
+  const isMobile = String(sheet?.key || "").endsWith("-mob") || /MOB|모바일/i.test(sheet?.title || "");
+  const deviceBlock = block[isMobile ? "mobile" : "pc"];
+  return deviceBlock && typeof deviceBlock === "object" ? deviceBlock : block;
+}
+
+function evidenceSurfaceText(ev) {
+  if (ev?.surface === "dedicated_tab") return "전용 탭";
+  if (ev?.surface === "integrated_search") return "통합검색";
+  return "검색 결과";
 }
 
 function scoreReasonText(keyword, colIdx, cellValue) {
@@ -598,7 +619,7 @@ function scoreReasonText(keyword, colIdx, cellValue) {
     }
     const source = ev.source === "manual" ? "수동입력" : "웹수집";
     const rule = shown > 0 ? "메인 검색 노출(3점)" : "미노출(0점)";
-    const base = `${label} ${shown}점\n${source} · ${rule}`;
+    const base = `${label} ${shown}점\n${source} · ${evidenceSurfaceText(ev)} · ${rule}`;
     const snippet = String(ev.matched_url || ev.top?.[0] || "").replace(/\s+/g, " ").trim();
     if (!snippet) return base;
     return `${base}\n근거: ${snippet.slice(0, 90)}${snippet.length > 90 ? "..." : ""}`;
@@ -610,7 +631,7 @@ function scoreReasonText(keyword, colIdx, cellValue) {
     const source = ev.source === "api" ? "API" : ev.source === "manual" ? "수동입력" : "웹수집";
     const rank = Number(ev.matched_rank ?? ev.rank ?? 0);
     const pos = rank > 0 ? `${rank}위` : "미노출(0)";
-    const base = `${label}: ${pos}\n${source} · 위에서부터 1위=첫 파워링크 광고`;
+    const base = `${label}: ${pos}\n${source} · ${evidenceSurfaceText(ev)} · 위에서부터 1위=첫 파워링크 광고`;
     const snippet = String(ev.matched_text || ev.top?.[0]?.text || "").replace(/\s+/g, " ").trim();
     if (!snippet) return base;
     return `${base}\n근거: ${snippet.slice(0, 90)}${snippet.length > 90 ? "..." : ""}`;
@@ -623,23 +644,27 @@ function scoreReasonText(keyword, colIdx, cellValue) {
   const rank = Number(ev.matched_rank ?? ev.rank ?? 0);
   let rule = "";
   if (rank <= 0) rule = "미노출(0점)";
-  else if (rank <= 3) rule = "1~3위 첫화면(3점)";
+  else if (rank <= 3) rule = ev.surface === "integrated_search" ? "통합검색 1~3위(3점)" : "전용 탭 1~3위(3점)";
   else if (rank <= 5) rule = "4~5위(2점)";
   else if (rank <= 10) rule = "6~10위(1점)";
   else rule = "10위 밖(0점)";
 
-  const base = `${label} ${score}점\n${source} 기준 ${rank > 0 ? `${rank}위` : "미노출"} · 규칙 ${rule}`;
+  let base = `${label} ${score}점\n${source} · ${evidenceSurfaceText(ev)} 기준 ${rank > 0 ? `${rank}위` : "미노출"} · 규칙 ${rule}`;
+  if (Number.isFinite(Number(ev.integratedExposureRank)) && ev.surface !== "integrated_search") {
+    const integrated = Number(ev.integratedExposureRank);
+    base += `\n통합검색 노출: ${integrated > 0 ? `${integrated}위` : "미노출"}`;
+  }
   const snippet = String(ev.matched_text || ev.top?.[0]?.text || "").replace(/\s+/g, " ").trim();
   if (!snippet) return base;
   return `${base}\n근거: ${snippet.slice(0, 90)}${snippet.length > 90 ? "..." : ""}`;
 }
 
-function getCurrentMonthRecord() {
-  return monthRecordForHospitalMonth(currentMonthLabel());
+function getCurrentHospitalRecord() {
+  return hospitalRecordForName(currentHospitalName());
 }
 
 function getCurrentSheet() {
-  const m = getCurrentMonthRecord();
+  const m = getCurrentHospitalRecord();
   if (!m?.sheets?.length) return null;
   if (state.sheetIndex === -1) return null;
   const max = m.sheets.length - 1;
@@ -648,7 +673,7 @@ function getCurrentSheet() {
 }
 
 function getCurrentSheetsForView() {
-  const m = getCurrentMonthRecord();
+  const m = getCurrentHospitalRecord();
   if (!m?.sheets?.length) return [];
   if (state.sheetIndex === -1) return m.sheets;
   const one = getCurrentSheet();
@@ -678,8 +703,8 @@ function defaultVisibleColumnCount() {
   return Math.max(n, 1);
 }
 
-function rowKeywordChannel(month, keyword) {
-  const m = month?.keywordChannels;
+function rowKeywordChannel(record, keyword) {
+  const m = record?.keywordChannels;
   if (!m || typeof m !== "object") return "all";
   const ch = m[String(keyword).trim()];
   if (ch === "cafe" || ch === "blog" || ch === "all") return ch;
@@ -687,9 +712,9 @@ function rowKeywordChannel(month, keyword) {
 }
 
 /** 툴바 '전체'면 모든 행, '카페'·'블로그'면 해당 구분(및 전체·미지정)만 */
-function rowMatchesChannelView(month, keyword) {
+function rowMatchesChannelView(record, keyword) {
   if (state.channelView === "all") return true;
-  const ch = rowKeywordChannel(month, keyword);
+  const ch = rowKeywordChannel(record, keyword);
   if (ch === "all") return true;
   if (state.channelView === "cafe") return ch === "cafe";
   if (state.channelView === "blog") return ch === "blog";
@@ -697,14 +722,14 @@ function rowMatchesChannelView(month, keyword) {
 }
 
 function filteredRows(sheet) {
-  const month = getCurrentMonthRecord();
+  const record = getCurrentHospitalRecord();
   const baseRows = (sheet.rows || []).filter((row) => {
     const keyword = String(row?.[2] ?? "").trim();
     return keyword !== "";
   });
   const byChannel = baseRows.filter((row) => {
     const keyword = String(row?.[2] ?? "").trim();
-    return rowMatchesChannelView(month, keyword);
+    return rowMatchesChannelView(record, keyword);
   });
   const q = state.filter.trim().toLowerCase();
   if (!q) return byChannel;
@@ -787,15 +812,14 @@ function renderTable() {
   const body = document.getElementById("scoreBody");
   const sourceInfo = document.getElementById("sourceInfo");
   const hospitalName = currentHospitalName();
-  const monthLabel = currentMonthLabel();
-  const month = getCurrentMonthRecord();
+  const record = getCurrentHospitalRecord();
   const sheetsForView = getCurrentSheetsForView();
   const sheet = sheetsForView[0] || null;
 
   if (!isCurrentHospitalAvailable()) {
     head.innerHTML = "";
     body.innerHTML = "";
-    sourceInfo.textContent = `${hospitalName} · ${monthLabel}`;
+    sourceInfo.textContent = hospitalName;
     updatePanelStats({ rowLine: "", keywordTotal: 0, showKeywordBadge: false });
     const colCount = defaultVisibleColumnCount();
     body.innerHTML = `<tr><td colspan="${colCount}" class="num">${escapeHtml(
@@ -804,21 +828,21 @@ function renderTable() {
     return;
   }
 
-  if (!month || !month?.sheets?.length) {
+  if (!record || !record?.sheets?.length) {
     head.innerHTML = "";
     updatePanelStats({ rowLine: "행 0건", keywordTotal: 0, showKeywordBadge: true });
-    sourceInfo.textContent = `${hospitalName} · ${monthLabel} · 이 달 배점표 없음`;
+    sourceInfo.textContent = `${hospitalName} · 배점표 없음`;
     const colCount = defaultVisibleColumnCount();
     body.innerHTML = `<tr><td colspan="${colCount}" class="num">${escapeHtml(
-      `${hospitalName}의 ${monthLabel} 데이터가 아직 없습니다. 채점·병합 후 새로고침 하세요.`
+      `${hospitalName} 데이터가 아직 없습니다. 채점·병합 후 새로고침 하세요.`
     )}</td></tr>`;
     return;
   }
 
   const sheetLabel = state.sheetIndex === -1 ? "전체 시트" : (sheet?.title || "시트");
-  sourceInfo.textContent = `${hospitalName} · ${month.monthLabel} · ${sheetLabel} · 원본 ${month.sourceFile}`;
-  if (month?.quality?.level === "warn" || month?.quality?.level === "low") {
-    const acc = Number(month?.quality?.accuracyPct);
+  sourceInfo.textContent = `${hospitalName} · ${sheetLabel} · 원본 ${record.sourceFile}`;
+  if (record?.quality?.level === "warn" || record?.quality?.level === "low") {
+    const acc = Number(record?.quality?.accuracyPct);
     const warnTxt = Number.isFinite(acc) ? `⚠ 정확도 ${acc.toFixed(1)}%` : "⚠ 정확도 경고";
     sourceInfo.textContent = `${sourceInfo.textContent} · ${warnTxt}`;
   }
@@ -965,7 +989,6 @@ async function deleteKeywordFromTable(keyword) {
   const form = new FormData();
   form.append("keyword", kw);
   form.append("hospital_name", currentHospitalKey());
-  form.append("month_label", currentMonthLabel());
   uploadInFlight = true;
   try {
     showToast("키워드 삭제 중...");
@@ -1027,29 +1050,6 @@ function updateTabIndicator(wrap, indicatorClass) {
   });
 }
 
-function renderMonthTabs() {
-  const wrap = document.getElementById("monthTabs");
-  wrap.innerHTML = FIXED_MONTH_TABS.map(
-    (label, i) =>
-      `<button type="button" class="tab" role="tab" aria-selected="${i === state.monthIndex}" data-month="${i}">${escapeHtml(
-        label
-      )}</button>`
-  ).join("");
-
-  wrap.querySelectorAll(".tab").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.monthIndex = Number(btn.dataset.month);
-      state.sheetIndex = 0;
-      state.sortColIdx = null;
-      renderMonthTabs();
-      renderSheetTabs();
-      renderTable();
-      persistViewState();
-    });
-  });
-  updateTabIndicator(wrap, "tab-indicator");
-}
-
 function openHospitalMenu() {
   const menu = document.getElementById("hospitalMenu");
   const trigger = document.getElementById("hospitalTrigger");
@@ -1100,11 +1100,9 @@ function renderHospitalTabs() {
     if (btn.dataset.hospital === undefined) return;
     btn.addEventListener("click", () => {
       state.hospitalIndex = Number(btn.dataset.hospital);
-      state.monthIndex = monthTabIndexForToday();
       state.sheetIndex = 0;
       state.sortColIdx = null;
       renderHospitalTabs();
-      renderMonthTabs();
       renderSheetTabs();
       renderTable();
       closeMenu();
@@ -1122,7 +1120,7 @@ function renderHospitalTabs() {
 
 function renderSheetTabs() {
   const quickWrap = document.getElementById("sheetQuickTabs");
-  const m = getCurrentMonthRecord();
+  const m = getCurrentHospitalRecord();
   const y = new Date().getFullYear();
   const fallbackSheets = [
     { title: `${y} 지역 PC` },
@@ -1186,9 +1184,7 @@ function applyHospitalNameFilter() {
     .filter((x) => !qLower || x.name.toLowerCase().includes(qLower));
   if (visible.length && qLower) {
     state.hospitalIndex = visible[0].i;
-    state.monthIndex = monthTabIndexForToday();
     state.sheetIndex = 0;
-    renderMonthTabs();
     renderSheetTabs();
     renderTable();
   }
@@ -1293,12 +1289,12 @@ async function reloadDataAndRender() {
   state.availableHospitals = hs.availableHospitals;
   state.aliases = hs.aliases;
   state.data = normalizeScoringData(await loadScoringDataFirstAvailable());
+  state.hospitalRecordCache.clear();
   const ev = await loadEvidenceFirstAvailable();
   state.evidenceRoot = ev && typeof ev === "object" ? ev : {};
   state.evidence = state.evidenceRoot.evidence || {};
   if (state.hospitalIndex >= state.hospitals.length) state.hospitalIndex = 0;
   renderHospitalTabs();
-  renderMonthTabs();
   renderSheetTabs();
   renderChannelTabs();
   renderTable();
@@ -1413,7 +1409,6 @@ async function runKeywordUpload(mode) {
 
   const form = new FormData();
   form.append("hospital_name", currentHospitalKey());
-  form.append("month_label", currentMonthLabel());
   if (!text) {
     showToast(
       mode === "text" ? "키워드를 입력해주세요." : "키워드를 입력하세요."
@@ -1455,16 +1450,15 @@ async function runKeywordUpload(mode) {
     await reloadDataAndRender();
     saveRecentScoreDuration(Date.now() - scoreStartedAt);
     if (textEl) textEl.value = "";
-    const monthTxt = res.monthLabel ? `${res.monthLabel} ` : "";
     const added = Number(res?.addedCount ?? 0);
     const q = finishedTask?.quality;
     if ((q?.level === "warn" || q?.level === "low") && Number.isFinite(Number(q?.accuracyPct))) {
       showToast(`정확도 경고: ${Number(q.accuracyPct).toFixed(1)}% (반영은 완료됨)`);
     }
     if (added <= 0) {
-      showToast(`${monthTxt}중복 키워드로 추가 0건 (총 ${res.count}건 유지)`);
+      showToast(`중복 키워드로 추가 0건 (총 ${res.count}건 유지)`);
     } else {
-      showToast(`${monthTxt}${added}개 추가 완료 (총 ${res.count}건)`);
+      showToast(`${added}개 추가 완료 (총 ${res.count}건)`);
     }
   } catch (e) {
     scoreFailed = true;
@@ -1508,7 +1502,6 @@ function bindUploadActions() {
       showToast("전체 재채점 중… 잠시만 기다려주세요.");
       const form = new FormData();
       form.append("hospital_name", currentHospitalKey());
-      form.append("month_label", currentMonthLabel());
       const res = await postForm("/api/run-score", form);
       if (res?.accepted && res?.taskId) {
         const result = await waitForScoreTask(res.taskId, "재채점");
@@ -1574,7 +1567,7 @@ function bindUploadActions() {
       return;
     }
     const sheetLabel = state.sheetIndex === -1 ? "전체" : shortSheetLabel(getCurrentSheet()?.title || "시트");
-    const fileName = `${currentHospitalName()}_${currentMonthLabel()}_${sheetLabel}_배점표.xlsx`;
+    const fileName = `${currentHospitalName()}_${sheetLabel}_배점표.xlsx`;
     try {
       const blob = await postJsonForBlob("/api/export-xlsx", { headers, rows, fileName });
       const a = document.createElement("a");
@@ -1599,7 +1592,7 @@ function bindUploadActions() {
   });
 }
 
-/** 시안과 동일: 월·시트 가로 탭 영역 마우스 드래그 스크롤 */
+/** 시트 가로 탭 영역 마우스 드래그 스크롤 */
 function bindHorizontalDragScroll(el) {
   if (!el) return;
   let isDown = false;
@@ -1638,10 +1631,10 @@ async function init() {
     state.availableHospitals = hs.availableHospitals;
     state.aliases = hs.aliases;
     state.data = normalizeScoringData(await loadScoringDataFirstAvailable());
+    state.hospitalRecordCache.clear();
     const ev = await loadEvidenceFirstAvailable();
     state.evidenceRoot = ev && typeof ev === "object" ? ev : {};
     state.evidence = state.evidenceRoot.evidence || {};
-    state.monthIndex = monthTabIndexForToday();
     state.sheetIndex = 0;
     applySavedViewState();
     if (state.hospitalIndex >= state.hospitals.length) state.hospitalIndex = 0;
@@ -1650,23 +1643,21 @@ async function init() {
       "저장된 배점표를 불러오지 못했습니다. python server.py 실행 후 새로고침하거나, 아래에 키워드를 입력해 채점하세요."
     );
     state.data = { months: [] };
+    state.hospitalRecordCache.clear();
     state.hospitals = ["포인트병원"];
     state.availableHospitals = new Set(["포인트병원"]);
     state.evidenceRoot = null;
     state.evidence = {};
-    state.monthIndex = monthTabIndexForToday();
     state.sheetIndex = 0;
     applySavedViewState();
     if (state.hospitalIndex >= state.hospitals.length) state.hospitalIndex = 0;
   }
   renderHospitalTabs();
-  renderMonthTabs();
   renderSheetTabs();
   renderChannelTabs();
   renderUploadScopeTabs();
   renderTable();
   persistViewState();
-  bindHorizontalDragScroll(document.getElementById("monthTabs"));
   bindHorizontalDragScroll(document.getElementById("sheetQuickTabs"));
 }
 

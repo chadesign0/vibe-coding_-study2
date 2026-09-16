@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import copy
 import io
 import json
 import hashlib
@@ -55,7 +56,7 @@ HOSPITAL_CANONICAL: dict[str, str] = {
 SCORE_TASKS: dict[str, dict[str, object]] = {}
 ACTIVE_SCORE_TASK_BY_KEY: dict[str, str] = {}
 SCORE_TASKS_LOCK = threading.Lock()
-SCORE_REQUEST_LOCK = threading.Lock()  # 같은 병원/월의 변경·채점 요청 직렬화
+SCORE_REQUEST_LOCK = threading.Lock()  # 같은 병원의 변경·채점 요청 직렬화
 MERGE_LOCK = threading.Lock()  # scoring-data.json / last-run-evidence.json 동시 쓰기 방지
 GITHUB_PUSH_LOCK = threading.Lock()  # GitHub push 동시 실행 방지 (422 race 방지)
 
@@ -380,30 +381,6 @@ def extract_keywords_from_xlsx(binary: bytes) -> list[str]:
     return keywords
 
 
-def current_month_label() -> str:
-    return f"{datetime.now().month}월"
-
-
-def normalize_month_label(raw: str | None) -> str:
-    s = (raw or "").strip()
-    m = re.match(r"^(\d{1,2})월$", s)
-    if not m:
-        return current_month_label()
-    n = int(m.group(1))
-    if 1 <= n <= 12:
-        return f"{n}월"
-    return current_month_label()
-
-
-def required_month_label(raw: str | None) -> str | None:
-    s = (raw or "").strip()
-    m = re.fullmatch(r"(\d{1,2})월", s)
-    if not m:
-        return None
-    n = int(m.group(1))
-    return f"{n}월" if 1 <= n <= 12 else None
-
-
 def merge_keywords_keep_order(existing: list[str], incoming: list[str]) -> list[str]:
     seen = set()
     out = []
@@ -416,78 +393,98 @@ def merge_keywords_keep_order(existing: list[str], incoming: list[str]) -> list[
     return out
 
 
-def month_record_for_hospital(month_label: str, hospital_name: str) -> dict | None:
-    """웹(app.js)의 monthRecordForHospitalMonth 와 동일한 우선순위.
+def _record_belongs_to_hospital(record: dict, hospital_name: str) -> bool:
+    raw = str(record.get("hospitalName") or "").strip()
+    target = canonical_hospital_name(hospital_name)
+    if not raw:
+        return target == "포인트병원"
+    return canonical_hospital_name(raw) == target
 
-    scoring-data.json 에 4월 등 동일 달에 hospitalName 없는 레거시(포인트)와
-    hospitalName=\"포인트병원\" 인 항목이 같이 있으면, 예전 로직은 레거시를 먼저 골라
-    키워드 수가 적은 쪽만 병합되어 추가가 반영되지 않는 문제가 있었다.
-    """
+
+def _legacy_record_order(record: dict) -> int:
+    match = re.fullmatch(r"(\d{1,2})월", str(record.get("monthLabel") or "").strip())
+    return int(match.group(1)) if match else 0
+
+
+def merge_hospital_records(records: list[dict], hospital_name: str) -> dict | None:
+    """월별 레거시 레코드를 병원별 단일 레코드로 합친다. 최신 행을 우선하고 과거 전용 키워드도 보존."""
+    matched = [r for r in records if isinstance(r, dict) and _record_belongs_to_hospital(r, hospital_name)]
+    if not matched:
+        return None
+    ordered = sorted(enumerate(matched), key=lambda pair: (_legacy_record_order(pair[1]), pair[0]))
+    base = copy.deepcopy(ordered[-1][1])
+    base["hospitalName"] = canonical_hospital_name(hospital_name)
+    base.pop("monthLabel", None)
+
+    channels: dict[str, str] = {}
+    scopes: dict[str, str] = {}
+    for _, record in ordered:
+        if isinstance(record.get("keywordChannels"), dict):
+            channels.update(record["keywordChannels"])
+        if isinstance(record.get("keywordScopes"), dict):
+            scopes.update(record["keywordScopes"])
+    if channels:
+        base["keywordChannels"] = channels
+    if scopes:
+        base["keywordScopes"] = scopes
+
+    sheets_by_key = {str(s.get("key") or ""): s for s in (base.get("sheets") or [])}
+    for _, record in reversed(ordered[:-1]):
+        for old_sheet in record.get("sheets") or []:
+            key = str(old_sheet.get("key") or "")
+            if not key:
+                continue
+            target_sheet = sheets_by_key.get(key)
+            if target_sheet is None:
+                target_sheet = copy.deepcopy(old_sheet)
+                base.setdefault("sheets", []).append(target_sheet)
+                sheets_by_key[key] = target_sheet
+                continue
+            rows = target_sheet.setdefault("rows", [])
+            known = {
+                str((row[2] if len(row) > 2 else "") or "").strip()
+                for row in rows
+            }
+            for old_row in old_sheet.get("rows") or []:
+                keyword = str((old_row[2] if len(old_row) > 2 else "") or "").strip()
+                if keyword and keyword not in known:
+                    rows.append(copy.deepcopy(old_row))
+                    known.add(keyword)
+    return base
+
+
+def hospital_record(hospital_name: str) -> dict | None:
     if not DATA_PATH.exists():
         return None
     try:
         root = json.loads(DATA_PATH.read_text(encoding="utf-8"))
-        months = root.get("months") or []
-        lab = (month_label or "").strip()
-        raw_hn = (hospital_name or "").strip() or "포인트병원"
-
-        if raw_hn == "포인트병원":
-            for m in months:
-                if (m.get("monthLabel") or "") != lab:
-                    continue
-                if str(m.get("hospitalName") or "").strip() == "포인트병원":
-                    return m
-            for m in months:
-                if (m.get("monthLabel") or "") != lab:
-                    continue
-                raw = m.get("hospitalName")
-                if raw is None or str(raw).strip() == "":
-                    return m
-            return None
-
-        hn = canonical_hospital_name(hospital_name)
-        for m in months:
-            if (m.get("monthLabel") or "") != lab:
-                continue
-            if str(m.get("hospitalName") or "").strip() == hn:
-                return m
+        return merge_hospital_records(root.get("months") or [], hospital_name)
     except Exception:
         return None
-    return None
 
 
-def load_keywords_for_month(month_label: str, hospital_name: str = "포인트병원") -> list[str]:
-    # 1) scoring-data 에 이미 저장된 해당 월 키워드
-    if DATA_PATH.exists():
-        try:
-            month = month_record_for_hospital(month_label, hospital_name)
-            if month:
-                sheets = month.get("sheets") or []
-                if sheets:
-                    kws: list[str] = []
-                    for s in sheets:
-                        for r in s.get("rows") or []:
-                            kw = str((r[2] if len(r) > 2 else "") or "").strip()
-                            if not kw:
-                                continue
-                            kws.append(kw)
-                    if kws:
-                        return kws
-        except Exception:
-            pass
+def load_keywords_for_hospital(hospital_name: str = "포인트병원") -> list[str]:
+    # 1) scoring-data 에 저장된 병원별 키워드
+    record = hospital_record(hospital_name)
+    if record:
+        kws: list[str] = []
+        for sheet in record.get("sheets") or []:
+            for row in sheet.get("rows") or []:
+                keyword = str((row[2] if len(row) > 2 else "") or "").strip()
+                if keyword:
+                    kws.append(keyword)
+        if kws:
+            return merge_keywords_keep_order([], kws)
 
-    # 2) config 템플릿에 같은 월이 설정된 경우
+    # 2) 아직 채점 데이터가 없으면 병원별 config 템플릿 사용
     try:
         path = template_config_path(hospital_name)
         cfg = json.loads(path.read_text(encoding="utf-8"))
-        if cfg.get("monthLabel") != month_label:
-            return []
         if path.resolve() == CONFIG_PATH.resolve() and canonical_hospital_name(hospital_name) != "포인트병원":
             return []
         return [str(x).strip() for x in (cfg.get("keywords") or []) if str(x).strip()]
     except Exception:
-        pass
-    return []
+        return []
 
 
 def normalize_keyword_channel(raw: str | None) -> str:
@@ -526,8 +523,8 @@ def sheet_keys_for_scope(scope: str) -> set[str]:
     return all_keys
 
 
-def build_rows_by_sheet_key_for_month(
-    month: dict[str, object] | None,
+def build_rows_by_sheet_key_for_record(
+    record: dict[str, object] | None,
     merged: list[str],
     scopes: dict[str, str],
 ) -> tuple[dict[str, list[dict[str, str]]], dict[str, str]]:
@@ -535,8 +532,8 @@ def build_rows_by_sheet_key_for_month(
     rows_by_sheet_key: dict[str, list[dict[str, str]]] = {}
     sheet_titles: dict[str, str] = {}
     old_by_key: dict[str, list[dict[str, str]]] = {}
-    if month and isinstance(month.get("sheets"), list):
-        for s in month["sheets"]:
+    if record and isinstance(record.get("sheets"), list):
+        for s in record["sheets"]:
             key = str(s.get("key") or "").strip()
             if not key:
                 continue
@@ -580,14 +577,13 @@ def runtime_config_path_for_config(cfg: dict) -> Path:
 
 def update_keywords(
     keywords: list[str],
-    month_label: str,
     hospital_name: str = "포인트병원",
     channel: str = "all",
     scope: str = "all",
 ) -> tuple[list[str], str, int]:
     hn = canonical_hospital_name(hospital_name)
     cfg = json.loads(template_config_path(hn).read_text(encoding="utf-8"))
-    existing = load_keywords_for_month(month_label, hn)
+    existing = load_keywords_for_hospital(hn)
     # 기존 목록에 행 단위 중복이 있어도 len(merged)-len(existing) 가 음수로 떨어지지 않게,
     # 이번 업로드에서 "처음 보는" 고유 키워드 수만 센다.
     existing_keys = {(kw or "").strip() for kw in existing if (kw or "").strip()}
@@ -601,25 +597,25 @@ def update_keywords(
         seen_incoming.add(k)
         if k not in existing_keys:
             added_count += 1
-    cfg["monthLabel"] = month_label
+    cfg.pop("monthLabel", None)
     cfg["keywords"] = merged
     cfg["hospitalName"] = hn
     cfg["hospitalNames"] = [hn]
     for k, v in (HOSPITAL_PROFILE_OVERRIDES.get(hn) or {}).items():
         cfg[k] = v
-    month = month_record_for_hospital(month_label, hn)
+    record = hospital_record(hn)
     ch = cfg.get("keywordChannels")
     if not isinstance(ch, dict):
         ch = {}
-    if month and isinstance(month.get("keywordChannels"), dict):
-        for k, v in month.get("keywordChannels").items():
+    if record and isinstance(record.get("keywordChannels"), dict):
+        for k, v in record.get("keywordChannels").items():
             ks = str(k).strip()
             vs = normalize_keyword_channel(str(v))
             if ks:
                 ch[ks] = vs
     norm = normalize_keyword_channel(channel)
     norm_scope = normalize_keyword_scope(scope)
-    # 업로드 요청으로 들어온 키워드는 기존 동일월 데이터가 있어도 반드시 재채점 대상에 포함.
+    # 업로드 요청으로 들어온 키워드는 기존 데이터가 있어도 반드시 재채점 대상에 포함.
     force_rescore_keywords: list[str] = []
     seen_force: set[str] = set()
     for kw in keywords:
@@ -633,8 +629,8 @@ def update_keywords(
     scopes = cfg.get("keywordScopes")
     if not isinstance(scopes, dict):
         scopes = {}
-    if month and isinstance(month.get("keywordScopes"), dict):
-        for k, v in month.get("keywordScopes").items():
+    if record and isinstance(record.get("keywordScopes"), dict):
+        for k, v in record.get("keywordScopes").items():
             ks = str(k).strip()
             vs = normalize_keyword_scope(str(v))
             if ks:
@@ -648,8 +644,8 @@ def update_keywords(
         if k and k not in scopes:
             scopes[k] = "all"
     cfg["keywordScopes"] = scopes
-    if month:
-        rbk, st = build_rows_by_sheet_key_for_month(month, merged, scopes)
+    if record:
+        rbk, st = build_rows_by_sheet_key_for_record(record, merged, scopes)
         cfg["rowsBySheetKey"] = rbk
         cfg["sheetTitles"] = st
     else:
@@ -662,31 +658,30 @@ def update_keywords(
 
 
 def build_runtime_config_for_rerun(
-    month_label: str,
     hospital_name: str,
     *,
     chunk_keywords: list[str] | None = None,
 ) -> tuple[str | None, str]:
     """
     재채점 전용 런타임 config 생성.
-    - scoring-data 의 선택 월/병원 데이터만 읽어 구성
+    - scoring-data 의 선택 병원 데이터를 읽어 구성
     - 키워드 추가/삭제/변경은 하지 않음
     - chunk_keywords 가 주어지면 해당 키워드만 forceRescoreKeywords 로 표시하여 부분 재채점
     """
     hn = canonical_hospital_name(hospital_name)
-    month = month_record_for_hospital(month_label, hn)
-    if not month:
-        return None, "선택한 월·병원 데이터가 없습니다."
+    record = hospital_record(hn)
+    if not record:
+        return None, "선택한 병원 데이터가 없습니다."
 
     cfg = json.loads(template_config_path(hn).read_text(encoding="utf-8"))
-    cfg["monthLabel"] = month_label
+    cfg.pop("monthLabel", None)
     cfg["hospitalName"] = hn
     cfg["hospitalNames"] = [hn]
     for k, v in (HOSPITAL_PROFILE_OVERRIDES.get(hn) or {}).items():
         cfg[k] = v
 
     flat_keywords: list[str] = []
-    for s in month.get("sheets") or []:
+    for s in record.get("sheets") or []:
         for row in s.get("rows") or []:
             kw = str((row[2] if len(row) > 2 else "") or "").strip()
             if kw:
@@ -695,10 +690,10 @@ def build_runtime_config_for_rerun(
     if not merged:
         return None, "재채점할 키워드가 없습니다."
 
-    month_kc = month.get("keywordChannels")
-    if isinstance(month_kc, dict):
+    record_kc = record.get("keywordChannels")
+    if isinstance(record_kc, dict):
         cleaned: dict[str, str] = {}
-        for k, v in month_kc.items():
+        for k, v in record_kc.items():
             ks = str(k).strip()
             if not ks:
                 continue
@@ -707,9 +702,9 @@ def build_runtime_config_for_rerun(
     else:
         cfg["keywordChannels"] = {}
     scopes: dict[str, str] = {}
-    month_ks = month.get("keywordScopes")
-    if isinstance(month_ks, dict):
-        for k, v in month_ks.items():
+    record_ks = record.get("keywordScopes")
+    if isinstance(record_ks, dict):
+        for k, v in record_ks.items():
             ks = str(k).strip()
             if not ks:
                 continue
@@ -720,7 +715,7 @@ def build_runtime_config_for_rerun(
             scopes[k] = "all"
     cfg["keywordScopes"] = scopes
 
-    rbk, st = build_rows_by_sheet_key_for_month(month, merged, scopes)
+    rbk, st = build_rows_by_sheet_key_for_record(record, merged, scopes)
     cfg["keywords"] = merged
     cfg["rowsBySheetKey"] = rbk
     cfg["sheetTitles"] = st
@@ -734,19 +729,16 @@ def build_runtime_config_for_rerun(
     return out_path.name, ""
 
 
-def _config_matches_scope(cfg: dict, hospital_name: str, month_label: str) -> bool:
+def _config_matches_hospital(cfg: dict, hospital_name: str) -> bool:
     cfg_hn = str(cfg.get("hospitalName") or "").strip()
     if not cfg_hn:
         names = cfg.get("hospitalNames") or []
         cfg_hn = str(names[0] if names else "").strip()
-    return (
-        canonical_hospital_name(cfg_hn) == canonical_hospital_name(hospital_name)
-        and str(cfg.get("monthLabel") or "").strip() == month_label
-    )
+    return canonical_hospital_name(cfg_hn) == canonical_hospital_name(hospital_name)
 
 
-def delete_keyword(keyword: str, month_label: str, hospital_name: str) -> tuple[bool, int]:
-    """선택한 병원·월과 일치하는 기본 설정에서만 키워드 1개 삭제."""
+def delete_keyword(keyword: str, hospital_name: str) -> tuple[bool, int]:
+    """선택한 병원과 일치하는 기본 설정에서만 키워드 1개 삭제."""
     k = (keyword or "").strip()
     if not k:
         return False, 0
@@ -771,7 +763,7 @@ def delete_keyword(keyword: str, month_label: str, hospital_name: str) -> tuple[
             cfg = json.loads(path.read_text(encoding="utf-8"))
         except Exception:
             continue
-        if not _config_matches_scope(cfg, hospital_name, month_label):
+        if not _config_matches_hospital(cfg, hospital_name):
             continue
         current = [str(x).strip() for x in (cfg.get("keywords") or []) if str(x).strip()]
         if not current:
@@ -793,42 +785,31 @@ def delete_keyword(keyword: str, month_label: str, hospital_name: str) -> tuple[
     return changed, remain_any
 
 
-def _month_matches_scope(month: dict, month_label: str, hospital_name: str) -> bool:
-    if str(month.get("monthLabel") or "").strip() != month_label:
-        return False
-    raw_hn = str(month.get("hospitalName") or "").strip()
-    target = canonical_hospital_name(hospital_name)
-    if target == "포인트병원" and not raw_hn:
-        return True
-    return canonical_hospital_name(raw_hn) == target
-
-
 def delete_keyword_from_scoring_data(
     keyword: str,
-    month_label: str,
     hospital_name: str,
 ) -> tuple[bool, int]:
-    """선택한 병원·월의 시트에서만 키워드 행 제거."""
+    """선택한 병원의 모든 레거시 레코드에서 키워드 행 제거."""
     k = (keyword or "").strip()
     if not k or not DATA_PATH.exists():
         return False, 0
     root = json.loads(DATA_PATH.read_text(encoding="utf-8"))
     changed = False
     removed = 0
-    for month in root.get("months") or []:
-        if not _month_matches_scope(month, month_label, hospital_name):
+    for record in root.get("months") or []:
+        if not _record_belongs_to_hospital(record, hospital_name):
             continue
-        kc = month.get("keywordChannels")
+        kc = record.get("keywordChannels")
         if isinstance(kc, dict) and k in kc:
             kc.pop(k, None)
-            month["keywordChannels"] = kc
+            record["keywordChannels"] = kc
             changed = True
-        ks = month.get("keywordScopes")
+        ks = record.get("keywordScopes")
         if isinstance(ks, dict) and k in ks:
             ks.pop(k, None)
-            month["keywordScopes"] = ks
+            record["keywordScopes"] = ks
             changed = True
-        for sheet in month.get("sheets") or []:
+        for sheet in record.get("sheets") or []:
             rows = sheet.get("rows") or []
             kept = []
             for row in rows:
@@ -866,7 +847,7 @@ def _keyword_exists_for_hospital(keyword: str, hospital_name: str) -> bool:
 
 
 def delete_keyword_from_evidence(keyword: str, hospital_name: str) -> bool:
-    """해당 병원의 다른 월에도 키워드가 없을 때만 병원별 근거를 제거."""
+    """해당 병원 데이터에 키워드가 남아 있지 않을 때 병원별 근거를 제거."""
     k = (keyword or "").strip()
     ev_path = ROOT / "data" / "last-run-evidence.json"
     if not k or not ev_path.exists():
@@ -1004,35 +985,13 @@ def _check_data_size_and_notify() -> None:
 
 def _merge_scoring_temp(temp_path: Path) -> None:
     """임시 채점 결과를 scoring-data.json 에 안전하게 병합 (MERGE_LOCK 안에서 호출)."""
-    month = json.loads(temp_path.read_text(encoding="utf-8"))
+    record = json.loads(temp_path.read_text(encoding="utf-8"))
+    record.pop("monthLabel", None)
     root = json.loads(DATA_PATH.read_text(encoding="utf-8")) if DATA_PATH.exists() else {"months": []}
-    new_lab = str(month.get("monthLabel") or "").strip()
-    new_hn = str(month.get("hospitalName") or "").strip()
-
-    def _identity(m: dict) -> tuple:
-        return (str(m.get("monthLabel") or "").strip(), str(m.get("hospitalName") or "").strip())
-
-    new_id = (new_lab, new_hn)
-
-    def _keep(m: dict) -> bool:
-        if _identity(m) == new_id:
-            return False
-        if new_hn == "포인트병원" and new_lab:
-            ml = str(m.get("monthLabel") or "").strip()
-            raw = m.get("hospitalName")
-            if ml == new_lab and (raw is None or str(raw).strip() == ""):
-                return False
-        return True
-
-    def _month_order(m: dict) -> int:
-        import re as _re
-        match = _re.match(r"^(\d{1,2})월\s*$", str(m.get("monthLabel") or "").strip())
-        return int(match.group(1)) if match else 99
-
-    months = [m for m in (root.get("months") or []) if _keep(m)]
-    months.append(month)
-    months.sort(key=_month_order)
-    root["months"] = months
+    new_hn = canonical_hospital_name(str(record.get("hospitalName") or ""))
+    records = [m for m in (root.get("months") or []) if not _record_belongs_to_hospital(m, new_hn)]
+    records.append(record)
+    root["months"] = records
     root["generatedBy"] = "build_month.py(api+web-evidence)"
     DATA_PATH.write_text(json.dumps(root, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -1122,8 +1081,8 @@ def now_iso() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
 
-def _task_key(kind: str, hospital_name: str, month_label: str) -> str:
-    return f"{kind}:{hospital_name}:{month_label}"
+def _task_key(kind: str, hospital_name: str) -> str:
+    return f"{kind}:{hospital_name}"
 
 
 def get_score_task(task_id: str) -> dict[str, object] | None:
@@ -1138,17 +1097,14 @@ def get_score_task(task_id: str) -> dict[str, object] | None:
         return out
 
 
-def active_score_task_for_scope(hospital_name: str, month_label: str) -> dict[str, object] | None:
-    """같은 병원·월에서 진행 중인 종류 불문 채점 작업을 찾는다."""
+def active_score_task_for_hospital(hospital_name: str) -> dict[str, object] | None:
+    """같은 병원에서 진행 중인 종류 불문 채점 작업을 찾는다."""
     hn = canonical_hospital_name(hospital_name)
     with SCORE_TASKS_LOCK:
         for task in SCORE_TASKS.values():
             if not isinstance(task, dict) or task.get("status") not in {"queued", "running"}:
                 continue
-            if (
-                canonical_hospital_name(str(task.get("hospitalName") or "")) == hn
-                and str(task.get("monthLabel") or "").strip() == month_label
-            ):
+            if canonical_hospital_name(str(task.get("hospitalName") or "")) == hn:
                 return dict(task)
     return None
 
@@ -1166,7 +1122,6 @@ def enqueue_score_task(
     *,
     kind: str,
     hospital_name: str,
-    month_label: str,
     config_name: str,
     message: str,
     meta: dict[str, object] | None = None,
@@ -1175,9 +1130,9 @@ def enqueue_score_task(
     """
     비동기 채점 작업 등록/실행.
     반환: (task_id, created_new)
-    - 같은 병원/월/작업종류에서 기존 queued/running 이 있으면 그 task_id 재사용.
+    - 같은 병원/작업종류에서 기존 queued/running 이 있으면 그 task_id 재사용.
     """
-    key = _task_key(kind, hospital_name, month_label)
+    key = _task_key(kind, hospital_name)
     with SCORE_TASKS_LOCK:
         active_id = ACTIVE_SCORE_TASK_BY_KEY.get(key)
         if active_id:
@@ -1191,7 +1146,6 @@ def enqueue_score_task(
             "kind": kind,
             "status": "queued",
             "hospitalName": hospital_name,
-            "monthLabel": month_label,
             "message": message,
             "configName": config_name,
             "fullRescore": full_rescore,
@@ -1227,9 +1181,9 @@ def enqueue_score_task(
                 endedAt=now_iso(),
                 log=trimmed,
                 message=(
-                    f"{hospital_name} · {month_label} 채점 완료"
+                    f"{hospital_name} 채점 완료"
                     if q_level not in {"warn", "low"}
-                    else f"{hospital_name} · {month_label} 채점 완료 (정확도 경고)"
+                    else f"{hospital_name} 채점 완료 (정확도 경고)"
                 ),
                 quality=quality_payload,
             )
@@ -1241,7 +1195,7 @@ def enqueue_score_task(
                 endedAt=now_iso(),
                 log=trimmed,
                 error=gate_msg,
-                message=f"{hospital_name} · {month_label} {gate_msg}",
+                message=f"{hospital_name} {gate_msg}",
                 quality=quality_payload,
             )
         with SCORE_TASKS_LOCK:
@@ -1311,7 +1265,6 @@ def _trigger_github_actions_workflow(
     *,
     task_id: str,
     hospital_name: str,
-    month_label: str,
     config_name: str,
     webhook_url: str,
     full_rescore: bool = True,
@@ -1329,7 +1282,6 @@ def _trigger_github_actions_workflow(
         "inputs": {
             "task_id": task_id,
             "hospital_name": hospital_name,
-            "month_label": month_label,
             "config_name": config_name,
             "webhook_url": webhook_url,
             "full_rescore": "1" if full_rescore else "0",
@@ -1365,7 +1317,6 @@ def _trigger_github_actions_workflow(
 def enqueue_actions_rescore_task(
     *,
     hospital_name: str,
-    month_label: str,
     config_name: str | None = None,
     full_rescore: bool = True,
 ) -> tuple[str, bool, str]:
@@ -1375,10 +1326,10 @@ def enqueue_actions_rescore_task(
     반환: (task_id, created_new, error_message)
     """
     hn = canonical_hospital_name(hospital_name)
-    key = _task_key("actions_rescore", hn, month_label)
+    key = _task_key("actions_rescore", hn)
 
     if config_name is None:
-        config_name, err = build_runtime_config_for_rerun(month_label, hn)
+        config_name, err = build_runtime_config_for_rerun(hn)
         if not config_name:
             return "", False, err or "재채점 준비 실패"
 
@@ -1395,8 +1346,7 @@ def enqueue_actions_rescore_task(
             "kind": "actions_rescore",
             "status": "queued",
             "hospitalName": hn,
-            "monthLabel": month_label,
-            "message": f"{hn} · {month_label} 채점 준비중 (GitHub Actions 가상머신 부팅 대기, 약 10~30초)",
+            "message": f"{hn} 채점 준비중 (GitHub Actions 가상머신 부팅 대기, 약 10~30초)",
             "configName": config_name,
             "fullRescore": full_rescore,
             "runner": "github-actions",
@@ -1432,7 +1382,6 @@ def enqueue_actions_rescore_task(
         ok, dispatch_err = _trigger_github_actions_workflow(
             task_id=task_id,
             hospital_name=hn,
-            month_label=month_label,
             config_name=config_name,
             webhook_url=webhook_url,
             full_rescore=full_rescore,
@@ -1452,7 +1401,7 @@ def enqueue_actions_rescore_task(
         _set_task_status(
             task_id,
             status="queued",
-            message=f"{hn} · {month_label} 채점 가상머신 부팅중... (10~30초 소요)",
+            message=f"{hn} 채점 가상머신 부팅중... (10~30초 소요)",
             stage="dispatched",
         )
 
@@ -1479,14 +1428,13 @@ def _github_push_runtime_config(config_name: str) -> None:
 def enqueue_chunked_rescore_task(
     *,
     hospital_name: str,
-    month_label: str,
 ) -> tuple[str, bool]:
     """
     전체 재채점을 RESCORE_CHUNK_SIZE 키워드 단위로 분할 실행.
     반환: (task_id, created_new)
     """
     hn = canonical_hospital_name(hospital_name)
-    key = _task_key("chunked_rescore", hn, month_label)
+    key = _task_key("chunked_rescore", hn)
 
     with SCORE_TASKS_LOCK:
         active_id = ACTIVE_SCORE_TASK_BY_KEY.get(key)
@@ -1501,8 +1449,7 @@ def enqueue_chunked_rescore_task(
             "kind": "chunked_rescore",
             "status": "queued",
             "hospitalName": hn,
-            "monthLabel": month_label,
-            "message": f"{hn} · {month_label} 전체 재채점 대기중",
+            "message": f"{hn} 전체 재채점 대기중",
             "configName": None,
             "fullRescore": False,
             "createdAt": now_iso(),
@@ -1521,14 +1468,14 @@ def enqueue_chunked_rescore_task(
     def _worker() -> None:
         _set_task_status(task_id, status="running", startedAt=now_iso())
 
-        keywords = load_keywords_for_month(month_label, hn)
+        keywords = load_keywords_for_hospital(hn)
         if not keywords:
             _set_task_status(
                 task_id,
                 status="failed",
                 endedAt=now_iso(),
                 error="재채점할 키워드가 없습니다.",
-                message=f"{hn} · {month_label} 재채점 키워드 없음",
+                message=f"{hn} 재채점 키워드 없음",
             )
             with SCORE_TASKS_LOCK:
                 if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
@@ -1557,7 +1504,7 @@ def enqueue_chunked_rescore_task(
 
             with MERGE_LOCK:
                 config_name, err = build_runtime_config_for_rerun(
-                    month_label, hn, chunk_keywords=chunk
+                    hn, chunk_keywords=chunk
                 )
             if not config_name:
                 _set_task_status(
@@ -1565,7 +1512,7 @@ def enqueue_chunked_rescore_task(
                     status="failed",
                     endedAt=now_iso(),
                     error=err or "청크 config 생성 실패",
-                    message=f"{hn} · {month_label} 청크 {chunk_idx + 1}/{total_chunks} 실패",
+                    message=f"{hn} 청크 {chunk_idx + 1}/{total_chunks} 실패",
                 )
                 with SCORE_TASKS_LOCK:
                     if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
@@ -1588,7 +1535,7 @@ def enqueue_chunked_rescore_task(
                     endedAt=now_iso(),
                     log=trimmed,
                     error="채점 실행 실패",
-                    message=f"{hn} · {month_label} 청크 {chunk_idx + 1}/{total_chunks} 채점 실패",
+                    message=f"{hn} 청크 {chunk_idx + 1}/{total_chunks} 채점 실패",
                 )
                 with SCORE_TASKS_LOCK:
                     if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
@@ -1616,9 +1563,9 @@ def enqueue_chunked_rescore_task(
             endedAt=now_iso(),
             log=trimmed,
             message=(
-                f"{hn} · {month_label} 전체 재채점 완료"
+                f"{hn} 전체 재채점 완료"
                 if q_level not in {"warn", "low"}
-                else f"{hn} · {month_label} 전체 재채점 완료 (정확도 경고)"
+                else f"{hn} 전체 재채점 완료 (정확도 경고)"
             ),
             quality=quality_payload,
         )
@@ -1793,26 +1740,23 @@ def upload_keywords():
     if not keywords:
         return jsonify({"ok": False, "message": "유효한 키워드를 찾지 못했습니다."}), 400
 
-    month_label = required_month_label(request.form.get("month_label"))
-    if not month_label:
-        return jsonify({"ok": False, "message": "올바른 월을 선택해주세요."}), 400
     hospital_name = supported_hospital_name(request.form.get("hospital_name"))
     if not hospital_name:
         return jsonify({"ok": False, "message": "등록되지 않은 병원입니다."}), 400
     channel = normalize_keyword_channel(request.form.get("keyword_channel"))
     scope = normalize_keyword_scope(request.form.get("keyword_scope"))
     with SCORE_REQUEST_LOCK:
-        active = active_score_task_for_scope(hospital_name, month_label)
+        active = active_score_task_for_hospital(hospital_name)
         if active:
             return jsonify({
                 "ok": False,
-                "message": f"{hospital_name} · {month_label} 채점이 이미 진행 중입니다.",
+                "message": f"{hospital_name} 채점이 이미 진행 중입니다.",
                 "taskId": active.get("taskId"),
             }), 409
 
         with MERGE_LOCK:
             merged, config_name, added_count = update_keywords(
-                keywords, month_label, hospital_name, channel, scope
+                keywords, hospital_name, channel, scope
             )
         force_sync = (request.form.get("sync") or "").strip().lower() in {"1", "true", "yes"}
         if force_sync:
@@ -1823,17 +1767,15 @@ def upload_keywords():
                 {
                     "ok": True,
                     "accepted": False,
-                    "message": f"{hospital_name} · {month_label} 키워드 업로드 및 자동 채점 완료",
+                    "message": f"{hospital_name} 키워드 업로드 및 자동 채점 완료",
                     "count": len(merged),
                     "addedCount": added_count,
-                    "monthLabel": month_label,
                     "hospitalName": hospital_name,
                 }
             )
         if USE_GITHUB_ACTIONS_FOR_RESCORE:
             task_id, created_new, err = enqueue_actions_rescore_task(
                 hospital_name=hospital_name,
-                month_label=month_label,
                 config_name=config_name,
                 full_rescore=False,
             )
@@ -1846,19 +1788,17 @@ def upload_keywords():
                     "taskId": task_id,
                     "createdNewTask": created_new,
                     "runner": "github-actions",
-                    "message": f"{hospital_name} · {month_label} 키워드 채점 작업을 시작했습니다.",
+                    "message": f"{hospital_name} 키워드 채점 작업을 시작했습니다.",
                     "count": len(merged),
                     "addedCount": added_count,
-                    "monthLabel": month_label,
                     "hospitalName": hospital_name,
                 }
             ), 202
         task_id, created_new = enqueue_score_task(
             kind="upload_keywords",
             hospital_name=hospital_name,
-            month_label=month_label,
             config_name=config_name,
-            message=f"{hospital_name} · {month_label} 키워드 채점 대기중",
+            message=f"{hospital_name} 키워드 채점 대기중",
             meta={"count": len(merged)},
             full_rescore=False,
         )
@@ -1868,10 +1808,9 @@ def upload_keywords():
                 "accepted": True,
                 "taskId": task_id,
                 "createdNewTask": created_new,
-                "message": f"{hospital_name} · {month_label} 키워드 채점 작업을 시작했습니다.",
+                "message": f"{hospital_name} 키워드 채점 작업을 시작했습니다.",
                 "count": len(merged),
                 "addedCount": added_count,
-                "monthLabel": month_label,
                 "hospitalName": hospital_name,
             }
         ), 202
@@ -1882,31 +1821,28 @@ def delete_keyword_api():
     keyword = (request.form.get("keyword") or "").strip()
     if not keyword:
         return jsonify({"ok": False, "message": "삭제할 키워드를 입력해주세요."}), 400
-    month_label = required_month_label(request.form.get("month_label"))
-    if not month_label:
-        return jsonify({"ok": False, "message": "삭제할 월을 선택해주세요."}), 400
     hospital_name = supported_hospital_name(request.form.get("hospital_name"))
     if not hospital_name:
         return jsonify({"ok": False, "message": "등록되지 않은 병원입니다."}), 400
 
     with SCORE_REQUEST_LOCK:
-        active = active_score_task_for_scope(hospital_name, month_label)
+        active = active_score_task_for_hospital(hospital_name)
         if active:
             return jsonify({"ok": False, "message": "채점 진행 중에는 키워드를 삭제할 수 없습니다."}), 409
-        cfg_deleted, remain = delete_keyword(keyword, month_label, hospital_name)
+        cfg_deleted, remain = delete_keyword(keyword, hospital_name)
         with MERGE_LOCK:
             data_deleted, removed_rows = delete_keyword_from_scoring_data(
-                keyword, month_label, hospital_name
+                keyword, hospital_name
             )
             ev_deleted = delete_keyword_from_evidence(keyword, hospital_name)
         if not (cfg_deleted or data_deleted or ev_deleted):
-            return jsonify({"ok": False, "message": "선택한 병원·월에서 키워드를 찾지 못했습니다."}), 404
+            return jsonify({"ok": False, "message": "선택한 병원에서 키워드를 찾지 못했습니다."}), 404
         if data_deleted:
             threading.Thread(target=_github_push_scoring_files, daemon=True).start()
         return jsonify(
             {
                 "ok": True,
-                "message": f"{hospital_name} · {month_label} 키워드 삭제 완료: {keyword}",
+                "message": f"{hospital_name} 키워드 삭제 완료: {keyword}",
                 "remaining": remain,
                 "removedRows": removed_rows,
             }
@@ -1918,21 +1854,17 @@ def run_score():
     hospital_name = supported_hospital_name(request.form.get("hospital_name"))
     if not hospital_name:
         return jsonify({"ok": False, "message": "등록되지 않은 병원입니다."}), 400
-    month_label = required_month_label(request.form.get("month_label"))
-    if not month_label:
-        return jsonify({"ok": False, "message": "올바른 월을 선택해주세요."}), 400
-
     with SCORE_REQUEST_LOCK:
-        active = active_score_task_for_scope(hospital_name, month_label)
+        active = active_score_task_for_hospital(hospital_name)
         if active:
             return jsonify({
                 "ok": False,
-                "message": f"{hospital_name} · {month_label} 채점이 이미 진행 중입니다.",
+                "message": f"{hospital_name} 채점이 이미 진행 중입니다.",
                 "taskId": active.get("taskId"),
             }), 409
-        # 조기 검증: 선택 월·병원 데이터 존재 확인. 생성한 동일 config를 Actions에도 전달한다.
+        # 조기 검증: 선택 병원 데이터 존재 확인. 생성한 동일 config를 Actions에도 전달한다.
         with MERGE_LOCK:
-            check_name, check_err = build_runtime_config_for_rerun(month_label, hospital_name)
+            check_name, check_err = build_runtime_config_for_rerun(hospital_name)
         if not check_name:
             return jsonify({"ok": False, "message": check_err or "재채점 준비 실패"}), 400
         force_sync = (request.form.get("sync") or "").strip().lower() in {"1", "true", "yes"}
@@ -1942,7 +1874,6 @@ def run_score():
         if USE_GITHUB_ACTIONS_FOR_RESCORE:
             task_id, created_new, err = enqueue_actions_rescore_task(
                 hospital_name=hospital_name,
-                month_label=month_label,
                 config_name=check_name,
             )
             if not task_id:
@@ -1963,10 +1894,7 @@ def run_score():
                 "runner": "github-actions",
                 "message": "GitHub Actions 채점 작업을 시작했습니다. 가상머신 부팅 후 실행됩니다 (10~30초).",
             }), 202
-        task_id, created_new = enqueue_chunked_rescore_task(
-            hospital_name=hospital_name,
-            month_label=month_label,
-        )
+        task_id, created_new = enqueue_chunked_rescore_task(hospital_name=hospital_name)
         return jsonify({"ok": True, "accepted": True, "taskId": task_id, "createdNewTask": created_new}), 202
 
 
@@ -2020,8 +1948,7 @@ def webhook_score_progress():
             patch["error"] = msg
         kind = str(cur.get("kind") or "")
         hn = str(cur.get("hospitalName") or "")
-        ml = str(cur.get("monthLabel") or "")
-        key = _task_key(kind, hn, ml)
+        key = _task_key(kind, hn)
         with SCORE_TASKS_LOCK:
             if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
                 ACTIVE_SCORE_TASK_BY_KEY.pop(key, None)
@@ -2121,8 +2048,7 @@ def cancel_rescore():
         with SCORE_TASKS_LOCK:
             task = SCORE_TASKS.get(task_id, {})
             key = _task_key(str(task.get("kind") or ""),
-                            str(task.get("hospitalName") or ""),
-                            str(task.get("monthLabel") or ""))
+                            str(task.get("hospitalName") or ""))
             if ACTIVE_SCORE_TASK_BY_KEY.get(key) == task_id:
                 ACTIVE_SCORE_TASK_BY_KEY.pop(key, None)
 

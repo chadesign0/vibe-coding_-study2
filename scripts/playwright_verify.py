@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Playwright 보조 채점: 1차 채점에서 전 채널 0점인 키워드만 헤드리스 브라우저로 재검증.
+"""Playwright 자동 교차검증: 0점과 양수 점수 표본을 헤드리스 브라우저로 검증.
 
 NAVER 공식 API + HTTP fetch로는 잡히지 않는 경우 — JS 렌더링/lazy-load 후의 통합검색 페이지 DOM에서
 영역별로 hospital 매칭을 다시 시도. 영역→채점 컬럼 매핑은 스코프상 6개 채널만 다룬다.
@@ -33,9 +33,13 @@ from build_month import (
     text_has_naver_blog_id,
 )
 
-_UA = (
+_PC_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+)
+_MOBILE_UA = (
+    "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
 )
 
 # 페이지당 처리 대기시간 (ms)
@@ -80,6 +84,7 @@ async def _extract_blog_tab_official_rank(
     page,
     keyword: str,
     official_blog_ids: frozenset[str],
+    device: str = "pc",
 ) -> tuple[int, dict[str, Any]]:
     """블로그 전용 탭(where=blog)을 풀 렌더링해서 공식 블로그 ID 노출 rank 추출.
 
@@ -91,7 +96,8 @@ async def _extract_blog_tab_official_rank(
     ev: dict[str, Any] = {"source": "blog_tab_playwright", "where": "search.naver.com?where=blog"}
     if not official_blog_ids:
         return 0, ev
-    url = "https://search.naver.com/search.naver?where=blog&query=" + quote_plus(keyword)
+    host = "m.search.naver.com" if device == "mobile" else "search.naver.com"
+    url = f"https://{host}/search.naver?where=blog&query=" + quote_plus(keyword)
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=_GOTO_TIMEOUT)
     except Exception as e:
@@ -164,6 +170,7 @@ async def _verify_one(
     official_blog_ids: frozenset[str],
     *,
     do_blog_tab: bool = False,
+    device: str = "pc",
 ) -> dict[str, dict[str, Any]]:
     """단일 키워드 검증 — 매칭된 channel별 {rank, source, evidence} 반환.
 
@@ -171,8 +178,9 @@ async def _verify_one(
     반환 schema: {channel: {"rank": int, "source": str, "evidence": dict}}
     """
     out: dict[str, dict[str, Any]] = {}
+    host = "m.search.naver.com" if device == "mobile" else "search.naver.com"
     url = (
-        "https://search.naver.com/search.naver?where=nexearch&sm=tab_jum"
+        f"https://{host}/search.naver?where=nexearch&sm=tab_jum"
         "&ssc=tab.nx.all&query=" + quote_plus(keyword)
     )
     try:
@@ -185,6 +193,7 @@ async def _verify_one(
         html = await page.content()
     except Exception:
         return out
+    out["__meta__"] = {"loaded": True, "device": device}
 
     # 1. WEB — 외부 organic 결과
     rank, _ev = _find_web_rank_by_url(html, match_tokens, official_blog_ids)
@@ -226,10 +235,18 @@ async def _verify_one(
     # 7. BLOG (강화) — 블로그 전용 탭 풀 렌더링에서 1~10위 안 공식 블로그 ID 매칭
     # 이미 통합검색에서 잡혔어도 더 정확한 rank 산정을 위해 시도
     if do_blog_tab and official_blog_ids:
-        bt_rank, bt_ev = await _extract_blog_tab_official_rank(page, keyword, official_blog_ids)
+        bt_rank, bt_ev = await _extract_blog_tab_official_rank(
+            page, keyword, official_blog_ids, device
+        )
         if bt_rank > 0:
             # 블로그탭 rank를 우선 (사용자 view에 더 가까운 source)
-            out["blog"] = {"rank": bt_rank, "source": "blog_tab_dom", "evidence": bt_ev}
+            integrated_rank = int((out.get("blog") or {}).get("rank") or 0)
+            out["blog"] = {
+                "rank": bt_rank,
+                "source": "blog_tab_dom",
+                "evidence": bt_ev,
+                "integratedExposureRank": integrated_rank,
+            }
         else:
             # 못 찾았으면 evidence만 — 점수 부여 X
             existing = out.get("blog")
@@ -247,8 +264,9 @@ async def _verify_all(
     match_tokens: list[str],
     official_blog_ids: frozenset[str],
     blog_tab_keywords: frozenset[str] = frozenset(),
+    device: str = "pc",
 ) -> dict[str, dict[str, dict[str, Any]]]:
-    """전체 0점 keyword 순차 처리. 동시성은 throttle 위험으로 1.
+    """검증 대상 keyword를 순차 처리한다. 동시성은 throttle 위험으로 1.
 
     blog_tab_keywords: 이 집합에 속한 키워드는 블로그 전용탭(where=blog) 풀 렌더링도 추가 실행.
       (PostSearchList/openapi 사전 필터를 통과한 키워드만 비싼 블로그탭 verify를 돌림)
@@ -261,8 +279,10 @@ async def _verify_all(
         browser = await p.chromium.launch(headless=True)
         try:
             ctx = await browser.new_context(
-                user_agent=_UA,
-                viewport={"width": 1366, "height": 800},
+                user_agent=_MOBILE_UA if device == "mobile" else _PC_UA,
+                viewport={"width": 412, "height": 915} if device == "mobile" else {"width": 1366, "height": 800},
+                is_mobile=device == "mobile",
+                has_touch=device == "mobile",
                 locale="ko-KR",
             )
             page = await ctx.new_page()
@@ -272,7 +292,12 @@ async def _verify_all(
                 print(f"  [pw {i}/{total}]{tag} {kw}", flush=True)
                 try:
                     results[kw] = await _verify_one(
-                        page, kw, match_tokens, official_blog_ids, do_blog_tab=do_blog
+                        page,
+                        kw,
+                        match_tokens,
+                        official_blog_ids,
+                        do_blog_tab=do_blog,
+                        device=device,
                     )
                 except Exception as e:
                     print(f"    예외: {e!r}", flush=True)
@@ -283,15 +308,16 @@ async def _verify_all(
     return results
 
 
-def verify_zero_keywords(
+def verify_keywords(
     keywords: list[str],
     match_tokens: list[str],
     official_blog_ids: frozenset[str],
     blog_tab_keywords: frozenset[str] = frozenset(),
+    device: str = "pc",
 ) -> dict[str, dict[str, dict[str, Any]]]:
     """동기 진입점 — build_month.py에서 호출.
 
-    keywords: 1차 채점에서 powerlink/bizsite/map/blog/news/video/web 모두 0점인 키워드.
+    keywords: 1차 채점 뒤 자동 교차검증할 0점·양수 점수 표본.
     blog_tab_keywords: 그 중 블로그 전용탭(where=blog) 추가 verify 대상 (사전 필터 통과).
     반환: {keyword: {channel: {rank, source, evidence?}}}
     """
@@ -299,7 +325,13 @@ def verify_zero_keywords(
         return {}
     try:
         return asyncio.run(
-            _verify_all(keywords, match_tokens, official_blog_ids, blog_tab_keywords)
+            _verify_all(
+                keywords,
+                match_tokens,
+                official_blog_ids,
+                blog_tab_keywords,
+                device,
+            )
         )
     except Exception as e:
         print(f"[playwright_verify] 전체 실패 (무시): {e!r}", flush=True)

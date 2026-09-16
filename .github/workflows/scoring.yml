@@ -9,9 +9,6 @@ on:
       hospital_name:
         description: '병원명 (예: 포인트병원)'
         required: true
-      month_label:
-        description: '월 라벨 (예: 4월)'
-        required: true
       config_name:
         description: 'config 폴더 내 runtime config 파일명'
         required: true
@@ -27,7 +24,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: scoring-${{ inputs.hospital_name }}-${{ inputs.month_label }}
+  group: scoring-${{ inputs.hospital_name }}
   cancel-in-progress: false
 
 jobs:
@@ -52,7 +49,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          # Playwright 브라우저 설치 — 전 채널 0점 키워드 보조 채점에 사용 (PLAYWRIGHT_VERIFY_ENABLED 제어)
+          # Playwright 브라우저 설치 — 0점·양수 점수 자동 교차검증에 사용
           python -m playwright install --with-deps chromium
 
       - name: 4. 시작 webhook 통지
@@ -80,6 +77,7 @@ jobs:
           SCORING_WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           SCORING_VERIFY_SAMPLE: ${{ vars.SCORING_VERIFY_SAMPLE || '1' }}
           PLAYWRIGHT_VERIFY_ENABLED: ${{ vars.PLAYWRIGHT_VERIFY_ENABLED || '1' }}
+          PLAYWRIGHT_AUDIT_SIZE: ${{ vars.PLAYWRIGHT_AUDIT_SIZE || '12' }}
           NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
           NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
           NAVER_AD_API_KEY: ${{ secrets.NAVER_AD_API_KEY }}
@@ -181,11 +179,10 @@ jobs:
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           TASK_ID: ${{ inputs.task_id }}
           HOSPITAL_NAME: ${{ inputs.hospital_name }}
-          MONTH_LABEL: ${{ inputs.month_label }}
           RUN_ID: ${{ github.run_id }}
         run: |
           PAYLOAD=$(jq -cn \
-            --arg taskId "$TASK_ID" --arg message "$HOSPITAL_NAME · $MONTH_LABEL 채점 완료" \
+            --arg taskId "$TASK_ID" --arg message "$HOSPITAL_NAME 채점 완료" \
             --arg quality "$QUALITY_LINE" --arg runId "$RUN_ID" \
             '{taskId:$taskId,status:"succeeded",message:$message,quality:$quality,runId:$runId}')
           curl -sS -X POST "$WEBHOOK_URL" \
